@@ -73,6 +73,7 @@ class SuitePolicy(StrictModel):
     policy_id: Identifier
     suite_id: Identifier
     policy_sha256: ArtifactHash
+    prometheus_url: str | None = None
     metrics: tuple[MetricPolicy, ...] = Field(min_length=1)
     comparison_mode: ComparisonMode = ComparisonMode.AUTO
     min_current_runs: PositiveInteger = 5

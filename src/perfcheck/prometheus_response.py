@@ -180,7 +180,20 @@ def _validate_single_series(
     match series:
         case {"metric": dict() as labels, "values": list() as values}:
             parsed_labels = _string_labels(labels)
-            if parsed_labels is None or parsed_labels != dict(query.expected_labels):
+            if parsed_labels is None:
+                return _failure(
+                    FailureKind.UNEXPECTED_LABELS,
+                    "matrix labels differ from policy",
+                    request,
+                    response,
+                )
+            expected_names = query.expected_label_names
+            labels_are_valid = (
+                tuple(sorted(parsed_labels)) == expected_names
+                if expected_names is not None
+                else parsed_labels == dict(query.expected_labels)
+            )
+            if not labels_are_valid:
                 return _failure(
                     FailureKind.UNEXPECTED_LABELS,
                     "matrix labels differ from policy",

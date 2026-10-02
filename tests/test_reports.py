@@ -1,0 +1,152 @@
+import json
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
+
+from perfcheck.collection_models import SourceInterval
+from perfcheck.comparison_models import ComparisonCohorts
+from perfcheck.model_types import Direction, MetricAvailability, MetricUnit, Statistic
+from perfcheck.policy import comparison_fingerprint
+from perfcheck.policy_models import MetricPolicy, SuitePolicy
+from perfcheck.regression import Cohort, MetricExclusion, evaluate_regression
+from perfcheck.report import build_report, render_json_report, render_markdown_report
+from perfcheck.summary_models import (
+    EligibilityResult,
+    MetricSummary,
+    SummaryArtifact,
+    SummaryMetricRecord,
+)
+
+_BASE = datetime(2026, 1, 1, tzinfo=UTC)
+
+
+def _policy() -> SuitePolicy:
+    return SuitePolicy(
+        policy_id="policy-1",
+        suite_id="suite-1",
+        policy_sha256="a" * 64,
+        metrics=(
+            MetricPolicy(
+                metric_id="zeta",
+                query="zeta_seconds",
+                unit=MetricUnit.SECONDS,
+                direction=Direction.HIGHER_IS_WORSE,
+                statistic=Statistic.P99,
+                practical_threshold=5.0,
+                step_seconds=15,
+                rate_window_seconds=60,
+            ),
+            MetricPolicy(
+                metric_id="alpha",
+                query="alpha_seconds",
+                unit=MetricUnit.SECONDS,
+                direction=Direction.HIGHER_IS_WORSE,
+                statistic=Statistic.P99,
+                practical_threshold=5.0,
+                step_seconds=15,
+                rate_window_seconds=60,
+            ),
+        ),
+    )
+
+
+def _summary(
+    policy: SuitePolicy, *, index: int, values: tuple[float, float]
+) -> SummaryArtifact:
+    start = _BASE + timedelta(hours=index)
+    eligibility = EligibilityResult(
+        eligible=True,
+        reason=None,
+        analysis_start=start,
+        analysis_end=start + timedelta(minutes=10),
+        retained_points=21,
+        expected_points=41,
+        coverage=0.8,
+    )
+    return SummaryArtifact(
+        content_sha256=f"{index:064x}",
+        summary_id=f"summary-{index}",
+        source_run_id=f"run-{index}",
+        source_content_sha256=f"{index + 100:064x}",
+        source_interval=SourceInterval(start=start, end=start + timedelta(minutes=10)),
+        policy_sha256=policy.policy_sha256,
+        policy_snapshot=policy,
+        metric_records=tuple(
+            SummaryMetricRecord(
+                metric_id=metric.metric_id,
+                availability=MetricAvailability.AVAILABLE,
+                summary=MetricSummary(
+                    statistic=metric.statistic,
+                    value=value,
+                    point_count=21,
+                    compatibility_fingerprint=comparison_fingerprint(policy, metric),
+                    eligibility=eligibility,
+                ),
+            )
+            for metric, value in zip(policy.metrics, values, strict=True)
+        ),
+    )
+
+
+def _inputs() -> tuple[SuitePolicy, ComparisonCohorts]:
+    policy = _policy()
+    return (
+        policy,
+        ComparisonCohorts(
+            current=tuple(
+                _summary(policy, index=index, values=(16.0, 14.0))
+                for index in range(1, 6)
+            ),
+            baseline=tuple(
+                _summary(policy, index=index, values=(10.0, 10.0))
+                for index in range(10, 20)
+            ),
+        ),
+    )
+
+
+def test_render_json_report_is_canonical_and_lexically_orders_metrics() -> None:
+    # Given: a policy declared out of lexical metric order and a deterministic result.
+    policy, cohorts = _inputs()
+    outcome = evaluate_regression(policy, cohorts)
+
+    # When: the evaluated report is rendered twice as JSON.
+    report = build_report(policy, cohorts, outcome)
+    rendered = render_json_report(report)
+
+    # Then: it is canonical JSON with a final LF and lexical metric order.
+    assert rendered == render_json_report(report)
+    assert rendered.endswith("\n")
+    payload = json.loads(rendered)
+    assert [metric["metric_id"] for metric in payload["metrics"]] == ["alpha", "zeta"]
+    assert payload["metrics"][0]["current"]["values"][0]["value"] == 14
+    assert "input_paths" not in payload["provenance"]
+
+
+def test_render_markdown_report_escapes_cells_and_formats_signed_values() -> None:
+    # Given: report evidence with punctuation and a newline in an exclusion reason.
+    policy, cohorts = _inputs()
+    outcome = evaluate_regression(policy, cohorts)
+    altered = replace(
+        outcome.metrics[0],
+        exclusions=(
+            MetricExclusion(
+                cohort=Cohort.CURRENT,
+                source_run_id="run-1",
+                reason="bad|`cell\nnext",
+            ),
+        ),
+    )
+    report = build_report(
+        policy,
+        cohorts,
+        replace(outcome, metrics=(altered, *outcome.metrics[1:])),
+    )
+
+    # When: the report is rendered as Markdown.
+    rendered = render_markdown_report(report)
+
+    # Then: all table cells are safe and every numeric presentation is signed.
+    assert "bad\\|\\`cell<br>next" in rendered
+    assert "+14.000000" in rendered
+    assert "+5.000000" in rendered
+    assert "\r" not in rendered

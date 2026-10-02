@@ -43,6 +43,7 @@ class RangeQuery:
     end: datetime
     step_seconds: int
     expected_labels: Mapping[str, str]
+    expected_label_names: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True, slots=True)

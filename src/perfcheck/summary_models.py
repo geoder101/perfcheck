@@ -1,11 +1,10 @@
 """Strict version-one summary artifact records."""
 
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from pydantic import Field, field_validator, model_validator
 
 from perfcheck.artifact_validation import (
-    validate_interval,
     validate_utc,
 )
 from perfcheck.collection_models import CollectionFailure, SourceInterval
@@ -31,6 +30,8 @@ from perfcheck.policy_models import SuitePolicy
 if TYPE_CHECKING:
     from datetime import datetime
 
+type NonNegativeFiniteFloat = Annotated[float, Field(ge=0.0, allow_inf_nan=False)]
+
 
 class EligibilityResult(StrictModel):
     """Persisted per-run eligibility evidence for a summarized metric."""
@@ -42,6 +43,11 @@ class EligibilityResult(StrictModel):
     retained_points: NonNegativeInteger
     expected_points: PositiveInteger
     coverage: Fraction
+    analysis_duration_seconds: NonNegativeFiniteFloat = 0.0
+    leading_gap_seconds: NonNegativeFiniteFloat = 0.0
+    max_adjacent_gap_seconds: NonNegativeFiniteFloat = 0.0
+    trailing_gap_seconds: NonNegativeFiniteFloat = 0.0
+    max_allowed_gap_seconds: NonNegativeFiniteFloat = 0.0
 
     @field_validator("analysis_start", "analysis_end")
     @classmethod
@@ -52,7 +58,8 @@ class EligibilityResult(StrictModel):
     @model_validator(mode="after")
     def validate_eligibility(self) -> Self:
         """Require reason and selected-value availability to agree."""
-        validate_interval(self.analysis_start, self.analysis_end)
+        if self.analysis_end < self.analysis_start:
+            raise ArtifactSchemaError(ArtifactSchemaCode.INVALID_INTERVAL)
         if self.eligible != (self.reason is None):
             raise ArtifactSchemaError(ArtifactSchemaCode.ELIGIBILITY_REASON_MISMATCH)
         return self

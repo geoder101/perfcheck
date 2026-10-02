@@ -33,6 +33,7 @@ __all__ = [
     "QueryProvenance",
     "RangeQuery",
     "ResponseProvenance",
+    "resolve_endpoint",
 ]
 
 _API_PATH: Final = "/api/v1/query_range"
@@ -56,7 +57,7 @@ class PrometheusQueryRangeCollector:
     ) -> CollectionResult:
         """Collect and classify one policy metric without local aggregation."""
         selected_url = prometheus_url_override or range_query.prometheus_url
-        endpoint = _resolve_endpoint(selected_url)
+        endpoint = resolve_endpoint(selected_url)
         if endpoint is None:
             return CollectionFailure(
                 kind=FailureKind.UNSAFE_ENDPOINT,
@@ -116,7 +117,7 @@ class PrometheusQueryRangeCollector:
         return classify_success(range_query, request, response)
 
 
-def _resolve_endpoint(raw_url: str) -> str | None:
+def resolve_endpoint(raw_url: str) -> str | None:
     """Return the canonical query_range endpoint for a safe base URL."""
     try:
         parts = urlsplit(raw_url)
