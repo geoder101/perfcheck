@@ -1,9 +1,18 @@
 """Strict shared types and enumerations for versioned artifacts."""
 
+import re
+from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Final, Literal
+from typing import TYPE_CHECKING, Annotated, Final, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, GetCoreSchemaHandler
+from pydantic_core import core_schema
+
+from perfcheck.errors import ArtifactSchemaCode, ArtifactSchemaError
+
+if TYPE_CHECKING:
+    from pydantic.annotated_handlers import GetJsonSchemaHandler
+    from pydantic.json_schema import JsonSchemaValue
 
 _OK_STATUS: Final = "pass"
 
@@ -16,6 +25,51 @@ type Fraction = Annotated[float, Field(ge=0.0, le=1.0, allow_inf_nan=False)]
 type PositiveInteger = Annotated[int, Field(gt=0)]
 type NonNegativeInteger = Annotated[int, Field(ge=0)]
 type HttpStatusCode = Annotated[int, Field(ge=100, le=599)]
+
+_RFC3339_UTC_INSTANT: Final[re.Pattern[str]] = re.compile(
+    r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|\+00:00)"
+)
+
+
+def _validate_rfc3339_utc_text(value: str) -> str:
+    if _RFC3339_UTC_INSTANT.fullmatch(value):
+        return value
+    raise ArtifactSchemaError(ArtifactSchemaCode.INVALID_TIMESTAMP_FORMAT)
+
+
+class _Rfc3339UtcTimestamp:
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        _source_type: type[datetime],
+        _handler: GetCoreSchemaHandler,
+    ) -> core_schema.CoreSchema:
+        json_schema = core_schema.chain_schema(
+            [
+                core_schema.str_schema(strict=True),
+                core_schema.no_info_plain_validator_function(
+                    _validate_rfc3339_utc_text
+                ),
+                core_schema.datetime_schema(strict=False, tz_constraint="aware"),
+            ]
+        )
+        return core_schema.json_or_python_schema(
+            json_schema=json_schema,
+            python_schema=core_schema.datetime_schema(
+                strict=True, tz_constraint="aware"
+            ),
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls,
+        _core_schema: core_schema.CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        return handler(core_schema.datetime_schema(tz_constraint="aware"))
+
+
+type Rfc3339UtcDatetime = Annotated[datetime, _Rfc3339UtcTimestamp]
 
 
 class ArtifactKind(StrEnum):

@@ -12,8 +12,11 @@ class ArtifactSchemaCode(StrEnum):
     """Stable typed validation failure messages for public schemas."""
 
     NON_UTC_TIMESTAMP = "timestamp must use UTC"
+    INVALID_TIMESTAMP_FORMAT = "timestamp must use RFC-3339 UTC syntax"
     INVALID_INTERVAL = "interval end must follow start"
     CREDENTIAL_LABEL = "sensitive label names are not permitted"
+    CREDENTIAL_LABEL_VALUE = "sensitive label values are not permitted"
+    CREDENTIAL_METADATA = "run metadata must not contain credentials"
     DUPLICATE_LABEL = "series labels must be unique"
     LABEL_ORDER = "series labels must be sorted"
     INVALID_SAMPLE_ORDER = "sample timestamps must strictly increase"
@@ -41,6 +44,7 @@ class ArtifactSchemaCode(StrEnum):
     DUPLICATE_SOURCE_RUN = "duplicate source run identifiers are invalid"
     DUPLICATE_SOURCE_CONTENT = "duplicate source content hashes are invalid"
     INVALID_COMPARISON_OPTIONS = "comparison options must agree with method"
+    DUPLICATE_REPORT_METRIC = "duplicate report metric identifiers are invalid"
 
 
 @dataclass(frozen=True, slots=True)

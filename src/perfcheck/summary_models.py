@@ -1,10 +1,13 @@
 """Strict version-one summary artifact records."""
 
-from typing import Literal, Self
+from typing import TYPE_CHECKING, Literal, Self
 
-from pydantic import AwareDatetime, Field, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 
-from perfcheck.artifact_validation import validate_interval, validate_utc
+from perfcheck.artifact_validation import (
+    validate_interval,
+    validate_utc,
+)
 from perfcheck.collection_models import CollectionFailure, SourceInterval
 from perfcheck.errors import ArtifactSchemaCode, ArtifactSchemaError
 from perfcheck.model_types import (
@@ -19,10 +22,14 @@ from perfcheck.model_types import (
     MetricAvailability,
     NonNegativeInteger,
     PositiveInteger,
+    Rfc3339UtcDatetime,
     Statistic,
     StrictModel,
 )
 from perfcheck.policy_models import SuitePolicy
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class EligibilityResult(StrictModel):
@@ -30,15 +37,15 @@ class EligibilityResult(StrictModel):
 
     eligible: bool
     reason: EligibilityReason | None
-    analysis_start: AwareDatetime
-    analysis_end: AwareDatetime
+    analysis_start: Rfc3339UtcDatetime
+    analysis_end: Rfc3339UtcDatetime
     retained_points: NonNegativeInteger
     expected_points: PositiveInteger
     coverage: Fraction
 
     @field_validator("analysis_start", "analysis_end")
     @classmethod
-    def validate_utc_timestamp(cls, value: AwareDatetime) -> AwareDatetime:
+    def validate_utc_timestamp(cls, value: datetime) -> datetime:
         """Require an RFC-3339 instant in UTC."""
         return validate_utc(value)
 

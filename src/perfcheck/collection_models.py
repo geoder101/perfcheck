@@ -1,6 +1,6 @@
 """Strict raw collection records for version-one run artifacts."""
 
-from typing import Literal, Self
+from typing import TYPE_CHECKING, Literal, Self
 from urllib.parse import urlsplit
 
 from pydantic import AwareDatetime, Field, field_validator, model_validator
@@ -21,19 +21,23 @@ from perfcheck.model_types import (
     NonBlankText,
     PositiveInteger,
     PrometheusStatus,
+    Rfc3339UtcDatetime,
     StrictModel,
 )
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 class SourceInterval(StrictModel):
     """Immutable inclusive source bounds for raw and summary artifacts."""
 
-    start: AwareDatetime
-    end: AwareDatetime
+    start: Rfc3339UtcDatetime
+    end: Rfc3339UtcDatetime
 
     @field_validator("start", "end")
     @classmethod
-    def validate_utc_timestamp(cls, value: AwareDatetime) -> AwareDatetime:
+    def validate_utc_timestamp(cls, value: datetime) -> datetime:
         """Require an RFC-3339 instant in UTC."""
         return validate_utc(value)
 
@@ -58,16 +62,24 @@ class Label(StrictModel):
             raise ArtifactSchemaError(ArtifactSchemaCode.CREDENTIAL_LABEL)
         return value
 
+    @field_validator("value")
+    @classmethod
+    def reject_sensitive_value(cls, value: str) -> str:
+        """Prevent request credentials entering persisted label values."""
+        if contains_secret(value):
+            raise ArtifactSchemaError(ArtifactSchemaCode.CREDENTIAL_LABEL_VALUE)
+        return value
+
 
 class FloatSample(StrictModel):
     """One finite UTC timestamped sample from a matrix series."""
 
-    timestamp: AwareDatetime
+    timestamp: Rfc3339UtcDatetime
     value: FiniteFloat
 
     @field_validator("timestamp")
     @classmethod
-    def validate_utc_timestamp(cls, value: AwareDatetime) -> AwareDatetime:
+    def validate_utc_timestamp(cls, value: datetime) -> datetime:
         """Require an RFC-3339 instant in UTC."""
         return validate_utc(value)
 

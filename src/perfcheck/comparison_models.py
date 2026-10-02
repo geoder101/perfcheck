@@ -88,3 +88,14 @@ class ComparisonReport(StrictModel):
     suite_status: Status
     cohorts: ComparisonCohorts
     metric_results: tuple[ComparisonResult, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_contract(self) -> Self:
+        """Require reports to retain one policy and one result per metric."""
+        summaries = self.cohorts.current + self.cohorts.baseline
+        if any(summary.policy_sha256 != self.policy_sha256 for summary in summaries):
+            raise ArtifactSchemaError(ArtifactSchemaCode.POLICY_HASH_MISMATCH)
+        metric_ids = tuple(result.metric_id for result in self.metric_results)
+        if len(metric_ids) != len(set(metric_ids)):
+            raise ArtifactSchemaError(ArtifactSchemaCode.DUPLICATE_REPORT_METRIC)
+        return self

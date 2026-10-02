@@ -2,8 +2,9 @@
 
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
+from perfcheck.artifact_validation import contains_secret
 from perfcheck.collection_models import MetricCollectionRecord, SourceInterval
 from perfcheck.errors import ArtifactSchemaCode, ArtifactSchemaError
 from perfcheck.model_types import (
@@ -24,6 +25,16 @@ class RunMetadata(StrictModel):
     environment: NonBlankText
     scenario: NonBlankText
     target_topology: NonBlankText
+
+    @field_validator(
+        "test_name", "git_sha", "environment", "scenario", "target_topology"
+    )
+    @classmethod
+    def reject_secret_text(cls, value: str) -> str:
+        """Prevent request credentials entering persisted run metadata."""
+        if contains_secret(value):
+            raise ArtifactSchemaError(ArtifactSchemaCode.CREDENTIAL_METADATA)
+        return value
 
 
 class RunArtifact(StrictModel):
