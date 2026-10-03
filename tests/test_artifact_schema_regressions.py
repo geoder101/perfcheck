@@ -18,9 +18,7 @@ from test_artifact_schema import VALID_RUN_JSON, valid_summary_json
     ("invalid_json", "field_name"),
     [
         (
-            VALID_RUN_JSON.replace(
-                "2026-01-01T00:00:00Z", "2026-01-01 00:00:00Z", 1
-            ),
+            VALID_RUN_JSON.replace("2026-01-01T00:00:00Z", "2026-01-01 00:00:00Z", 1),
             "start",
         ),
         (
@@ -30,9 +28,7 @@ from test_artifact_schema import VALID_RUN_JSON, valid_summary_json
             "environment",
         ),
         (
-            VALID_RUN_JSON.replace(
-                '"value": "api"', '"value": "Bearer top-secret"'
-            ),
+            VALID_RUN_JSON.replace('"value": "api"', '"value": "Bearer top-secret"'),
             "value",
         ),
     ],

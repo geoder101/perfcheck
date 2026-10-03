@@ -13,6 +13,8 @@ _SECRET_MARKERS: Final = (
     "password=",
     "token=",
 )
+
+
 def validate_utc(value: datetime) -> datetime:
     """Require an RFC-3339 instant in UTC."""
     if value.utcoffset() != timedelta(0):

@@ -46,9 +46,7 @@ def _policy() -> SuitePolicy:
             ),
         ),
     )
-    return initial.model_copy(
-        update={"policy_sha256": policy_content_sha256(initial)}
-    )
+    return initial.model_copy(update={"policy_sha256": policy_content_sha256(initial)})
 
 
 def _write_policy(path: Path, policy: SuitePolicy) -> None:

@@ -46,9 +46,7 @@ def _policy() -> SuitePolicy:
             ),
         ),
     )
-    return initial.model_copy(
-        update={"policy_sha256": policy_content_sha256(initial)}
-    )
+    return initial.model_copy(update={"policy_sha256": policy_content_sha256(initial)})
 
 
 def _run(policy: SuitePolicy, index: int, value: float) -> RunArtifact:
@@ -153,18 +151,21 @@ def test_compare_json_writes_exactly_one_report_to_stdout(tmp_path: Path) -> Non
         (current_raw, current_summary),
         (baseline_raw, baseline_summary),
     ):
-        assert runner.invoke(
-            app,
-            [
-                "summarize",
-                "--policy",
-                str(policy_path),
-                "--run",
-                str(raw_path),
-                "--out",
-                str(summary_path),
-            ],
-        ).exit_code == 0
+        assert (
+            runner.invoke(
+                app,
+                [
+                    "summarize",
+                    "--policy",
+                    str(policy_path),
+                    "--run",
+                    str(raw_path),
+                    "--out",
+                    str(summary_path),
+                ],
+            ).exit_code
+            == 0
+        )
 
     # When: compare is asked for machine-readable stdout.
     result = runner.invoke(

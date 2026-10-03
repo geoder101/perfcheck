@@ -293,21 +293,25 @@ def _markdown_metric(metric: ReportMetric) -> str:
             f"to {_number(metric.diagnostic_upper_bound)}"
         )
     )
-    return "| " + " | ".join(
-        (
-            _escape(metric.metric_id),
-            _escape(metric.statistic),
-            _escape(metric.status),
-            _cohort_values(metric.current),
-            _cohort_values(metric.baseline),
-            _number(metric.effect),
-            ci,
-            _number(metric.practical_threshold),
-            _escape(str(metric.sample_size_warning)),
-            _escape(metric.comparison_fingerprint),
-            _escape(metric.reason or "-"),
+    return (
+        "| "
+        + " | ".join(
+            (
+                _escape(metric.metric_id),
+                _escape(metric.statistic),
+                _escape(metric.status),
+                _cohort_values(metric.current),
+                _cohort_values(metric.baseline),
+                _number(metric.effect),
+                ci,
+                _number(metric.practical_threshold),
+                _escape(str(metric.sample_size_warning)),
+                _escape(metric.comparison_fingerprint),
+                _escape(metric.reason or "-"),
+            )
         )
-    ) + " |"
+        + " |"
+    )
 
 
 def _number(value: float | None) -> str:
