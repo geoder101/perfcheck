@@ -32,10 +32,14 @@ typecheck:
 build:
   uv build --no-sources
 
+# Verify that the committed lockfile resolves without modification.
+lock-check:
+  uv lock --check
+
 # Run the standard local verification suite.
-check: format-check lint typecheck test
+check: lock-check format-check lint typecheck test build
 
 # Verify the lockfile and synchronize all development dependencies.
 sync:
-  uv lock --check
+  just lock-check
   uv sync --locked --all-groups
