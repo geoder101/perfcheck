@@ -166,7 +166,8 @@ def _status_exit_code(status: Status) -> int:
             return 1
         case Status.INCONCLUSIVE:
             return 2
-    assert_never(status)
+        case _:
+            assert_never(status)
 
 
 def _exit_status(status: Status) -> NoReturn:
