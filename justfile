@@ -26,7 +26,7 @@ lint:
 
 # Run strict static type checking.
 typecheck:
-  uv run pyright
+  uv run basedpyright
 
 # Build source and wheel distributions.
 build:

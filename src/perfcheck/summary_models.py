@@ -12,18 +12,22 @@ from perfcheck.errors import ArtifactSchemaCode, ArtifactSchemaError
 from perfcheck.model_types import (
     V1_ALGORITHM_MANIFEST,
     AlgorithmManifest,
-    ArtifactHash,
     ArtifactKind,
+    ArtifactSha256,
+    CompatibilitySha256,
     EligibilityReason,
     FiniteFloat,
     Fraction,
-    Identifier,
     MetricAvailability,
+    MetricIdentifier,
     NonNegativeInteger,
+    PolicySha256,
     PositiveInteger,
     Rfc3339UtcDatetime,
+    RunIdentifier,
     Statistic,
     StrictModel,
+    SummaryIdentifier,
 )
 from perfcheck.policy_models import SuitePolicy
 
@@ -71,7 +75,7 @@ class MetricSummary(StrictModel):
     statistic: Statistic
     value: FiniteFloat | None
     point_count: NonNegativeInteger
-    compatibility_fingerprint: ArtifactHash
+    compatibility_fingerprint: CompatibilitySha256
     eligibility: EligibilityResult
 
     @model_validator(mode="after")
@@ -85,7 +89,7 @@ class MetricSummary(StrictModel):
 class SummaryMetricRecord(StrictModel):
     """A policy metric's retained availability/failure state in a summary."""
 
-    metric_id: Identifier
+    metric_id: MetricIdentifier
     availability: MetricAvailability
     summary: MetricSummary | None = None
     failure: CollectionFailure | None = None
@@ -113,12 +117,12 @@ class SummaryArtifact(StrictModel):
 
     artifact_type: Literal[ArtifactKind.SUMMARY] = ArtifactKind.SUMMARY
     schema_version: Literal[1] = 1
-    content_sha256: ArtifactHash
-    summary_id: Identifier
-    source_run_id: Identifier
-    source_content_sha256: ArtifactHash
+    content_sha256: ArtifactSha256
+    summary_id: SummaryIdentifier
+    source_run_id: RunIdentifier
+    source_content_sha256: ArtifactSha256
     source_interval: SourceInterval
-    policy_sha256: ArtifactHash
+    policy_sha256: PolicySha256
     policy_snapshot: SuitePolicy
     algorithm_manifest: AlgorithmManifest = V1_ALGORITHM_MANIFEST
     metric_records: tuple[SummaryMetricRecord, ...] = Field(min_length=1)

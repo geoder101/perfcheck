@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from perfcheck import bootstrap
 from perfcheck.bootstrap import (
     DEFAULT_REFERENCE_OPTIONS,
     BootstrapInputError,
@@ -81,6 +82,31 @@ def _cohort_options(
         requested_resamples=requested_resamples,
         enabled_metric_count=2,
     )
+
+
+def test_bootstrap_module_retains_public_evidence_types() -> None:
+    # Given: the established public bootstrap module import surface.
+
+    # When: callers construct its public input and option value objects.
+    metric = bootstrap.MetricComparisonInput(
+        metric_id="latency",
+        direction=Direction.HIGHER_IS_WORSE,
+        requested_alpha=0.05,
+        effective_alpha=0.025,
+        practical_threshold=5.0,
+        current=(bootstrap.RunValue(source_run_id="current-1", value=2.0),),
+        baseline=(bootstrap.RunValue(source_run_id="baseline-1", value=1.0),),
+    )
+    options = bootstrap.CohortBootstrapOptions(
+        seed=19,
+        requested_resamples=7,
+        enabled_metric_count=2,
+    )
+    (result,) = bootstrap.bootstrap_cohorts((metric,), options)
+
+    # Then: the facade exposes the established concrete result and error types.
+    assert isinstance(result, bootstrap.CohortBootstrapResult)
+    assert bootstrap.BootstrapInputError.exit_code == 3
 
 
 def test_bootstrap_cohorts_use_pcg64_draw_order_and_linear_quantiles() -> None:
@@ -211,7 +237,7 @@ def test_bootstrap_cohorts_reject_invalid_confidence() -> None:
 
     # When: the bootstrap boundary validates the metric contract.
     with pytest.raises(BootstrapInputError) as error:
-        bootstrap_cohorts((metric,), _cohort_options())
+        _ = bootstrap_cohorts((metric,), _cohort_options())
 
     # Then: it identifies the invalid confidence input.
     assert error.value.code is BootstrapValidationCode.INVALID_ALPHA
@@ -223,7 +249,7 @@ def test_bootstrap_cohorts_reject_invalid_resamples() -> None:
 
     # When: the bootstrap options cross the numerical boundary.
     with pytest.raises(BootstrapInputError) as error:
-        bootstrap_cohorts((metric,), _cohort_options(requested_resamples=0))
+        _ = bootstrap_cohorts((metric,), _cohort_options(requested_resamples=0))
 
     # Then: it reports the stable resample validation error.
     assert error.value.code is BootstrapValidationCode.INVALID_RESAMPLES
@@ -242,7 +268,7 @@ def test_bootstrap_cohorts_reject_nonfinite_run_values() -> None:
 
     # When: numerical input validation precedes random sampling.
     with pytest.raises(BootstrapInputError) as error:
-        bootstrap_cohorts((metric,), _cohort_options())
+        _ = bootstrap_cohorts((metric,), _cohort_options())
 
     # Then: no invalid value can reach the percentile calculation.
     assert error.value.code is BootstrapValidationCode.NONFINITE_INPUT
@@ -261,7 +287,7 @@ def test_baseline_reference_rejects_bootstrap_overrides_with_code_three_error() 
 
     # When: reference mode receives a bootstrap-only option.
     with pytest.raises(BootstrapInputError) as error:
-        baseline_references((metric,), ReferenceOptions(seed=42))
+        _ = baseline_references((metric,), ReferenceOptions(seed=42))
 
     # Then: callers receive the documented user-input exit classification.
     assert error.value.code is BootstrapValidationCode.REFERENCE_OVERRIDE

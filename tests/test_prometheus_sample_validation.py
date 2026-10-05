@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import anyio
-import httpx
+import httpx2
 import pytest
 
 if TYPE_CHECKING:
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 from perfcheck.prometheus import (
     CollectionFailure,
+    CollectionResult,
     FailureKind,
     PrometheusQueryRangeCollector,
     RangeQuery,
@@ -30,12 +31,27 @@ def _query() -> RangeQuery:
 
 
 def _result_for(payload: JsonValue, *, status_code: int = 200) -> CollectionFailure:
-    client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda _: httpx.Response(status_code, json=payload)
+    async def collect() -> CollectionResult:
+        transport = httpx2.MockTransport(
+            lambda _: httpx2.Response(status_code, json=payload)
         )
-    )
-    result = anyio.run(lambda: PrometheusQueryRangeCollector(client).collect(_query()))
+        async with httpx2.AsyncClient(transport=transport) as client:
+            return await PrometheusQueryRangeCollector(client).collect(_query())
+
+    result = anyio.run(collect)
+    assert isinstance(result, CollectionFailure)
+    return result
+
+
+def _result_for_bytes(payload: bytes) -> CollectionFailure:
+    async def collect() -> CollectionResult:
+        transport = httpx2.MockTransport(
+            lambda _: httpx2.Response(200, content=payload)
+        )
+        async with httpx2.AsyncClient(transport=transport) as client:
+            return await PrometheusQueryRangeCollector(client).collect(_query())
+
+    result = anyio.run(collect)
     assert isinstance(result, CollectionFailure)
     return result
 
@@ -145,27 +161,90 @@ def test_collect_classifies_invalid_matrix_evidence(
     assert result.kind is kind
 
 
+@pytest.mark.parametrize(
+    "payload",
+    [
+        b'{"status":"success","data":',
+        b'{"status":"success"}',
+        b'{"status":"success","data":{"resultType":"matrix"}}',
+        b'{"status":"success","data":{"resultType":"matrix","result":[{"metric":{"job":"api"},"values":[[1]]}]}}',
+    ],
+)
+def test_collect_classifies_invalid_ingress_shapes_as_malformed_response(
+    payload: bytes,
+) -> None:
+    # Given: invalid JSON or a required Prometheus matrix field is absent.
+
+    # When: raw response bytes cross the collection ingress boundary.
+    result = _result_for_bytes(payload)
+
+    # Then: a declared, non-throwing collection failure is retained.
+    assert result.kind is FailureKind.MALFORMED_RESPONSE
+
+
+def test_collect_rejects_unknown_dynamic_label_name() -> None:
+    # Given: an upstream series includes a label that policy did not select.
+    payload: JsonValue = {
+        "status": "success",
+        "data": {
+            "resultType": "matrix",
+            "result": [
+                {
+                    "metric": {"job": "api", "untrusted_label": "value"},
+                    "values": [[1, "1"]],
+                }
+            ],
+        },
+    }
+
+    # When: the typed dynamic label map is compared with policy.
+    result = _result_for(payload)
+
+    # Then: it becomes a typed label-contract failure.
+    assert result.kind is FailureKind.UNEXPECTED_LABELS
+
+
 def test_collect_classifies_http_and_timeout_failures() -> None:
     # Given: explicit HTTP and transport timeout failure responses.
     api_failure = _result_for({"status": "error", "error": "server token=top-secret"})
     http_failure = _result_for(
         {"status": "error", "error": "unavailable"}, status_code=503
     )
-    timeout_client = httpx.AsyncClient(
-        transport=httpx.MockTransport(
-            lambda request: (_ for _ in ()).throw(
-                httpx.ReadTimeout("late", request=request)
-            )
-        )
-    )
 
     # When: collection encounters them.
-    timeout = anyio.run(
-        lambda: PrometheusQueryRangeCollector(timeout_client).collect(_query())
-    )
+    async def collect_timeout() -> CollectionResult:
+        transport = httpx2.MockTransport(
+            lambda request: (_ for _ in ()).throw(
+                httpx2.ReadTimeout("late", request=request)
+            )
+        )
+        async with httpx2.AsyncClient(transport=transport) as client:
+            return await PrometheusQueryRangeCollector(client).collect(_query())
+
+    timeout = anyio.run(collect_timeout)
 
     # Then: both failures are typed and secret-safe.
     assert api_failure.kind is FailureKind.API_ERROR
     assert http_failure.kind is FailureKind.HTTP_ERROR
     assert isinstance(timeout, CollectionFailure)
     assert timeout.kind is FailureKind.TIMEOUT
+
+
+def test_collect_classifies_connect_failure() -> None:
+    # Given: a transport that cannot establish a Prometheus connection.
+    async def collect() -> CollectionFailure:
+        def handler(request: httpx2.Request) -> httpx2.Response:
+            message = "connection refused"
+            raise httpx2.ConnectError(message, request=request)
+
+        transport = httpx2.MockTransport(handler)
+        async with httpx2.AsyncClient(transport=transport) as client:
+            result = await PrometheusQueryRangeCollector(client).collect(_query())
+        assert isinstance(result, CollectionFailure)
+        return result
+
+    # When: collection attempts the range request.
+    result = anyio.run(collect)
+
+    # Then: the connection fault retains the typed transport classification.
+    assert result.kind is FailureKind.TRANSPORT

@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import anyio
-import httpx
 
+from perfcheck.collection_service import create_collection_client
 from perfcheck.prometheus import (
     CollectionResult,
     CollectionSuccess,
@@ -28,18 +28,19 @@ if TYPE_CHECKING:
 _ROOT = Path(__file__).parents[1]
 _SERVER = _ROOT / "tests/fixtures/mock_prometheus_server.py"
 _PROMETHEUS_FIXTURE = _ROOT / "tests/fixtures/prometheus/matrix.json"
+_CREDENTIAL = "unsafe-bearer-value"
 
 
 def test_token_echo_fixture_redacts_credentials_from_transport_evidence(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Given: a local Prometheus fixture instructed to echo the bearer token.
-    secret = "task-12-secret"  # noqa: S105 - deterministic redaction fixture value.
+    secret = _CREDENTIAL
     monkeypatch.setenv("PERFCHECK_PROMETHEUS_BEARER_TOKEN", secret)
     with _server(secret) as endpoint:
         # When: an actual transport request reaches the hostile echo response.
         async def collect() -> CollectionResult:
-            async with httpx.AsyncClient(timeout=5.0) as client:
+            async with create_collection_client() as client:
                 return await PrometheusQueryRangeCollector(client).collect(
                     RangeQuery(
                         prometheus_url=endpoint,
@@ -63,7 +64,7 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     # Given: the local echo server, fixture policy, and credential-bearing environment.
-    secret = "task-12-artifact-secret"  # noqa: S105 - deterministic fixture value.
+    secret = _CREDENTIAL
     monkeypatch.setenv("PERFCHECK_PROMETHEUS_BEARER_TOKEN", secret)
     output_path = tmp_path / "run.json"
     policy_path = _ROOT / "tests/fixtures/policy-pass.json"
@@ -90,18 +91,21 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
             capture_output=True,
             env=os.environ.copy(),
             text=True,
+            encoding="utf-8",
         )
 
-    # Then: the valid artifact and command output cannot disclose the bearer value.
+    # Then: artifact and command streams cannot disclose the bearer value.
     assert result.returncode == 0
     assert secret not in output_path.read_text(encoding="utf-8")
+    assert secret not in result.stdout
     assert secret not in result.stderr
     assert json.loads(output_path.read_text(encoding="utf-8"))["artifact_type"] == "run"
 
 
 @contextmanager
 def _server(secret: str) -> Generator[str]:
-    process = subprocess.Popen(  # noqa: S603 - fixed local fixture server.
+    endpoint_read, endpoint_write = os.pipe()
+    process: subprocess.Popen[bytes] = subprocess.Popen(  # noqa: S603 - fixed local fixture server.
         [
             sys.executable,
             str(_SERVER),
@@ -112,16 +116,20 @@ def _server(secret: str) -> Generator[str]:
             "--echo-token-body",
             secret,
         ],
-        stdout=subprocess.PIPE,
+        stdout=endpoint_write,
         stderr=subprocess.PIPE,
-        text=True,
     )
-    assert process.stdout is not None
+    os.close(endpoint_write)
     assert process.stderr is not None
     try:
-        yield process.stdout.readline().strip()
+        yield os.read(endpoint_read, 4096).decode().strip()
     finally:
         process.terminate()
-        process.wait(timeout=5)
-        process.stdout.close()
-        process.stderr.close()
+        try:
+            _ = process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            _ = process.wait(timeout=5)
+        finally:
+            os.close(endpoint_read)
+            process.stderr.close()

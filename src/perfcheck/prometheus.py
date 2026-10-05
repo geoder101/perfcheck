@@ -5,7 +5,7 @@ from os import getenv
 from typing import Final
 from urllib.parse import urlsplit, urlunsplit
 
-import httpx
+import httpx2
 
 from perfcheck.prometheus_response import (
     classify_success,
@@ -45,7 +45,9 @@ _MAX_SUCCESS_STATUS: Final = 300
 class PrometheusQueryRangeCollector:
     """Collect range matrices through the caller-owned async HTTP client."""
 
-    def __init__(self, client: httpx.AsyncClient) -> None:
+    _client: httpx2.AsyncClient
+
+    def __init__(self, client: httpx2.AsyncClient) -> None:
         """Retain a caller-owned client so tests can inject MockTransport."""
         self._client = client
 
@@ -93,28 +95,28 @@ class PrometheusQueryRangeCollector:
                     "timeout": f"{request.timeout_seconds}s",
                 },
                 headers=headers,
-                timeout=float(request.timeout_seconds),
             )
-        except httpx.TimeoutException:
+        except httpx2.TimeoutException:
             return CollectionFailure(
                 FailureKind.TIMEOUT, "Prometheus request timed out", request, None
             )
-        except httpx.TransportError as error:
+        except httpx2.TransportError as error:
             return CollectionFailure(
                 FailureKind.TRANSPORT,
                 redact_text(str(error), token),
                 request,
                 None,
             )
-        response = response_provenance(response, token)
-        if not _MIN_SUCCESS_STATUS <= response.status_code < _MAX_SUCCESS_STATUS:
+        parsed_response = response_provenance(response, token)
+        status_code = parsed_response.provenance.status_code
+        if not _MIN_SUCCESS_STATUS <= status_code < _MAX_SUCCESS_STATUS:
             return CollectionFailure(
                 FailureKind.HTTP_ERROR,
-                f"Prometheus returned HTTP {response.status_code}",
+                f"Prometheus returned HTTP {status_code}",
                 request,
-                response,
+                parsed_response.provenance,
             )
-        return classify_success(range_query, request, response)
+        return classify_success(range_query, request, parsed_response)
 
 
 def resolve_endpoint(raw_url: str) -> str | None:

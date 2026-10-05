@@ -10,6 +10,7 @@ from perfcheck.model_types import (
     ComparisonMode,
     Direction,
     MetricAvailability,
+    MetricId,
     MetricUnit,
     Statistic,
     Status,
@@ -17,6 +18,8 @@ from perfcheck.model_types import (
 from perfcheck.policy import comparison_fingerprint
 from perfcheck.policy_models import MetricPolicy, SuitePolicy
 from perfcheck.regression import evaluate_regression
+from perfcheck.regression_metrics import evaluate_metric
+from perfcheck.regression_models import MetricEvaluationInput
 from perfcheck.summary_models import (
     EligibilityResult,
     MetricSummary,
@@ -37,7 +40,7 @@ def _policy(
         policy_sha256=_POLICY_SHA256,
         metrics=(
             MetricPolicy(
-                metric_id="latency",
+                metric_id=MetricId("latency"),
                 query="latency_seconds",
                 unit=MetricUnit.SECONDS,
                 direction=direction,
@@ -214,3 +217,24 @@ def test_evaluate_regression_keeps_invalid_explicit_reference_mode_inconclusive(
     assert outcome.status is Status.INCONCLUSIVE
     assert outcome.metrics[0].method is None
     assert outcome.metrics[0].reason == "baseline_reference_requires_one_current_run"
+
+
+def test_evaluate_metric_keeps_reference_anomalies_advisory() -> None:
+    # Given: one current result with a reference anomaly beyond the threshold.
+    policy = _policy(Direction.HIGHER_IS_WORSE)
+    cohorts = _reference_cohorts(policy, current_value=16.0, baseline_value=10.0)
+    evaluation = MetricEvaluationInput(policy, policy.metrics[0], None)
+
+    # When: the per-metric evaluator applies the selected reference method.
+    outcome = evaluate_metric(evaluation, cohorts)
+
+    # Then: the anomaly remains explicit evidence but cannot become a failure.
+    assert outcome.status is Status.INCONCLUSIVE
+    assert outcome.method is ComparisonMethod.BASELINE_REFERENCE
+    match outcome.evidence:
+        case BaselineReferenceResult(reference_anomaly=True):
+            pass
+        case BaselineReferenceResult():
+            pytest.fail("expected an advisory anomaly")
+        case CohortBootstrapResult() | None:
+            pytest.fail("expected baseline-reference evidence")

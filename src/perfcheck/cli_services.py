@@ -5,15 +5,16 @@ from __future__ import annotations
 import os
 import tempfile
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never, override
 
 from pydantic import ValidationError
 from rich.console import Console
 
 from perfcheck.bootstrap import CohortBootstrapOptions
 from perfcheck.errors import PerfcheckError
-from perfcheck.model_types import MetricAvailability, StrEnum
+from perfcheck.model_types import MetricAvailability
 from perfcheck.policy import comparison_fingerprint
 from perfcheck.policy_models import SuitePolicy
 from perfcheck.run_models import RunArtifact
@@ -56,6 +57,7 @@ class CliInputError(PerfcheckError):
 
     code: CliInputCode
 
+    @override
     def __str__(self) -> str:
         """Render the stable command diagnostic."""
         return self.code
@@ -80,6 +82,8 @@ def load_raw(path: Path) -> RunArtifact:
             return raw
         case SummaryArtifact():
             raise CliInputError(CliInputCode.RUN_REQUIRED)
+        case _:
+            assert_never(artifact)
 
 
 def effective_summary(
@@ -99,6 +103,8 @@ def effective_summary(
             if write_cache:
                 write_artifact(cache_path, summary, force=True, source_run=raw)
             return summary
+        case _:
+            assert_never(artifact)
 
 
 def summarize_raw(raw: RunArtifact, policy: SuitePolicy) -> SummaryArtifact:
@@ -147,15 +153,15 @@ def write_report(path: Path, content: bytes, force: bool) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
         temporary_path = Path(temporary.name)
-        temporary.write(content)
+        _ = temporary.write(content)
         temporary.flush()
         os.fsync(temporary.fileno())
     try:
         if force:
-            temporary_path.replace(path)
+            _ = temporary_path.replace(path)
         else:
             os.link(temporary_path, path)
-            temporary_path.unlink()
+            _ = temporary_path.unlink()
     finally:
         temporary_path.unlink(missing_ok=True)
 
@@ -193,6 +199,8 @@ def _cached_or_derived_summary(
                 f"summary cache miss run={raw.run_id} hash={raw.content_sha256}"
             )
             return summarize_raw(raw, policy)
+        case _:
+            assert_never(cached)
 
 
 def _summarize_record(
@@ -227,6 +235,8 @@ def _summarize_record(
                 availability=MetricAvailability.UNAVAILABLE,
                 failure=record.failure,
             )
+        case _:
+            assert_never(record.availability)
 
 
 def _verify_summary(summary: SummaryArtifact) -> None:

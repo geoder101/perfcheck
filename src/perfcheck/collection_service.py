@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
+import socket
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Final
+from enum import StrEnum
+from typing import TYPE_CHECKING, Final, assert_never, override
 
 import anyio
-import httpx
+import httpx2
 
 from perfcheck.collection_models import (
     CollectionFailure,
@@ -19,7 +22,7 @@ from perfcheck.collection_models import (
     SourceInterval,
 )
 from perfcheck.errors import PerfcheckError
-from perfcheck.model_types import CollectionFailureReason, MetricAvailability, StrEnum
+from perfcheck.model_types import CollectionFailureReason, MetricAvailability, RunId
 from perfcheck.prometheus import (
     CollectionFailure as PrometheusCollectionFailure,
 )
@@ -37,6 +40,14 @@ if TYPE_CHECKING:
     from perfcheck.policy_models import MetricPolicy, SuitePolicy
 
 _MAX_CONCURRENT_REQUESTS: Final = 4
+_HTTP_LIMITS: Final = httpx2.Limits(
+    max_connections=200,
+    max_keepalive_connections=40,
+    keepalive_expiry=30.0,
+)
+_HTTP_TIMEOUT: Final = httpx2.Timeout(connect=5.0, read=30.0, write=10.0, pool=10.0)
+_SOCKET_OPTIONS: Final = ((socket.IPPROTO_TCP, socket.TCP_NODELAY, 1),)
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,6 +56,7 @@ class CollectionInputError(PerfcheckError):
 
     code: CollectionInputCode
 
+    @override
     def __str__(self) -> str:
         """Render the stable collection input diagnostic."""
         return self.code
@@ -57,14 +69,44 @@ class CollectionInputCode(StrEnum):
     INVALID_PROMETHEUS_URL = "invalid Prometheus URL"
 
 
-def _create_client() -> httpx.AsyncClient:
+async def _log_request(request: httpx2.Request) -> None:
+    """Record request metadata without paths, queries, headers, or credentials."""
+    _LOGGER.info(
+        "Prometheus request method=%s host=%s", request.method, request.url.host
+    )
+
+
+async def _log_response(response: httpx2.Response) -> None:
+    """Record response metadata without retaining request-sensitive values."""
+    _LOGGER.info(
+        "Prometheus response method=%s host=%s status=%s",
+        response.request.method,
+        response.request.url.host,
+        response.status_code,
+    )
+
+
+def create_collection_client() -> httpx2.AsyncClient:
     """Create the caller-owned async client used for the bounded collection run."""
-    return httpx.AsyncClient(timeout=30.0)
+    transport = httpx2.AsyncHTTPTransport(
+        http2=True,
+        retries=3,
+        limits=_HTTP_LIMITS,
+        socket_options=_SOCKET_OPTIONS,
+    )
+    return httpx2.AsyncClient(
+        http2=True,
+        transport=transport,
+        timeout=_HTTP_TIMEOUT,
+        limits=_HTTP_LIMITS,
+        follow_redirects=True,
+        event_hooks={"request": [_log_request], "response": [_log_response]},
+    )
 
 
 async def collect_run(
     policy: SuitePolicy,
-    run_id: str,
+    run_id: RunId,
     interval: SourceInterval,
     prometheus_url_override: str | None,
 ) -> RunArtifact:
@@ -74,7 +116,7 @@ async def collect_run(
         raise CollectionInputError(CollectionInputCode.INVALID_PROMETHEUS_URL)
     records: list[MetricCollectionRecord | None] = [None] * len(policy.metrics)
     limiter = anyio.CapacityLimiter(_MAX_CONCURRENT_REQUESTS)
-    async with _create_client() as client:
+    async with create_collection_client() as client:
         collector = PrometheusQueryRangeCollector(client)
 
         async def collect_metric(index: int, metric: MetricPolicy) -> None:
@@ -94,7 +136,7 @@ async def collect_run(
 
         async with anyio.create_task_group() as task_group:
             for index, metric in enumerate(policy.metrics):
-                task_group.start_soon(collect_metric, index, metric)
+                _ = task_group.start_soon(collect_metric, index, metric)
     metric_records = tuple(record for record in records if record is not None)
     initial = RunArtifact(
         content_sha256="0" * 64,
@@ -164,6 +206,8 @@ def _record(
                     detail=f"Prometheus collection failed: {failure.kind}",
                 ),
             )
+        case _:
+            assert_never(result)
 
 
 def _provenance(
@@ -208,4 +252,6 @@ def _failure_reason(kind: FailureKind) -> CollectionFailureReason:
             | FailureKind.DUPLICATE_TIMESTAMP
         ):
             pass
+        case _:
+            assert_never(kind)
     return reason

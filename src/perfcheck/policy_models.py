@@ -8,19 +8,21 @@ from perfcheck.errors import ArtifactSchemaCode, ArtifactSchemaError
 from perfcheck.model_types import (
     V1_ALGORITHM_MANIFEST,
     AlgorithmManifest,
-    ArtifactHash,
     ComparisonMode,
     Direction,
     FiniteFloat,
     Fraction,
-    Identifier,
     LabelName,
+    MetricIdentifier,
     MetricUnit,
     NonBlankText,
     NonNegativeInteger,
+    PolicyIdentifier,
+    PolicySha256,
     PositiveInteger,
     Statistic,
     StrictModel,
+    SuiteIdentifier,
 )
 
 
@@ -41,7 +43,7 @@ DEFAULT_ELIGIBILITY_POLICY: Final = EligibilityPolicy()
 class MetricPolicy(StrictModel):
     """A named metric, query, and fixed comparison interpretation."""
 
-    metric_id: Identifier
+    metric_id: MetricIdentifier
     query: NonBlankText
     expected_label_names: tuple[LabelName, ...] = ()
     unit: MetricUnit
@@ -70,9 +72,9 @@ class SuitePolicy(StrictModel):
     """An immutable, hash-addressed version-one collection policy snapshot."""
 
     schema_version: Literal[1] = 1
-    policy_id: Identifier
-    suite_id: Identifier
-    policy_sha256: ArtifactHash
+    policy_id: PolicyIdentifier
+    suite_id: SuiteIdentifier
+    policy_sha256: PolicySha256
     prometheus_url: str | None = None
     metrics: tuple[MetricPolicy, ...] = Field(min_length=1)
     comparison_mode: ComparisonMode = ComparisonMode.AUTO

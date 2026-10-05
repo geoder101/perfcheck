@@ -20,19 +20,25 @@ from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Final
+from typing import ClassVar, Final, override
 from urllib.parse import parse_qs
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 _CONTENT_TYPE: Final = "application/json"
 
 
 class PrometheusFixture(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config: ClassVar[ConfigDict] = ConfigDict(frozen=True)
 
     sample_count: int = Field(default=41, ge=20)
     queries: dict[str, tuple[float, ...]]
+
+
+class FixtureArguments(argparse.Namespace):
+    port: int = 0
+    fixture: Path = Path()
+    echo_token_body: str | None = None
 
 
 def _handler(
@@ -64,7 +70,7 @@ def _handler(
             position = positions.get(query, 0)
             positions[query] = position + 1
             value = response_values[min(position, len(response_values) - 1)]
-            response: dict[str, object] = {
+            response: dict[str, JsonValue] = {
                 "status": "success",
                 "data": {
                     "resultType": "matrix",
@@ -88,15 +94,16 @@ def _handler(
                 response["diagnostics"] = {"authorization": echo_token}
             self._send(HTTPStatus.OK, response)
 
-        def _send(self, status: HTTPStatus, payload: dict[str, object]) -> None:
+        def _send(self, status: HTTPStatus, payload: dict[str, JsonValue]) -> None:
             encoded = json.dumps(payload, separators=(",", ":")).encode()
             self.send_response(status)
             self.send_header("Content-Type", _CONTENT_TYPE)
             self.send_header("Content-Length", str(len(encoded)))
             self.end_headers()
-            self.wfile.write(encoded)
+            _ = self.wfile.write(encoded)
 
-        def log_message(self, format: str, *_args: object) -> None:  # noqa: A002, OBJECT_OK
+        @override
+        def log_message(self, format: str, *_args: str) -> None:
             del format, _args
 
     return Handler
@@ -104,10 +111,11 @@ def _handler(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--port", type=int, required=True)
-    parser.add_argument("--fixture", type=Path, required=True)
-    parser.add_argument("--echo-token-body")
-    arguments = parser.parse_args()
+    _ = parser.add_argument("--port", type=int, required=True)
+    _ = parser.add_argument("--fixture", type=Path, required=True)
+    _ = parser.add_argument("--echo-token-body")
+    arguments = FixtureArguments()
+    _ = parser.parse_args(namespace=arguments)
     fixture = PrometheusFixture.model_validate_json(arguments.fixture.read_bytes())
     with ThreadingHTTPServer(
         ("127.0.0.1", arguments.port), _handler(fixture, arguments.echo_token_body)

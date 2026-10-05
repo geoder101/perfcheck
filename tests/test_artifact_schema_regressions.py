@@ -1,6 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
+from perfcheck.model_types import MetricId
 from perfcheck.models import (
     ComparisonCohorts,
     ComparisonMethod,
@@ -11,7 +12,7 @@ from perfcheck.models import (
     Status,
     SummaryArtifact,
 )
-from test_artifact_schema import VALID_RUN_JSON, valid_summary_json
+from tests.test_artifact_schema import VALID_RUN_JSON, valid_summary_json
 
 
 @pytest.mark.parametrize(
@@ -40,14 +41,14 @@ def test_run_artifact_rejects_verifier_reported_boundary_values(
     # When: the public JSON boundary validates the artifact.
     # Then: the affected field is rejected rather than persisted.
     with pytest.raises(ValidationError, match=field_name):
-        RunArtifact.model_validate_json(invalid_json)
+        _ = RunArtifact.model_validate_json(invalid_json)
 
 
 def valid_report_inputs() -> tuple[SummaryArtifact, ComparisonResult]:
     run = RunArtifact.model_validate_json(VALID_RUN_JSON)
     summary = SummaryArtifact.model_validate_json(valid_summary_json(run))
     result = ComparisonResult(
-        metric_id="cpu-system",
+        metric_id=MetricId("cpu-system"),
         direction=Direction.HIGHER_IS_WORSE,
         status=Status.INCONCLUSIVE,
         method=ComparisonMethod.BASELINE_REFERENCE,
@@ -63,7 +64,7 @@ def test_comparison_report_rejects_cohort_policy_hash_mismatch() -> None:
     # When: the report crosses its Pydantic boundary.
     # Then: the report rejects summaries from a different policy snapshot.
     with pytest.raises(ValidationError, match="policy hash"):
-        ComparisonReport(
+        _ = ComparisonReport(
             policy_sha256="0" * 64,
             suite_status=Status.INCONCLUSIVE,
             cohorts=ComparisonCohorts(current=(summary,), baseline=()),
@@ -78,7 +79,7 @@ def test_comparison_report_rejects_duplicate_metric_result_ids() -> None:
     # When: the report crosses its Pydantic boundary.
     # Then: duplicate metric result identifiers are rejected.
     with pytest.raises(ValidationError, match="duplicate report metric"):
-        ComparisonReport(
+        _ = ComparisonReport(
             policy_sha256=summary.policy_sha256,
             suite_status=Status.INCONCLUSIVE,
             cohorts=ComparisonCohorts(current=(summary,), baseline=()),

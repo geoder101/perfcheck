@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import override
 
 
 class PerfcheckError(ValueError):
@@ -53,6 +54,7 @@ class ArtifactSchemaError(PerfcheckError):
 
     code: ArtifactSchemaCode
 
+    @override
     def __str__(self) -> str:
         """Render the schema context for command-line diagnostics."""
         return self.code
@@ -65,6 +67,7 @@ class ArtifactIntegrityError(PerfcheckError):
     artifact_id: str
     detail: str
 
+    @override
     def __str__(self) -> str:
         """Render the immutable identity that failed verification."""
         return f"artifact integrity failure for {self.artifact_id}: {self.detail}"
@@ -77,6 +80,7 @@ class PolicyMismatchError(PerfcheckError):
     expected_policy_sha256: str
     actual_policy_sha256: str
 
+    @override
     def __str__(self) -> str:
         """Render both policy hashes for compatibility diagnostics."""
         return (

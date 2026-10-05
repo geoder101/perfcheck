@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Final
 
-from perfcheck.model_types import ArtifactHash, EligibilityReason, Statistic
+from perfcheck.model_types import CompatibilitySha256, EligibilityReason, Statistic
 from perfcheck.summary_models import EligibilityResult, MetricSummary
 from perfcheck.summary_statistics import calculate_statistic
 
@@ -25,7 +25,7 @@ class MetricSummaryInput:
 
     source_interval: SourceInterval
     policy: MetricPolicy
-    compatibility_fingerprint: ArtifactHash
+    compatibility_fingerprint: CompatibilitySha256
     samples: tuple[FloatSample, ...]
 
 

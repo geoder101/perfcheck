@@ -8,11 +8,13 @@ from perfcheck.artifact_validation import contains_secret
 from perfcheck.collection_models import MetricCollectionRecord, SourceInterval
 from perfcheck.errors import ArtifactSchemaCode, ArtifactSchemaError
 from perfcheck.model_types import (
-    ArtifactHash,
     ArtifactKind,
-    Identifier,
+    ArtifactSha256,
     NonBlankText,
+    PolicySha256,
+    RunIdentifier,
     StrictModel,
+    SuiteIdentifier,
 )
 from perfcheck.policy_models import SuitePolicy
 
@@ -42,11 +44,11 @@ class RunArtifact(StrictModel):
 
     artifact_type: Literal[ArtifactKind.RUN] = ArtifactKind.RUN
     schema_version: Literal[1] = 1
-    content_sha256: ArtifactHash
-    run_id: Identifier
-    suite_id: Identifier
+    content_sha256: ArtifactSha256
+    run_id: RunIdentifier
+    suite_id: SuiteIdentifier
     source_interval: SourceInterval
-    policy_sha256: ArtifactHash
+    policy_sha256: PolicySha256
     policy_snapshot: SuitePolicy
     metadata: RunMetadata
     metric_records: tuple[MetricCollectionRecord, ...] = Field(min_length=1)

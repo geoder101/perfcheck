@@ -8,6 +8,7 @@ from perfcheck.collection_models import FloatSample, SourceInterval
 from perfcheck.model_types import (
     Direction,
     EligibilityReason,
+    MetricId,
     MetricUnit,
     Statistic,
 )
@@ -44,7 +45,7 @@ def _summarize(fixture: SummaryFixture) -> MetricSummary:
         end=_BASE + timedelta(seconds=fixture.source_seconds),
     )
     policy = MetricPolicy(
-        metric_id="cpu-system",
+        metric_id=MetricId("cpu-system"),
         query="up",
         unit=MetricUnit.PERCENT,
         direction=Direction.HIGHER_IS_WORSE,

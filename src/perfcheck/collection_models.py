@@ -15,9 +15,9 @@ from perfcheck.model_types import (
     CollectionFailureReason,
     FiniteFloat,
     HttpStatusCode,
-    Identifier,
     LabelName,
     MetricAvailability,
+    MetricIdentifier,
     NonBlankText,
     PositiveInteger,
     PrometheusStatus,
@@ -87,7 +87,7 @@ class FloatSample(StrictModel):
 class LabelledMetricSeries(StrictModel):
     """The single labelled finite-float matrix series for one policy metric."""
 
-    metric_id: Identifier
+    metric_id: MetricIdentifier
     labels: tuple[Label, ...] = ()
     samples: tuple[FloatSample, ...] = Field(min_length=1)
 
@@ -174,7 +174,7 @@ class CollectionFailure(StrictModel):
 class MetricCollectionRecord(StrictModel):
     """One policy metric's available series or typed collection failure."""
 
-    metric_id: Identifier
+    metric_id: MetricIdentifier
     availability: MetricAvailability
     provenance: QueryProvenance
     series: LabelledMetricSeries | None = None

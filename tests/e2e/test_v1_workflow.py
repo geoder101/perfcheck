@@ -20,7 +20,8 @@ _PROMETHEUS_FIXTURE = _ROOT / "tests/fixtures/prometheus/matrix.json"
 
 @pytest.fixture
 def mock_prometheus_endpoint() -> Iterator[str]:
-    process = subprocess.Popen(  # noqa: S603 - fixed local fixture command.
+    endpoint_read, endpoint_write = os.pipe()
+    process: subprocess.Popen[bytes] = subprocess.Popen(  # noqa: S603 - fixed local fixture command.
         [
             sys.executable,
             str(_SERVER),
@@ -29,20 +30,23 @@ def mock_prometheus_endpoint() -> Iterator[str]:
             "--fixture",
             str(_PROMETHEUS_FIXTURE),
         ],
-        stdout=subprocess.PIPE,
+        stdout=endpoint_write,
         stderr=subprocess.PIPE,
-        text=True,
     )
-    assert process.stdout is not None
+    os.close(endpoint_write)
     try:
-        yield process.stdout.readline().strip()
+        yield os.read(endpoint_read, 4096).decode().strip()
     finally:
         process.terminate()
-        process.wait(timeout=5)
-        assert process.stdout is not None
         assert process.stderr is not None
-        process.stdout.close()
-        process.stderr.close()
+        try:
+            _ = process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            _ = process.wait(timeout=5)
+        finally:
+            os.close(endpoint_read)
+            process.stderr.close()
 
 
 @pytest.mark.parametrize(

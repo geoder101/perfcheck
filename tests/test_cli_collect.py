@@ -1,19 +1,43 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path  # noqa: TC003 - pytest resolves the fixture annotation.
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
-import httpx
+import httpx2
+from pydantic import TypeAdapter
 from typer.testing import CliRunner
 
 from perfcheck.cli import app
-from perfcheck.model_types import Direction, MetricUnit, Statistic
+from perfcheck.model_types import Direction, MetricId, MetricUnit, Statistic
 from perfcheck.policy_models import MetricPolicy, SuitePolicy
 from perfcheck.storage import policy_content_sha256
 
 if TYPE_CHECKING:
     import pytest
+
+
+class _MetricProvenancePayload(TypedDict):
+    endpoint_url: str
+
+
+class _MetricFailurePayload(TypedDict):
+    detail: str
+    reason: str
+
+
+class _MetricRecordPayload(TypedDict):
+    availability: str
+    failure: _MetricFailurePayload | None
+    metric_id: str
+    provenance: _MetricProvenancePayload
+
+
+class _RunPayload(TypedDict):
+    artifact_type: str
+    metric_records: list[_MetricRecordPayload]
+
+
+_RUN_PAYLOAD = TypeAdapter(_RunPayload)
 
 
 def _policy() -> SuitePolicy:
@@ -25,7 +49,7 @@ def _policy() -> SuitePolicy:
         min_baseline_reference_runs=1,
         metrics=(
             MetricPolicy(
-                metric_id="latency",
+                metric_id=MetricId("latency"),
                 query="latency_seconds",
                 unit=MetricUnit.SECONDS,
                 direction=Direction.HIGHER_IS_WORSE,
@@ -35,7 +59,7 @@ def _policy() -> SuitePolicy:
                 rate_window_seconds=60,
             ),
             MetricPolicy(
-                metric_id="errors",
+                metric_id=MetricId("errors"),
                 query="errors_total",
                 unit=MetricUnit.COUNT,
                 direction=Direction.HIGHER_IS_WORSE,
@@ -50,7 +74,7 @@ def _policy() -> SuitePolicy:
 
 
 def _write_policy(path: Path, policy: SuitePolicy) -> None:
-    path.write_text(policy.model_dump_json(), encoding="utf-8")
+    _ = path.write_text(policy.model_dump_json(), encoding="utf-8")
 
 
 def _arguments(policy_path: Path, output_path: Path) -> list[str]:
@@ -69,8 +93,8 @@ def _arguments(policy_path: Path, output_path: Path) -> list[str]:
     ]
 
 
-def _success_response() -> httpx.Response:
-    return httpx.Response(
+def _success_response() -> httpx2.Response:
+    return httpx2.Response(
         200,
         json={
             "status": "success",
@@ -102,13 +126,13 @@ def test_collect_prefers_safe_override_and_writes_a_complete_portable_run(
     output_path = tmp_path / "run.json"
     _write_policy(policy_path, policy)
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         assert request.url == "https://override.example/p/api/v1/query_range"
         return _success_response()
 
     monkeypatch.setattr(
-        "perfcheck.collection_service._create_client",
-        lambda: httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        "perfcheck.collection_service.create_collection_client",
+        lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
     )
 
     # When: collect receives an override that wins over the suite policy URL.
@@ -123,7 +147,7 @@ def test_collect_prefers_safe_override_and_writes_a_complete_portable_run(
 
     # Then: it atomically persists every policy metric with query provenance.
     assert result.exit_code == 0
-    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    payload = _RUN_PAYLOAD.validate_json(output_path.read_bytes())
     assert payload["artifact_type"] == "run"
     assert {record["metric_id"] for record in payload["metric_records"]} == {
         "latency",
@@ -144,15 +168,15 @@ def test_collect_writes_redacted_unavailable_record_and_exits_four(
     _write_policy(policy_path, policy)
     monkeypatch.setenv("PERFCHECK_PROMETHEUS_BEARER_TOKEN", "unsafe-bearer")
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         if b"errors_total" in request.content:
             message = "unsafe-bearer"
-            raise httpx.ReadTimeout(message, request=request)
+            raise httpx2.ReadTimeout(message, request=request)
         return _success_response()
 
     monkeypatch.setattr(
-        "perfcheck.collection_service._create_client",
-        lambda: httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        "perfcheck.collection_service.create_collection_client",
+        lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
     )
 
     # When: one enabled metric has a transport failure.
@@ -162,7 +186,7 @@ def test_collect_writes_redacted_unavailable_record_and_exits_four(
     assert result.exit_code == 4
     output = output_path.read_text(encoding="utf-8")
     assert "unsafe-bearer" not in output
-    payload = json.loads(output)
+    payload = _RUN_PAYLOAD.validate_json(output)
     failures = [
         record
         for record in payload["metric_records"]
@@ -197,3 +221,48 @@ def test_collect_rejects_an_unsafe_override_without_creating_output(
     # Then: the shared endpoint resolver rejects it before any write.
     assert result.exit_code == 3
     assert not output_path.exists()
+
+
+def test_collect_propagates_unexpected_failures_without_rendering_secrets(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Given: an unexpected implementation failure containing a credential-shaped value.
+    policy_path = tmp_path / "policy.json"
+    output_path = tmp_path / "run.json"
+    _write_policy(policy_path, _policy())
+
+    def fail(_: Path) -> SuitePolicy:
+        raise RuntimeError("token=" + "top-secret")
+
+    monkeypatch.setattr("perfcheck.cli.load_policy", fail)
+
+    # When: collect crosses the real command process boundary.
+    result = CliRunner().invoke(app, _arguments(policy_path, output_path))
+
+    # Then: the unexpected failure is not swallowed or rendered to command output.
+    assert result.exit_code == 1
+    assert isinstance(result.exception, RuntimeError)
+    assert result.stdout == ""
+    assert "top-secret" not in result.output
+
+
+def test_collect_sanitizes_os_error_at_the_cli_boundary(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Given: a filesystem error whose message includes a credential-shaped value.
+    policy_path = tmp_path / "policy.json"
+    output_path = tmp_path / "run.json"
+
+    def fail(_: Path) -> SuitePolicy:
+        raise OSError("token=" + "top-secret")
+
+    monkeypatch.setattr("perfcheck.cli.load_policy", fail)
+
+    # When: the command converts expected input failures to the CLI contract.
+    result = CliRunner().invoke(app, _arguments(policy_path, output_path))
+
+    # Then: it preserves the input exit code without exposing exception text.
+    assert result.exit_code == 3
+    assert result.stdout == ""
+    assert result.stderr == "error: invalid command input\n"
+    assert "top-secret" not in result.output

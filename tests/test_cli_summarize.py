@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime, timedelta
 from pathlib import Path  # noqa: TC003 - pytest resolves the fixture annotation.
 
@@ -14,7 +13,13 @@ from perfcheck.collection_models import (
     QueryProvenance,
     SourceInterval,
 )
-from perfcheck.model_types import Direction, MetricAvailability, MetricUnit, Statistic
+from perfcheck.model_types import (
+    Direction,
+    MetricAvailability,
+    MetricId,
+    MetricUnit,
+    Statistic,
+)
 from perfcheck.policy_models import MetricPolicy, SuitePolicy
 from perfcheck.run_models import RunArtifact, RunMetadata
 from perfcheck.storage import (
@@ -23,6 +28,7 @@ from perfcheck.storage import (
     summary_cache_path,
     write_artifact,
 )
+from perfcheck.summary_models import SummaryArtifact
 
 _BASE = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -35,7 +41,7 @@ def _policy() -> SuitePolicy:
         min_baseline_reference_runs=1,
         metrics=(
             MetricPolicy(
-                metric_id="latency",
+                metric_id=MetricId("latency"),
                 query="latency_seconds",
                 unit=MetricUnit.SECONDS,
                 direction=Direction.HIGHER_IS_WORSE,
@@ -70,7 +76,7 @@ def _run(policy: SuitePolicy, index: int, value: float) -> RunArtifact:
         ),
         metric_records=(
             MetricCollectionRecord(
-                metric_id="latency",
+                metric_id=MetricId("latency"),
                 availability=MetricAvailability.AVAILABLE,
                 provenance=QueryProvenance(
                     endpoint_url="https://metrics.example.test",
@@ -80,7 +86,7 @@ def _run(policy: SuitePolicy, index: int, value: float) -> RunArtifact:
                     step_seconds=15,
                 ),
                 series=LabelledMetricSeries(
-                    metric_id="latency",
+                    metric_id=MetricId("latency"),
                     samples=tuple(
                         FloatSample(
                             timestamp=interval.start + timedelta(seconds=15 * sample),
@@ -98,7 +104,7 @@ def _run(policy: SuitePolicy, index: int, value: float) -> RunArtifact:
 
 
 def _write_policy(path: Path, policy: SuitePolicy) -> None:
-    path.write_text(policy.model_dump_json(), encoding="utf-8")
+    _ = path.write_text(policy.model_dump_json(), encoding="utf-8")
 
 
 def test_summarize_writes_canonical_summary_without_stdout(
@@ -129,8 +135,8 @@ def test_summarize_writes_canonical_summary_without_stdout(
     # Then: it writes a verified summary and reserves stdout for machine output.
     assert result.exit_code == 0
     assert result.stdout == ""
-    payload = json.loads(summary_path.read_text(encoding="utf-8"))
-    assert payload["artifact_type"] == "summary"
+    payload = SummaryArtifact.model_validate_json(summary_path.read_bytes())
+    assert payload.artifact_type == "summary"
 
 
 def test_compare_json_writes_exactly_one_report_to_stdout(tmp_path: Path) -> None:
@@ -188,7 +194,7 @@ def test_compare_json_writes_exactly_one_report_to_stdout(tmp_path: Path) -> Non
 
     # Then: stdout is one report document and the advisory outcome is inconclusive.
     assert result.exit_code == 2
-    assert json.loads(result.stdout)["suite_status"] == "inconclusive"
+    assert '"suite_status":"inconclusive"' in result.stdout
     assert report_json.read_text(encoding="utf-8") == result.stdout
     assert report_markdown.exists()
 
@@ -199,8 +205,8 @@ def test_compare_preflight_rejects_existing_reports_without_mutation(
     # Given: explicit report destinations that already contain user data.
     report_json = tmp_path / "report.json"
     report_markdown = tmp_path / "report.md"
-    report_json.write_text("keep-json", encoding="utf-8")
-    report_markdown.write_text("keep-markdown", encoding="utf-8")
+    _ = report_json.write_text("keep-json", encoding="utf-8")
+    _ = report_markdown.write_text("keep-markdown", encoding="utf-8")
 
     # When: compare is invoked without --force.
     result = CliRunner().invoke(

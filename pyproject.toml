@@ -7,7 +7,7 @@ license = "MIT"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "asyncer>=0.0.8",
-    "httpx>=0.28",
+    "httpx2[brotli,http2,zstd]>=2.13.1",
     "numpy>=2.4",
     "pydantic>=2.12",
     "rich>=14.0",
@@ -20,7 +20,7 @@ perfcheck = "perfcheck.cli:app"
 
 [dependency-groups]
 dev = [
-    "pyright>=1.1.400",
+    "basedpyright==1.40.2",
     "pytest>=9.0",
     "ruff>=0.14",
 ]
@@ -29,8 +29,8 @@ dev = [
 requires = ["uv_build>=0.12.13,<0.13"]
 build-backend = "uv_build"
 
-[tool.pyright]
-typeCheckingMode = "strict"
+[tool.basedpyright]
+typeCheckingMode = "all"
 pythonVersion = "3.14"
 pythonPlatform = "All"
 include = ["src", "tests"]

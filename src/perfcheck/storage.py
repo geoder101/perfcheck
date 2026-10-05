@@ -7,7 +7,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, assert_never
 
 from pydantic import ValidationError
 
@@ -82,9 +82,9 @@ def verify_artifact(
         raise ArtifactIntegrityError(
             artifact_identity(artifact), "content hash mismatch"
         )
-    match artifact:  # noqa: MATCH_OK - Pyright proves Artifact is exhaustive.
+    match artifact:
         case SummaryArtifact():
-            match source_run:  # noqa: MATCH_OK - both optional source variants handled.
+            match source_run:
                 case None:
                     raise ArtifactIntegrityError(
                         artifact.summary_id, "source artifact required"
@@ -92,22 +92,28 @@ def verify_artifact(
                 case RunArtifact():
                     verify_artifact(source_run)
                     _verify_summary_source(artifact, source_run)
+                case _:
+                    assert_never(source_run)
         case RunArtifact():
             return
+        case _:
+            assert_never(artifact)
 
 
 def artifact_identity(artifact: Artifact) -> str:
     """Return the stable identifier used to contextualize persistence errors."""
-    match artifact:  # noqa: MATCH_OK - Pyright proves Artifact is exhaustive.
+    match artifact:
         case RunArtifact(run_id=run_id):
             return run_id
         case SummaryArtifact(summary_id=summary_id):
             return summary_id
+        case _:
+            assert_never(artifact)
 
 
 def _encode_json(value: JsonValue) -> str:  # noqa: PLR0911
     """Render each JSON value variant with recursive key ordering."""
-    match value:  # noqa: MATCH_OK - Pyright proves JsonValue is exhaustive.
+    match value:
         case None:
             return "null"
         case bool() as boolean:
@@ -125,11 +131,13 @@ def _encode_json(value: JsonValue) -> str:  # noqa: PLR0911
                 "{"
                 + ",".join(
                     f"{json.dumps(key, ensure_ascii=False, separators=(',', ':'))}:"
-                    f"{_encode_json(fields[key])}"
+                    + _encode_json(fields[key])
                     for key in sorted(fields)
                 )
                 + "}"
             )
+        case _:
+            assert_never(value)
 
 
 def _encode_float(value: float) -> str:
@@ -163,14 +171,14 @@ def _write_bytes(path: Path, data: bytes, *, force: bool) -> None:
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
             temporary_path = Path(temporary.name)
-            temporary.write(data)
+            _ = temporary.write(data)
             temporary.flush()
             os.fsync(temporary.fileno())
         if force:
-            temporary_path.replace(path)
+            _ = temporary_path.replace(path)
         else:
             os.link(temporary_path, path)
-            temporary_path.unlink()
+            _ = temporary_path.unlink()
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)

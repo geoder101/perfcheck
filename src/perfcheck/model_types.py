@@ -3,7 +3,7 @@
 import re
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Final, Literal
+from typing import TYPE_CHECKING, Annotated, ClassVar, Final, Literal, NewType
 
 from pydantic import BaseModel, ConfigDict, Field, GetCoreSchemaHandler
 from pydantic_core import core_schema
@@ -16,8 +16,27 @@ if TYPE_CHECKING:
 
 _OK_STATUS: Final = "pass"
 
-type ArtifactHash = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
-type Identifier = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")]
+PolicyId = NewType("PolicyId", str)
+SuiteId = NewType("SuiteId", str)
+MetricId = NewType("MetricId", str)
+RunId = NewType("RunId", str)
+SummaryId = NewType("SummaryId", str)
+PolicyHash = NewType("PolicyHash", str)
+ArtifactContentHash = NewType("ArtifactContentHash", str)
+CompatibilityFingerprint = NewType("CompatibilityFingerprint", str)
+
+type _Identifier = Annotated[str, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")]
+type _Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+type PolicyIdentifier = _Identifier
+type SuiteIdentifier = _Identifier
+type MetricIdentifier = Annotated[
+    MetricId, Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]*$")
+]
+type RunIdentifier = _Identifier
+type SummaryIdentifier = _Identifier
+type PolicySha256 = Annotated[str, _Sha256]
+type ArtifactSha256 = Annotated[str, _Sha256]
+type CompatibilitySha256 = Annotated[str, _Sha256]
 type LabelName = Annotated[str, Field(pattern=r"^[A-Za-z_][A-Za-z0-9_]*$")]
 type NonBlankText = Annotated[str, Field(min_length=1, pattern=r"\S")]
 type FiniteFloat = Annotated[float, Field(allow_inf_nan=False)]
@@ -180,7 +199,7 @@ class EligibilityReason(StrEnum):
 class StrictModel(BaseModel):
     """Immutable, strict, forward-compatible public boundary model."""
 
-    model_config = ConfigDict(
+    model_config: ClassVar[ConfigDict] = ConfigDict(
         allow_inf_nan=False,
         extra="forbid",
         frozen=True,

@@ -8,13 +8,13 @@ from perfcheck.errors import ArtifactSchemaCode, ArtifactSchemaError
 from perfcheck.model_types import (
     V1_ALGORITHM_MANIFEST,
     AlgorithmManifest,
-    ArtifactHash,
     ComparisonMethod,
     Direction,
     FiniteFloat,
-    Identifier,
+    MetricIdentifier,
     NonBlankText,
     NonNegativeInteger,
+    PolicySha256,
     PositiveInteger,
     Status,
     StrictModel,
@@ -44,7 +44,7 @@ class ComparisonCohorts(StrictModel):
 class ComparisonResult(StrictModel):
     """One metric's persisted comparison outcome and method diagnostics."""
 
-    metric_id: Identifier
+    metric_id: MetricIdentifier
     direction: Direction
     status: Status
     method: ComparisonMethod
@@ -83,7 +83,7 @@ class ComparisonReport(StrictModel):
     """Deterministic report data with no wall-clock or local-path fields."""
 
     schema_version: Literal[1] = 1
-    policy_sha256: ArtifactHash
+    policy_sha256: PolicySha256
     algorithm_manifest: AlgorithmManifest = V1_ALGORITHM_MANIFEST
     suite_status: Status
     cohorts: ComparisonCohorts

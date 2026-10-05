@@ -172,7 +172,7 @@ def test_schema_validation_rejects_unknown_major_version() -> None:
     # When: the artifact crosses the JSON boundary.
     # Then: validation reports the versioned schema failure.
     with pytest.raises(ValidationError, match="schema_version"):
-        RunArtifact.model_validate_json(invalid_json)
+        _ = RunArtifact.model_validate_json(invalid_json)
 
 
 @pytest.mark.parametrize(
@@ -215,7 +215,7 @@ def test_schema_validation_rejects_malformed_public_values(
     # When: it is parsed as a strict run artifact.
     # Then: validation identifies the affected contract field.
     with pytest.raises(ValidationError, match=field_name):
-        RunArtifact.model_validate_json(invalid_json)
+        _ = RunArtifact.model_validate_json(invalid_json)
 
 
 def test_schema_validation_rejects_invalid_eligibility_limits() -> None:
@@ -228,7 +228,7 @@ def test_schema_validation_rejects_invalid_eligibility_limits() -> None:
     # When: the policy crosses the JSON boundary.
     # Then: the strict eligibility model rejects it.
     with pytest.raises(ValidationError, match="min_coverage"):
-        SuitePolicy.model_validate_json(invalid_json)
+        _ = SuitePolicy.model_validate_json(invalid_json)
 
 
 def test_comparison_cohorts_reject_duplicate_source_identifiers() -> None:
@@ -239,4 +239,4 @@ def test_comparison_cohorts_reject_duplicate_source_identifiers() -> None:
     # When: they are supplied to one comparison cohort boundary.
     # Then: duplicate source identity is rejected before a decision can run.
     with pytest.raises(ValidationError, match="duplicate"):
-        ComparisonCohorts(current=(summary, summary), baseline=())
+        _ = ComparisonCohorts(current=(summary, summary), baseline=())

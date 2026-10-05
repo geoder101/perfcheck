@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING, Literal, assert_never
 
 import numpy as np
 
@@ -36,6 +36,8 @@ def calculate_statistic(
             value = _ordered_value(statistic, values)
         case Statistic.SLOPE:
             value = _slope(samples)
+        case _:
+            assert_never(statistic)
     return value
 
 
@@ -49,11 +51,13 @@ def _quantile_value(statistic: QuantileStatistic, values: tuple[float, ...]) -> 
             quantile = 0.95
         case Statistic.P99:
             quantile = 0.99
+        case _:
+            assert_never(statistic)
     return float(np.quantile(values, quantile, method="linear"))
 
 
 def _extremum_value(minimum: bool, values: tuple[float, ...]) -> float:
-    return float(np.min(values) if minimum else np.max(values))
+    return min(values) if minimum else max(values)
 
 
 def _ordered_value(statistic: OrderedStatistic, values: tuple[float, ...]) -> float:
@@ -64,6 +68,8 @@ def _ordered_value(statistic: OrderedStatistic, values: tuple[float, ...]) -> fl
             value = values[-1]
         case Statistic.DELTA:
             value = values[-1] - values[0]
+        case _:
+            assert_never(statistic)
     return value
 
 

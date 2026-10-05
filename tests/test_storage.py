@@ -150,9 +150,7 @@ def _summary(run: RunArtifact) -> SummaryArtifact:
 def test_canonical_bytes_and_hashes_are_stable_for_equivalent_artifacts() -> None:
     # Given: semantically identical validated run artifacts created from reordered JSON.
     run = _run()
-    reordered = RunArtifact.model_validate_json(
-        json.dumps(json.loads(run.model_dump_json()), sort_keys=True, indent=2)
-    )
+    reordered = RunArtifact.model_validate_json(run.model_dump_json(indent=2))
 
     # When: their policy and artifact identities use canonical JSON bytes.
     run_bytes = canonical_json_bytes(run)
@@ -192,14 +190,13 @@ def test_load_rejects_corrupt_content_hash_before_returning_an_artifact(
     run = _run()
     path = tmp_path / "run.json"
     write_artifact(path, run)
-    forged = json.loads(path.read_text(encoding="utf-8"))
-    forged["content_sha256"] = "f" * 64
-    path.write_text(json.dumps(forged), encoding="utf-8")
+    forged = path.read_text(encoding="utf-8").replace(run.content_sha256, "f" * 64, 1)
+    _ = path.write_text(forged, encoding="utf-8")
 
     # When: the persistence boundary loads the evidence.
     # Then: integrity fails before the artifact can reach compatibility work.
     with pytest.raises(ArtifactIntegrityError, match="content hash"):
-        load_artifact(path)
+        _ = load_artifact(path)
 
 
 def test_write_preserves_original_when_replace_is_interrupted(
@@ -241,10 +238,10 @@ def test_summary_persistence_requires_and_verifies_its_source_run(
     # Then: loading verifies the source identity, while a missing source is rejected.
     assert load_artifact(path, source_run=run) == summary
     with pytest.raises(ArtifactIntegrityError, match="source artifact required"):
-        load_artifact(path)
+        _ = load_artifact(path)
     other_run = run.model_copy(update={"run_id": "run-2"})
     other_run = other_run.model_copy(
         update={"content_sha256": artifact_content_sha256(other_run)}
     )
     with pytest.raises(ArtifactIntegrityError, match="source hash mismatch"):
-        load_artifact(path, source_run=other_run)
+        _ = load_artifact(path, source_run=other_run)

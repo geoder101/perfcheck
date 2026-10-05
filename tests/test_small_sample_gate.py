@@ -10,13 +10,16 @@ from perfcheck.model_types import (
     Direction,
     EligibilityReason,
     MetricAvailability,
+    MetricId,
     MetricUnit,
     Statistic,
     Status,
 )
 from perfcheck.policy import comparison_fingerprint
 from perfcheck.policy_models import MetricPolicy, SuitePolicy
-from perfcheck.regression import Cohort, MetricExclusion, evaluate_regression
+from perfcheck.regression import MetricExclusion, evaluate_regression
+from perfcheck.regression_cohorts import eligible_metric_cohort
+from perfcheck.regression_models import Cohort, MetricEvaluationInput
 from perfcheck.summary_models import (
     EligibilityResult,
     MetricSummary,
@@ -34,7 +37,7 @@ def _policy(*, min_current_runs: int = 5, min_baseline_runs: int = 10) -> SuiteP
         policy_sha256="a" * 64,
         metrics=(
             MetricPolicy(
-                metric_id="latency",
+                metric_id=MetricId("latency"),
                 query="latency_seconds",
                 unit=MetricUnit.SECONDS,
                 direction=Direction.HIGHER_IS_WORSE,
@@ -130,6 +133,33 @@ def test_evaluate_regression_filters_ineligible_runs_before_default_count_gate()
     )
 
 
+def test_eligible_metric_cohort_excludes_ineligible_values_before_comparability() -> (
+    None
+):
+    # Given: five current summaries where one metric has no eligible scalar.
+    policy = _policy()
+    cohorts = _cohorts(policy, (16.0, 16.0, 16.0, 16.0, None), (10.0,) * 10)
+    evaluation = MetricEvaluationInput(policy, policy.metrics[0], None)
+
+    # When: the cohort filtering boundary prepares policy comparison inputs.
+    eligible = eligible_metric_cohort(evaluation, cohorts.current, Cohort.CURRENT)
+
+    # Then: only usable values reach comparability and the omitted run is explained.
+    assert tuple(value.source_run_id for value in eligible.run_values) == (
+        "run-1",
+        "run-2",
+        "run-3",
+        "run-4",
+    )
+    assert eligible.exclusions == (
+        MetricExclusion(
+            cohort=Cohort.CURRENT,
+            source_run_id="run-5",
+            reason="insufficient_points",
+        ),
+    )
+
+
 def test_evaluate_regression_preserves_unavailable_exclusions() -> None:
     # Given: a default-size comparison where one baseline metric is unavailable.
     policy = _policy()
@@ -138,7 +168,7 @@ def test_evaluate_regression_preserves_unavailable_exclusions() -> None:
         update={
             "metric_records": (
                 SummaryMetricRecord(
-                    metric_id="latency",
+                    metric_id=MetricId("latency"),
                     availability=MetricAvailability.UNAVAILABLE,
                     failure=CollectionFailure(
                         reason=CollectionFailureReason.TIMEOUT,

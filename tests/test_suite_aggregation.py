@@ -9,6 +9,7 @@ from perfcheck.model_types import (
     Direction,
     EligibilityReason,
     MetricAvailability,
+    MetricId,
     MetricUnit,
     Statistic,
     Status,
@@ -16,6 +17,7 @@ from perfcheck.model_types import (
 from perfcheck.policy import comparison_fingerprint
 from perfcheck.policy_models import MetricPolicy, SuitePolicy
 from perfcheck.regression import evaluate_regression
+from perfcheck.regression_aggregation import aggregate_status
 from perfcheck.summary_models import (
     EligibilityResult,
     MetricSummary,
@@ -28,7 +30,7 @@ _BASE = datetime(2026, 1, 1, tzinfo=UTC)
 
 def _metric(metric_id: str, *, enabled: bool = True) -> MetricPolicy:
     return MetricPolicy(
-        metric_id=metric_id,
+        metric_id=MetricId(metric_id),
         query=f"{metric_id}_seconds",
         unit=MetricUnit.SECONDS,
         direction=Direction.HIGHER_IS_WORSE,
@@ -174,3 +176,17 @@ def test_evaluate_regression_excludes_disabled_metrics_from_alpha_and_aggregatio
             pytest.fail("expected single-gate alpha")
         case BaselineReferenceResult() | None:
             pytest.fail("expected cohort-bootstrap evidence")
+
+
+def test_aggregate_status_reduces_mixed_metric_outcomes_to_the_failure() -> None:
+    # Given: an evaluated suite with a failing enabled gate and a passing one.
+    policy = _policy((_metric("latency"), _metric("memory")))
+    outcome = evaluate_regression(
+        policy, _cohorts(policy, ((16.0, 14.0),) * 5, ((10.0, 10.0),) * 10)
+    )
+
+    # When: suite aggregation receives the per-metric outcomes.
+    status = aggregate_status(outcome.metrics)
+
+    # Then: the enabled failure dominates the suite result.
+    assert status is Status.FAIL

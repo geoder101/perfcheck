@@ -4,6 +4,7 @@ from perfcheck.model_types import (
     ComparisonMethod,
     ComparisonMode,
     Direction,
+    MetricId,
     MetricUnit,
     Statistic,
 )
@@ -23,7 +24,7 @@ def policy(*, comparison_mode: ComparisonMode = ComparisonMode.AUTO) -> SuitePol
         policy_sha256="a" * 64,
         metrics=(
             MetricPolicy(
-                metric_id="latency",
+                metric_id=MetricId("latency"),
                 query=(
                     "histogram_quantile(0.99, "
                     "rate(request_duration_seconds_bucket[1m]))"

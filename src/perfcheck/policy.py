@@ -7,7 +7,7 @@ import json
 from dataclasses import dataclass
 from enum import StrEnum
 from itertools import pairwise
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, assert_never
 
 from perfcheck.model_types import ComparisonMethod, ComparisonMode
 
@@ -102,6 +102,8 @@ def select_comparison(
             )
         case ComparisonMode.COHORT_BOOTSTRAP:
             return _select_cohort_bootstrap(policy, current, baseline, alpha_effective)
+        case _:
+            assert_never(policy.comparison_mode)
 
 
 def _enabled_gate_count(policy: SuitePolicy) -> int:
