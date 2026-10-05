@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import assert_never
 
 import pytest
 
@@ -131,6 +132,8 @@ def test_evaluate_regression_fails_a_suite_when_any_enabled_metric_fails() -> No
             pytest.fail("expected Bonferroni-adjusted alpha")
         case BaselineReferenceResult() | None:
             pytest.fail("expected cohort-bootstrap evidence")
+        case _:
+            assert_never(outcome.metrics[0].evidence)
 
 
 def test_evaluate_regression_returns_inconclusive_when_no_enabled_metric_fails() -> (
@@ -176,6 +179,8 @@ def test_evaluate_regression_excludes_disabled_metrics_from_alpha_and_aggregatio
             pytest.fail("expected single-gate alpha")
         case BaselineReferenceResult() | None:
             pytest.fail("expected cohort-bootstrap evidence")
+        case _:
+            assert_never(outcome.metrics[0].evidence)
 
 
 def test_aggregate_status_reduces_mixed_metric_outcomes_to_the_failure() -> None:

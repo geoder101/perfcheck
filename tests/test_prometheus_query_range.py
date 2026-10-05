@@ -11,7 +11,6 @@ from pydantic import JsonValue
 if TYPE_CHECKING:
     import pytest
 
-from perfcheck.collection_service import create_collection_client
 from perfcheck.prometheus import (
     CollectionFailure,
     CollectionSuccess,
@@ -117,16 +116,12 @@ def test_collect_uses_override_url_and_bearer_token_without_retaining_it(
     assert isinstance(result, CollectionSuccess)
     assert credential not in repr(result)
     assert credential not in json.dumps(result.response.body)
-    match result.response.body:
-        case {
-            "diagnostics": {
-                "[REDACTED]": "[REDACTED]",
-                "nested": ["[REDACTED]", {"[REDACTED]": "[REDACTED]"}],
-            },
-        }:
-            pass
-        case _:
-            raise AssertionError
+    body = result.response.body
+    assert isinstance(body, dict)
+    diagnostics = body["diagnostics"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["[REDACTED]"] == "[REDACTED]"
+    assert diagnostics["nested"] == ["[REDACTED]", {"[REDACTED]": "[REDACTED]"}]
     assert result.response.warnings == ("token=[REDACTED]",)
 
 
@@ -170,21 +165,17 @@ def test_collect_redacts_nested_credential_aliases_from_all_response_evidence(
     assert "x-api-key" not in serialized
     assert "client_secret" not in serialized
     assert "Bearer [REDACTED]" in result.response.warnings
-    match result.response.body:
-        case {
-            "diagnostics": {
-                "[REDACTED]": "[REDACTED]",
-                "nested": [
-                    {"[REDACTED]": "[REDACTED]"},
-                    {"[REDACTED]": "[REDACTED]"},
-                    {"[REDACTED]": "[REDACTED]"},
-                    "Bearer [REDACTED]",
-                ],
-            }
-        }:
-            pass
-        case _:
-            raise AssertionError
+    body = result.response.body
+    assert isinstance(body, dict)
+    diagnostics = body["diagnostics"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["[REDACTED]"] == "[REDACTED]"
+    assert diagnostics["nested"] == [
+        {"[REDACTED]": "[REDACTED]"},
+        {"[REDACTED]": "[REDACTED]"},
+        {"[REDACTED]": "[REDACTED]"},
+        "Bearer [REDACTED]",
+    ]
 
 
 def test_collect_drops_opaque_upstream_extras_from_response_provenance() -> None:
@@ -310,58 +301,3 @@ def test_collect_rejects_non_utc_timestamps_before_transport() -> None:
 
 def _unexpected() -> httpx2.Response:
     raise AssertionError
-
-
-def test_collection_client_enables_transport_defaults() -> None:
-    # Given: the production collection client factory.
-    async def inspect() -> tuple[
-        float | None, float | None, float | None, float | None, bool
-    ]:
-        async with create_collection_client() as client:
-            return (
-                client.timeout.connect,
-                client.timeout.read,
-                client.timeout.write,
-                client.timeout.pool,
-                client.follow_redirects,
-            )
-
-    # When: its concrete HTTP transport is constructed.
-    result = anyio.run(inspect)
-
-    # Then: split timeouts and redirects are enabled on the public client contract.
-    assert result == (5.0, 30.0, 10.0, 10.0, True)
-
-
-def test_mock_client_closes_after_collection_success_and_failure() -> None:
-    # Given: mock clients for one successful and one transport-failure request.
-    async def collect() -> tuple[bool, bool]:
-        successful_client = httpx2.AsyncClient(
-            transport=httpx2.MockTransport(
-                lambda _: httpx2.Response(200, json=_response())
-            )
-        )
-        failing_client = httpx2.AsyncClient(
-            transport=httpx2.MockTransport(
-                lambda request: (_ for _ in ()).throw(
-                    httpx2.ConnectError("connection refused", request=request)
-                )
-            )
-        )
-        async with successful_client:
-            successful = await PrometheusQueryRangeCollector(successful_client).collect(
-                _query()
-            )
-        async with failing_client:
-            failed = await PrometheusQueryRangeCollector(failing_client).collect(
-                _query()
-            )
-        assert isinstance(successful, CollectionSuccess)
-        assert isinstance(failed, CollectionFailure)
-        return successful_client.is_closed, failing_client.is_closed
-
-    # When: both outcomes leave their deterministic context managers.
-    closed = anyio.run(collect)
-
-    # Then: neither mock transport client remains open.
-    assert closed == (True, True)

@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import assert_never
 
 import pytest
 
@@ -144,6 +145,8 @@ def test_evaluate_regression_keeps_directional_reference_anomalies_inconclusive(
             pytest.fail("expected an advisory anomaly")
         case CohortBootstrapResult() | None:
             pytest.fail("expected baseline-reference evidence")
+        case _:
+            assert_never(metric_outcome.evidence)
 
 
 @pytest.mark.parametrize(
@@ -174,6 +177,8 @@ def test_evaluate_regression_treats_reference_threshold_equality_as_advisory(
             pytest.fail("expected no advisory anomaly at the threshold")
         case CohortBootstrapResult() | None:
             pytest.fail("expected baseline-reference evidence")
+        case _:
+            assert_never(outcome.metrics[0].evidence)
 
 
 @pytest.mark.parametrize(
@@ -238,3 +243,5 @@ def test_evaluate_metric_keeps_reference_anomalies_advisory() -> None:
             pytest.fail("expected an advisory anomaly")
         case CohortBootstrapResult() | None:
             pytest.fail("expected baseline-reference evidence")
+        case _:
+            assert_never(outcome.evidence)

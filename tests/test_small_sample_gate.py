@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import assert_never
 
 import pytest
 
@@ -215,3 +216,5 @@ def test_evaluate_regression_marks_reduced_cohort_minima_as_a_warning() -> None:
             pytest.fail("expected reduced-minimum warning")
         case BaselineReferenceResult() | None:
             pytest.fail("expected cohort-bootstrap evidence")
+        case _:
+            assert_never(outcome.metrics[0].evidence)
