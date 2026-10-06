@@ -37,6 +37,18 @@ _SENSITIVE_KEY_NAMES: Final = frozenset(
     }
 )
 _BEARER_VALUE: Final = re.compile(r"(?i)\bbearer\s+[^\s,;]+")
+_ASSIGNMENT_CREDENTIAL_VALUE: Final = re.compile(
+    r"""(?ix)
+    \b(
+        (?:
+            authorization | x[-_ ]?api[-_ ]?key | api[-_ ]?key |
+            access[-_ ]?token | client[-_ ]?secret | token | password | secret
+        )
+        \s*[:=]\s*
+    )
+    [^\s,;]+
+    """
+)
 _MISSING_MATRIX_DATA_CODE: Final = "missing_matrix_data"
 _MISSING_MATRIX_DATA_MESSAGE: Final = "successful Prometheus responses require data"
 _STRICT_IGNORE_CONFIG: Final = ConfigDict(strict=True, frozen=True, extra="ignore")
@@ -120,9 +132,10 @@ def response_provenance(response: httpx2.Response, token: str | None) -> ParsedR
 
 
 def redact_text(value: str, token: str | None) -> str:
-    """Replace known bearer values and literal bearer credentials in hostile text."""
+    """Replace known credential values in hostile text."""
     token_safe = value.replace(token, _REDACTED) if token else value
-    return _BEARER_VALUE.sub(f"Bearer {_REDACTED}", token_safe)
+    bearer_safe = _BEARER_VALUE.sub(f"Bearer {_REDACTED}", token_safe)
+    return _ASSIGNMENT_CREDENTIAL_VALUE.sub(rf"\1{_REDACTED}", bearer_safe)
 
 
 def redact_json(value: JsonValue, token: str | None) -> JsonValue:

@@ -90,8 +90,8 @@ def _handler(
                 },
             }
             if echo_token is not None:
-                response["warnings"] = [f"token={echo_token}"]
-                response["diagnostics"] = {"authorization": echo_token}
+                response["warnings"] = [f"api_key={echo_token}"]
+                response["infos"] = [f"x-api-key={echo_token}"]
             self._send(HTTPStatus.OK, response)
 
         def _send(self, status: HTTPStatus, payload: dict[str, JsonValue]) -> None:
