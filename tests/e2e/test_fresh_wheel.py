@@ -112,13 +112,22 @@ def _without_package(wheel: Path, target: Path) -> Path:
 
 
 def test_check_requires_lock_and_build_gates() -> None:
-    # Given: the local verification recipe.
+    # Given: the portable local verification recipe and CI workflow.
     recipe = (_ROOT / "justfile").read_text(encoding="utf-8")
+    workflow = (_ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
-    # When: deterministic distribution gates are inspected.
+    # When: deterministic gates and their cross-platform runners are inspected.
 
-    # Then: check requires both the lock and wheel build gates.
+    # Then: Just uses platform-native shells, owns all gates, and CI invokes it.
+    assert '[unix]\nset shell := ["sh", "-cu"]' in recipe
+    assert '[windows]\nset shell := ["powershell.exe", "-NoLogo", "-Command"]' in recipe
     assert "check: lock-check format-check lint typecheck test build" in recipe
+    assert (
+        "extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4"
+        in workflow
+    )
+    assert 'just-version: "1.58.0"' in workflow
+    assert "- run: just check" in workflow
 
 
 def test_fresh_wheel_installs_without_checkout_or_editable_environment(

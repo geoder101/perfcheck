@@ -1,4 +1,8 @@
-set shell := ["bash", "-cu"]
+[unix]
+set shell := ["sh", "-cu"]
+
+[windows]
+set shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 # List available project commands.
 default:

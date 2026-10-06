@@ -28,26 +28,23 @@ this directory. Do not use E2E tests for internal implementation changes.
 Do not accept a passing probe that can import source-tree code, an editable
 installation, or an active project virtual environment.
 
-## Workflow Scripts
+## Workflow Scenario Matrix
 
-`test_v1_workflow.py` runs `wheel-pass.sh`, `wheel-fail.sh`, and
-`wheel-inconclusive.sh` against the local Prometheus fixture.
+`test_v1_workflow.py` defines a typed Python scenario matrix for pass, fail,
+and inconclusive verdicts. It uses the shared `tests/e2e/support.py` helpers,
+which start the local Prometheus fixture through `sys.executable` and locate
+the generated console command.
 
-- Start `tests/fixtures/mock_prometheus_server.py` with `--port 0`.
-- Read the chosen endpoint from the fixture server's stdout.
-- Set `PERFCHECK_BIN`, `PERFCHECK_PROMETHEUS_URL`, and `PERFCHECK_SMOKE_DIR`.
-- Each script must execute `collect`, then `summarize`, then `compare` using
+- Invoke that command with argument vectors, never through a shell.
+- For every scenario, execute `collect`, then `summarize`, then `compare` with
   temporary output paths.
-- `compare` must write both JSON and Markdown reports.
-- The scripts assert verdict exits only: pass `0`, fail `1`, inconclusive `2`.
+- `compare` must write JSON and Markdown reports and exit with pass `0`, fail
+  `1`, or inconclusive `2`.
+- Assert the produced report files and compare each JSON report's `suite_status`
+  with its golden fixture.
 
-Fixture scripts, their policies and matrices, and golden `suite_status` values
-are repository E2E test contracts. Change them only with an intentional CLI
-workflow contract change, and keep the script outcome and golden status aligned.
-
-## Test Additions
-
-Prefer the existing three verdict scripts and fixture server. Add a new E2E
-scenario only when no smaller distribution or complete-flow contract can prove
-the behavior. Assert the installed command's exit status, produced artifacts,
-and report formats, never private Python APIs or implementation details.
+The scenario matrix, policies, Prometheus matrix, and golden `suite_status`
+values are repository E2E contracts. Add a scenario only when no smaller
+distribution or complete-flow contract can prove the behavior. Assert the
+installed command's exit status and public artifacts, never private Python APIs
+or implementation details.

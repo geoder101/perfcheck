@@ -4,7 +4,6 @@ import json
 import os
 import subprocess
 import sys
-from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,15 +17,13 @@ from perfcheck.prometheus import (
     PrometheusQueryRangeCollector,
     RangeQuery,
 )
+from tests.e2e.support import mock_prometheus_endpoint, perfcheck_executable
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
-
     import pytest
 
 
 _ROOT = Path(__file__).parents[1]
-_SERVER = _ROOT / "tests/fixtures/mock_prometheus_server.py"
 _PROMETHEUS_FIXTURE = _ROOT / "tests/fixtures/prometheus/matrix.json"
 _CREDENTIAL = "unsafe-bearer-value"
 
@@ -37,7 +34,9 @@ def test_token_echo_fixture_redacts_credentials_from_transport_evidence(
     # Given: a local Prometheus fixture instructed to echo the bearer token.
     secret = _CREDENTIAL
     monkeypatch.setenv("PERFCHECK_PROMETHEUS_BEARER_TOKEN", secret)
-    with _server(secret) as endpoint:
+    with mock_prometheus_endpoint(
+        _PROMETHEUS_FIXTURE, echo_token_body=secret
+    ) as endpoint:
         # When: an actual transport request reaches the hostile echo response.
         async def collect() -> CollectionResult:
             async with create_collection_client() as client:
@@ -72,11 +71,14 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
     report_json_path = tmp_path / "report.json"
     report_markdown_path = tmp_path / "report.md"
     policy_path = _ROOT / "tests/fixtures/policy-pass.json"
-    with _server(secret) as endpoint:
+    console = perfcheck_executable(Path(sys.executable).parent.parent)
+    with mock_prometheus_endpoint(
+        _PROMETHEUS_FIXTURE, echo_token_body=secret
+    ) as endpoint:
         # When: the CLI writes a collected artifact using the local endpoint.
         result = subprocess.run(  # noqa: S603 - fixed local console script.
             [
-                str(Path(sys.executable).parent / "perfcheck"),
+                str(console),
                 "collect",
                 "--suite",
                 str(policy_path),
@@ -99,7 +101,7 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
         )
         baseline_result = subprocess.run(  # noqa: S603 - fixed local console script.
             [
-                str(Path(sys.executable).parent / "perfcheck"),
+                str(console),
                 "collect",
                 "--suite",
                 str(policy_path),
@@ -123,7 +125,7 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
 
     compare_result = subprocess.run(  # noqa: S603 - fixed local console script.
         [
-            str(Path(sys.executable).parent / "perfcheck"),
+            str(console),
             "compare",
             "--policy",
             str(policy_path),
@@ -159,36 +161,3 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
     )
     assert all(secret not in value for value in evidence)
     assert json.loads(output_path.read_text(encoding="utf-8"))["artifact_type"] == "run"
-
-
-@contextmanager
-def _server(secret: str) -> Generator[str]:
-    endpoint_read, endpoint_write = os.pipe()
-    process: subprocess.Popen[bytes] = subprocess.Popen(  # noqa: S603 - fixed local fixture server.
-        [
-            sys.executable,
-            str(_SERVER),
-            "--port",
-            "0",
-            "--fixture",
-            str(_PROMETHEUS_FIXTURE),
-            "--echo-token-body",
-            secret,
-        ],
-        stdout=endpoint_write,
-        stderr=subprocess.PIPE,
-    )
-    os.close(endpoint_write)
-    assert process.stderr is not None
-    try:
-        yield os.read(endpoint_read, 4096).decode().strip()
-    finally:
-        process.terminate()
-        try:
-            _ = process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            _ = process.wait(timeout=5)
-        finally:
-            os.close(endpoint_read)
-            process.stderr.close()
