@@ -17,6 +17,9 @@ Run the CLI through the managed environment:
 uv run perfcheck --help
 ```
 
+Developer learning materials for the CLI workflow are in the
+[Marimo curriculum index](examples/README.md).
+
 ## Commands
 
 The supported workflow collects a portable raw run, summarizes a verified raw

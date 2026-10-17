@@ -24,6 +24,9 @@ dev = [
     "pytest>=9.0",
     "ruff>=0.14",
 ]
+examples = [
+    "marimo>=0.24,<0.25",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.13,<0.13"]
@@ -33,7 +36,7 @@ build-backend = "uv_build"
 typeCheckingMode = "all"
 pythonVersion = "3.14"
 pythonPlatform = "All"
-include = ["src", "tests"]
+include = ["src", "tests", "examples"]
 exclude = ["**/__pycache__", "**/.venv", "build", "dist"]
 
 [tool.ruff]
