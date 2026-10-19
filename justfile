@@ -8,9 +8,13 @@ set shell := ["powershell.exe", "-NoLogo", "-Command"]
 default:
   @just --list
 
-# Run the complete test suite, optionally forwarding pytest arguments.
+# Run the standard test suite, optionally forwarding pytest arguments.
 test *args:
-  uv run pytest {{args}}
+  uv run pytest --ignore=tests/test_examples.py --ignore=tests/test_examples_check.py {{args}}
+
+# Validate the optional Marimo curriculum and its focused test modules.
+examples-check:
+  uv run --group examples python -m tests.examples_check
 
 # Run the perfcheck CLI, optionally forwarding CLI arguments.
 cli *args:
@@ -41,7 +45,7 @@ lock-check:
   uv lock --check
 
 # Run the standard local verification suite.
-check: lock-check format-check lint typecheck test build
+check: lock-check format-check lint typecheck test examples-check build
 
 # Verify the lockfile and synchronize all development dependencies.
 sync:

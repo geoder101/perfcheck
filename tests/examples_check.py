@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Final
@@ -19,6 +20,7 @@ _EXPECTED_NOTEBOOK_NAMES: Final = (
     "04-compare.py",
     "05-failures-and-ci.py",
 )
+_EXAMPLES_TEST_TIMEOUT_SECONDS: Final = 60.0
 EXAMPLE_NOTEBOOKS: Final[tuple[Path, ...]] = (
     *(_EXAMPLES_DIRECTORY / name for name in _EXPECTED_NOTEBOOK_NAMES),
 )
@@ -103,9 +105,22 @@ def run_examples_check(notebooks: tuple[Path, ...]) -> int:
 
 
 def main() -> None:
-    """Validate the fixed course and exit for its Marimo check result."""
+    """Validate the fixed course and run all optional examples checks."""
     validate_repository_course()
     exit_code = run_examples_check(EXAMPLE_NOTEBOOKS)
+    test_result = run_local_command(
+        (
+            sys.executable,
+            "-m",
+            "pytest",
+            str(_ROOT / "tests/test_examples.py"),
+            str(_ROOT / "tests/test_examples_check.py"),
+        ),
+        cwd=_ROOT,
+        timeout_seconds=_EXAMPLES_TEST_TIMEOUT_SECONDS,
+    )
+    if exit_code == 0:
+        exit_code = test_result.returncode
     if exit_code != 0:
         raise SystemExit(exit_code)
 

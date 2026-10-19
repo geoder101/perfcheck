@@ -77,7 +77,7 @@ class _ErrorResponse(BaseModel):
     status: Literal["error"]
 
 
-def test_sanitized_environment_retains_only_allowlisted_present_values(
+def test_secrets_are_excluded_from_the_sanitized_child_environment(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     # Given: allowed platform values and fake credential values in the parent process.
@@ -292,7 +292,7 @@ def test_fixture_server_reports_readiness_failure_without_credential_diagnostics
 
 
 @pytest.mark.parametrize("lesson_path", _LESSON_PATHS)
-def test_lesson_is_a_standalone_marimo_script_in_curriculum_order(
+def test_curriculum_scope_has_standalone_marimo_scripts_in_teaching_order(
     lesson_path: Path,
 ) -> None:
     # Given: one lesson from the first curriculum segment.
@@ -312,7 +312,7 @@ def test_lesson_is_a_standalone_marimo_script_in_curriculum_order(
 
 
 @pytest.mark.parametrize(("lesson_path", "expected_evidence"), _LESSON_OUTPUT_EVIDENCE)
-def test_lesson_executes_with_project_local_example_group(
+def test_no_generated_example_output_persists_after_lesson_execution(
     lesson_path: Path,
     expected_evidence: str,
     monkeypatch: pytest.MonkeyPatch,
@@ -356,7 +356,7 @@ def test_curriculum_index_lists_each_lesson_once_in_numeric_order() -> None:
     )
 
 
-def test_curriculum_index_documents_setup_and_explicit_commands() -> None:
+def test_documentation_scope_preserves_cli_only_setup_and_explicit_commands() -> None:
     # Given: the public curriculum index.
     index = (_ROOT / "examples/README.md").read_text(encoding="utf-8")
 
@@ -401,14 +401,17 @@ def test_validate_repository_course_reports_a_missing_index_entry(
 
 
 @pytest.mark.parametrize("lesson_path", EXAMPLE_NOTEBOOKS)
-def test_lesson_has_no_inline_script_metadata(lesson_path: Path) -> None:
+def test_no_metadata_or_blanket_lesson_suppressions(lesson_path: Path) -> None:
     # Given: one canonical Marimo lesson.
 
     # When: its source is read.
     source = lesson_path.read_text(encoding="utf-8")
 
-    # Then: dependency metadata remains in the optional project group.
+    # Then: dependency metadata remains in the optional project group and
+    # framework cells cannot bypass the repository's strict analysis settings.
     assert "# /// script" not in source
+    assert "# pyright: basic" not in source
+    assert "# ruff: noqa:" not in source
 
 
 def test_tampered_raw_artifact_is_rejected_before_summary_is_written(
