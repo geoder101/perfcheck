@@ -1,246 +1,211 @@
-import marimo  # noqa: D100, N999
+"""Compare deterministic perfcheck summary cohorts."""
+
+import marimo
 
 __generated_with = "0.24.2"
 app = marimo.App(width="medium")
 
 
-@app.cell
-def _():  # noqa: ANN202
-    import marimo as mo  # noqa: PLC0415
+with app.setup:
+    import json
+    import sys
+    from pathlib import Path
 
-    return (mo,)
+    repository_root = Path(__file__).resolve().parents[1]
+    sys.path.insert(0, str(repository_root))
+
+    from examples._markdown import md
+    from examples._support import (
+        COMPARE_COHORT,
+        CollectRequest,
+        CompareRequest,
+        LessonContext,
+        LessonRun,
+        ReportEvidence,
+        SummaryRequest,
+        collect_arguments,
+        compare_arguments,
+        example_workspace,
+        lesson_context,
+        mock_prometheus_endpoint,
+        parse_report_evidence,
+        run_local_command,
+        summarize_arguments,
+    )
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     # Compare verified evidence
 
     ## Goal
 
     Independently create baseline and current summaries, compare them under one
     policy, and inspect the portable JSON and Markdown decision reports.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Inputs
 
     Fixed run IDs, UTC intervals, a policy fixture, explicit bootstrap seed and
     resamples, and a bundled loopback matrix fixture make this lesson repeatable.
     Every raw run, summary, and report stays in a temporary workspace.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell
-def _():  # noqa: ANN202
-    import json  # noqa: PLC0415
-    import sys  # noqa: PLC0415
-    from pathlib import Path  # noqa: PLC0415
-
-    repository_root = Path(__file__).resolve().parents[1]
-    sys.path.insert(0, str(repository_root))
-    from examples._support import (  # noqa: PLC0415
-        example_workspace,
-        mock_prometheus_endpoint,
-        perfcheck_executable,
-        run_local_command,
-    )
-
-    return (
-        example_workspace,
-        json,
-        mock_prometheus_endpoint,
-        perfcheck_executable,
-        repository_root,
-        run_local_command,
-    )
+def _() -> tuple[LessonContext, tuple[LessonRun, ...]]:
+    context = lesson_context()
+    runs = COMPARE_COHORT
+    return context, runs
 
 
-@app.cell  # pyright: ignore[reportUnknownArgumentType]
-def _(  # noqa: ANN202, PLR0913, PLR0917  # pyright: ignore[reportUnknownParameterType]
-    example_workspace,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    json,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mock_prometheus_endpoint,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    perfcheck_executable,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    repository_root,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    run_local_command,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-):
-    policy_path = repository_root / "tests/fixtures/policy-pass.json"  # pyright: ignore[reportUnknownVariableType]
-    fixture_path = repository_root / "examples/fixtures/prometheus-matrix.json"  # pyright: ignore[reportUnknownVariableType]
-    runs = (
-        ("lesson-baseline-1", "2026-07-01"),
-        ("lesson-baseline-2", "2026-07-02"),
-        ("lesson-current-1", "2026-07-03"),
-        ("lesson-current-2", "2026-07-04"),
-    )
+@app.cell
+def _(
+    context: LessonContext, runs: tuple[LessonRun, ...]
+) -> tuple[tuple[int, ...], int, ReportEvidence, str, str]:
     with (
-        example_workspace() as workspace,  # pyright: ignore[reportUnknownVariableType]
-        mock_prometheus_endpoint(fixture_path) as endpoint,  # pyright: ignore[reportUnknownVariableType]
+        example_workspace() as workspace,
+        mock_prometheus_endpoint(context.fixture_path) as endpoint,
     ):
-        summaries = {}
+        summary_paths: list[Path] = []
         stage_statuses: list[int] = []
-        for run_id, day in runs:
-            raw_path = workspace / f"{run_id}.json"  # pyright: ignore[reportUnknownVariableType]
-            summary_path = workspace / f"{run_id}.summary.json"  # pyright: ignore[reportUnknownVariableType]
-            collect_result = run_local_command(  # pyright: ignore[reportUnknownVariableType]
-                (
-                    str(perfcheck_executable()),  # pyright: ignore[reportUnknownArgumentType]
-                    "collect",
-                    "--suite",
-                    str(policy_path),  # pyright: ignore[reportUnknownArgumentType]
-                    "--prometheus-url",
-                    endpoint,
-                    "--run-id",
-                    run_id,
-                    "--start",
-                    f"{day}T10:00:00Z",
-                    "--end",
-                    f"{day}T10:10:00Z",
-                    "--out",
-                    str(raw_path),  # pyright: ignore[reportUnknownArgumentType]
+        for run in runs:
+            raw_path = workspace / f"{run.run_id}.json"
+            summary_path = workspace / f"{run.run_id}.summary.json"
+            collect_result = run_local_command(
+                collect_arguments(
+                    context,
+                    CollectRequest(endpoint=endpoint, run=run, output_path=raw_path),
                 ),
                 cwd=workspace,
             )
-            summarize_result = run_local_command(  # pyright: ignore[reportUnknownVariableType]
-                (
-                    str(perfcheck_executable()),  # pyright: ignore[reportUnknownArgumentType]
-                    "summarize",
-                    "--policy",
-                    str(policy_path),  # pyright: ignore[reportUnknownArgumentType]
-                    "--run",
-                    str(raw_path),  # pyright: ignore[reportUnknownArgumentType]
-                    "--out",
-                    str(summary_path),  # pyright: ignore[reportUnknownArgumentType]
+            summarize_result = run_local_command(
+                summarize_arguments(
+                    context,
+                    SummaryRequest(raw_path=raw_path, output_path=summary_path),
                 ),
                 cwd=workspace,
             )
-            summaries[run_id] = summary_path
+            summary_paths.append(summary_path)
             stage_statuses.extend(
-                (collect_result.returncode, summarize_result.returncode)  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
+                (collect_result.returncode, summarize_result.returncode)
             )
-        json_report_path = workspace / "comparison.json"  # pyright: ignore[reportUnknownVariableType]
-        markdown_report_path = workspace / "comparison.md"  # pyright: ignore[reportUnknownVariableType]
-        compare_result = run_local_command(  # pyright: ignore[reportUnknownVariableType]
-            (
-                str(perfcheck_executable()),  # pyright: ignore[reportUnknownArgumentType]
-                "compare",
-                "--policy",
-                str(policy_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--current",
-                str(summaries["lesson-current-1"]),  # pyright: ignore[reportUnknownArgumentType]
-                "--current",
-                str(summaries["lesson-current-2"]),  # pyright: ignore[reportUnknownArgumentType]
-                "--baseline",
-                str(summaries["lesson-baseline-1"]),  # pyright: ignore[reportUnknownArgumentType]
-                "--baseline",
-                str(summaries["lesson-baseline-2"]),  # pyright: ignore[reportUnknownArgumentType]
-                "--report-json",
-                str(json_report_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--report-md",
-                str(markdown_report_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--seed",
-                "20260704",
-                "--resamples",
-                "1000",
+        json_report_path = workspace / "comparison.json"
+        markdown_report_path = workspace / "comparison.md"
+        compare_result = run_local_command(
+            compare_arguments(
+                context,
+                CompareRequest(
+                    current_paths=tuple(summary_paths[2:]),
+                    baseline_paths=tuple(summary_paths[:2]),
+                    report_json_path=json_report_path,
+                    report_markdown_path=markdown_report_path,
+                    seed=20260704,
+                    resamples=1000,
+                ),
             ),
             cwd=workspace,
         )
-        report_payload = json.loads(json_report_path.read_text(encoding="utf-8"))  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+        report_evidence = parse_report_evidence(json_report_path.read_bytes())
         markdown_excerpt = " / ".join(
-            markdown_report_path.read_text(encoding="utf-8").splitlines()[:4]  # pyright: ignore[reportUnknownArgumentType, reportUnknownMemberType]
+            markdown_report_path.read_text(encoding="utf-8").splitlines()[:4]
         )
-    evidence = {  # pyright: ignore[reportUnknownVariableType]
-        "suite_status": report_payload["suite_status"],
-        "metric_status": report_payload["metrics"][0]["status"],
-        "run_count": len(runs),
-        "stage_statuses": tuple(stage_statuses),
-        "comparison_status": compare_result.returncode,  # pyright: ignore[reportUnknownMemberType]
-        "seed": 20260704,
-        "resamples": 1000,
-    }
-    metric = report_payload["metrics"][0]  # pyright: ignore[reportUnknownVariableType]
-    json_excerpt = json.dumps(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+        comparison_status = compare_result.returncode
+        stage_statuses_tuple = tuple(stage_statuses)
+    json_excerpt = json.dumps(
         {
             "metric": {
-                "metric_id": metric["metric_id"],
-                "method": metric["method"],
-                "status": metric["status"],
+                "metric_id": report_evidence["metric_id"],
+                "method": report_evidence["method"],
+                "status": report_evidence["metric_status"],
             },
-            "suite_status": report_payload["suite_status"],
+            "suite_status": report_evidence["suite_status"],
         },
         sort_keys=True,
     )
-    return evidence, json_excerpt, markdown_excerpt  # pyright: ignore[reportUnknownVariableType]
+    return (
+        stage_statuses_tuple,
+        comparison_status,
+        report_evidence,
+        json_excerpt,
+        markdown_excerpt,
+    )
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Run
 
     `compare` receives four verified summaries, two per cohort. The explicit
     seed and resample count make the bootstrap decision reproducible.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Evidence
 
     Expected evidence: the fixture policy produces a passing suite decision and
     both report formats exist only at temporary paths. The next line places
     narrowed, stable JSON and Markdown excerpts side-by-side; no paths are shown.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
-@app.cell  # pyright: ignore[reportUnknownArgumentType]
-def _(evidence, json_excerpt, markdown_excerpt):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    print("Goal: compare deterministic baseline and current evidence")  # noqa: T201
-    print("Inputs: fixed UTC runs, local fixture, seed=20260704, resamples=1000")  # noqa: T201
-    print(f"Run: compare exit status {evidence['comparison_status']}")  # noqa: T201
-    print(f"Evidence: {evidence}")  # noqa: T201
-    print(  # noqa: T201
-        f"JSON report (temporary): {json_excerpt} | Markdown report (temporary): {markdown_excerpt}"  # noqa: E501
+@app.cell
+def _(
+    comparison_status: int,
+    json_excerpt: str,
+    markdown_excerpt: str,
+    report_evidence: ReportEvidence,
+    stage_statuses_tuple: tuple[int, ...],
+) -> None:
+    evidence = {
+        "suite_status": report_evidence["suite_status"],
+        "metric_status": report_evidence["metric_status"],
+        "run_count": len(COMPARE_COHORT),
+        "stage_statuses": stage_statuses_tuple,
+        "comparison_status": comparison_status,
+        "seed": 20260704,
+        "resamples": 1000,
+    }
+    report_line = f"JSON report (temporary): {json_excerpt} | \
+Markdown report (temporary): {markdown_excerpt}"
+    message = "\n".join(
+        (
+            "Goal: compare deterministic baseline and current evidence",
+            "Inputs: fixed UTC runs, local fixture, seed=20260704, resamples=1000",
+            f"Run: compare exit status {comparison_status}",
+            f"Evidence: {evidence}",
+            report_line,
+        )
     )
-    return  # noqa: PLR1711
+    _ = sys.stdout.write(f"{message}\n")
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Takeaway
 
     CI can retain both portable formats for review while using the compare exit
     status as its decision signal. The paths in this lesson are temporary.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell
-def _():  # noqa: ANN202
-    print(  # noqa: T201
-        "Takeaway: retain reports, then use the documented comparison exit status in CI."  # noqa: E501
+def _() -> None:
+    _ = sys.stdout.write(
+        "Takeaway: retain reports, then use the documented comparison exit \
+status in CI.\n"
     )
-    return  # noqa: PLR1711
 
 
 if __name__ == "__main__":
-    app.run()  # pyright: ignore[reportUnusedCallResult]
+    _app_run_result = app.run()

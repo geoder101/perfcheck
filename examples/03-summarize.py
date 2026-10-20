@@ -1,205 +1,172 @@
-import marimo  # noqa: D100, N999
+"""Summarize verified perfcheck raw-run evidence."""
+
+import marimo
 
 __generated_with = "0.24.2"
 app = marimo.App(width="medium")
 
 
-@app.cell
-def _():  # noqa: ANN202
-    import marimo as mo  # noqa: PLC0415
+with app.setup:
+    import sys
+    from pathlib import Path
 
-    return (mo,)
+    repository_root = Path(__file__).resolve().parents[1]
+    sys.path.insert(0, str(repository_root))
+
+    from examples._markdown import md
+    from examples._support import (
+        CollectRequest,
+        LessonContext,
+        LessonRun,
+        SummaryEvidence,
+        SummaryRequest,
+        collect_arguments,
+        example_workspace,
+        lesson_context,
+        mock_prometheus_endpoint,
+        parse_summary_evidence,
+        run_local_command,
+        summarize_arguments,
+    )
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     # Summarize verified evidence
 
     ## Goal
 
     Independently collect a raw run, summarize it, and observe that the public
     CLI rejects altered raw evidence before it can produce a summary.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Inputs
 
     This script has its own temporary workspace, policy fixture, and loopback
     matrix fixture. It teaches CLI outcomes and evidence identity fields without
     promising that the internal artifact schema is stable.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell
-def _():  # noqa: ANN202
-    from pathlib import Path  # noqa: I001, PLC0415
-    import json  # noqa: PLC0415
-    import sys  # noqa: PLC0415
-
-    repository_root = Path(__file__).resolve().parents[1]
-    sys.path.insert(0, str(repository_root))
-    from examples._support import (  # noqa: PLC0415
-        example_workspace,
-        mock_prometheus_endpoint,
-        perfcheck_executable,
-        run_local_command,
-    )
-
-    return (
-        example_workspace,
-        json,
-        mock_prometheus_endpoint,
-        perfcheck_executable,
-        repository_root,
-        run_local_command,
-    )
+def _() -> tuple[LessonContext, LessonRun]:
+    context = lesson_context()
+    run = LessonRun("lesson-summarize", "2026-07-01")
+    return context, run
 
 
-@app.cell  # pyright: ignore[reportUnknownArgumentType]
-def _(  # noqa: ANN202, PLR0913, PLR0917  # pyright: ignore[reportUnknownParameterType]
-    example_workspace,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    json,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mock_prometheus_endpoint,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    perfcheck_executable,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    repository_root,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    run_local_command,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-):
-    policy_path = repository_root / "tests/fixtures/policy-pass.json"  # pyright: ignore[reportUnknownVariableType]
-    fixture_path = repository_root / "examples/fixtures/prometheus-matrix.json"  # pyright: ignore[reportUnknownVariableType]
+@app.cell
+def _(context: LessonContext, run: LessonRun) -> tuple[int, int, int, SummaryEvidence]:
     with (
-        example_workspace() as workspace,  # pyright: ignore[reportUnknownVariableType]
-        mock_prometheus_endpoint(fixture_path) as endpoint,  # pyright: ignore[reportUnknownVariableType]
+        example_workspace() as workspace,
+        mock_prometheus_endpoint(context.fixture_path) as endpoint,
     ):
-        raw_path = workspace / "raw-run.json"  # pyright: ignore[reportUnknownVariableType]
-        summary_path = workspace / "summary.json"  # pyright: ignore[reportUnknownVariableType]
-        collect_result = run_local_command(  # pyright: ignore[reportUnknownVariableType]
-            (
-                str(perfcheck_executable()),  # pyright: ignore[reportUnknownArgumentType]
-                "collect",
-                "--suite",
-                str(policy_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--prometheus-url",
-                endpoint,
-                "--run-id",
-                "lesson-summarize",
-                "--start",
-                "2026-07-01T10:00:00Z",
-                "--end",
-                "2026-07-01T10:10:00Z",
-                "--out",
-                str(raw_path),  # pyright: ignore[reportUnknownArgumentType]
+        raw_path = workspace / "raw-run.json"
+        summary_path = workspace / "summary.json"
+        collect_result = run_local_command(
+            collect_arguments(
+                context,
+                CollectRequest(endpoint=endpoint, run=run, output_path=raw_path),
             ),
             cwd=workspace,
         )
-        summarize_result = run_local_command(  # pyright: ignore[reportUnknownVariableType]
-            (
-                str(perfcheck_executable()),  # pyright: ignore[reportUnknownArgumentType]
-                "summarize",
-                "--policy",
-                str(policy_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--run",
-                str(raw_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--out",
-                str(summary_path),  # pyright: ignore[reportUnknownArgumentType]
+        summarize_result = run_local_command(
+            summarize_arguments(
+                context,
+                SummaryRequest(raw_path=raw_path, output_path=summary_path),
             ),
             cwd=workspace,
         )
-        raw_payload = json.loads(raw_path.read_text(encoding="utf-8"))  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-        summary_payload = json.loads(summary_path.read_text(encoding="utf-8"))  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-        raw_payload["run_id"] = "altered-raw-run"
-        _ = raw_path.write_text(json.dumps(raw_payload), encoding="utf-8")  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-        tampered_result = run_local_command(  # pyright: ignore[reportUnknownVariableType]
-            (
-                str(perfcheck_executable()),  # pyright: ignore[reportUnknownArgumentType]
-                "summarize",
-                "--policy",
-                str(policy_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--run",
-                str(raw_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--out",
-                str(workspace / "rejected-summary.json"),  # pyright: ignore[reportUnknownArgumentType]
+        summary_evidence = parse_summary_evidence(summary_path.read_bytes())
+        tampered_raw = raw_path.read_bytes().replace(
+            b'"run_id":"lesson-summarize"', b'"run_id":"altered-raw-run"', 1
+        )
+        _ = raw_path.write_bytes(tampered_raw)
+        tampered_result = run_local_command(
+            summarize_arguments(
+                context,
+                SummaryRequest(
+                    raw_path=raw_path,
+                    output_path=workspace / "rejected-summary.json",
+                ),
             ),
             cwd=workspace,
         )
-    evidence = {  # pyright: ignore[reportUnknownVariableType]
-        "summary_id": summary_payload["summary_id"],
-        "source_run_id": summary_payload["source_run_id"],
-        "metric_record_count": len(summary_payload["metric_records"]),  # pyright: ignore[reportUnknownArgumentType]
-        "eligibility": summary_payload["metric_records"][0]["summary"]["eligibility"][
-            "eligible"
-        ],
-        "tampered_raw_exit_status": tampered_result.returncode,  # pyright: ignore[reportUnknownMemberType]
-    }
-    return collect_result, evidence, summarize_result  # pyright: ignore[reportUnknownVariableType]
+        collect_status = collect_result.returncode
+        summarize_status = summarize_result.returncode
+        tampered_status = tampered_result.returncode
+    return collect_status, summarize_status, tampered_status, summary_evidence
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Run
 
     The public `summarize` command reads the raw run and verifies its persisted
     identities before writing a canonical summary. A second summarize attempt
     uses an altered raw file and is expected to fail safely.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Evidence
 
     This narrowed excerpt displays the summary and source identifiers, the
-    number of summarized metric records, and the nonzero status from the altered
-    raw-run probe. These are evidence fields, not a promise of schema stability.
-    """
-    )
-    return  # noqa: PLR1711
+    number of summarized metric records, eligibility, and the nonzero status
+    from the altered raw-run probe. These are evidence fields, not a promise of
+    schema stability.
+        """)
 
 
-@app.cell  # pyright: ignore[reportUnknownArgumentType]
-def _(collect_result, evidence, summarize_result):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    print("Goal: summarize verified raw evidence")  # noqa: T201
-    print("Inputs: independently collected temporary raw run")  # noqa: T201
-    print(  # noqa: T201
-        f"Run: collect={collect_result.returncode}, summarize={summarize_result.returncode}"  # noqa: E501  # pyright: ignore[reportUnknownMemberType]
+@app.cell
+def _(
+    collect_status: int,
+    summarize_status: int,
+    summary_evidence: SummaryEvidence,
+    tampered_status: int,
+) -> None:
+    evidence = {
+        "summary_id": summary_evidence["summary_id"],
+        "source_run_id": summary_evidence["source_run_id"],
+        "metric_record_count": summary_evidence["metric_record_count"],
+        "eligibility": summary_evidence["eligible"],
+        "tampered_raw_exit_status": tampered_status,
+    }
+    message = "\n".join(
+        (
+            "Goal: summarize verified raw evidence",
+            "Inputs: independently collected temporary raw run",
+            f"Run: collect={collect_status}, summarize={summarize_status}",
+            f"Evidence: {evidence}",
+        )
     )
-    print(f"Evidence: {evidence}")  # noqa: T201
-    return  # noqa: PLR1711
+    _ = sys.stdout.write(f"{message}\n")
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
+def _() -> None:
+    md(r"""
     ## Takeaway
 
     Summarization is not just formatting: it accepts verified raw evidence and
     rejects a tampered artifact with the documented input-error outcome.
-    """
-    )
-    return  # noqa: PLR1711
+        """)
 
 
 @app.cell
-def _():  # noqa: ANN202
-    print("Takeaway: summarize only trusted raw evidence through perfcheck.")  # noqa: T201
-    return  # noqa: PLR1711
+def _() -> None:
+    _ = sys.stdout.write(
+        "Takeaway: summarize only trusted raw evidence through perfcheck.\n"
+    )
 
 
 if __name__ == "__main__":
-    app.run()  # pyright: ignore[reportUnusedCallResult]
+    _app_run_result = app.run()

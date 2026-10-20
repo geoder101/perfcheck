@@ -7,17 +7,31 @@ from pathlib import Path
 from typing import ClassVar, Literal
 from urllib.parse import urlencode, urlparse
 
+import marimo as mo
 import pytest
+from examples import _markdown
 from examples._support import (
+    COMPARE_COHORT,
+    FAILURE_COHORT,
+    CollectRequest,
+    CompareRequest,
     FixtureServerStartupError,
     LocalCommandTimeoutError,
+    SummaryRequest,
+    collect_arguments,
+    compare_arguments,
     example_workspace,
+    lesson_context,
     mock_prometheus_endpoint,
+    parse_raw_evidence,
+    parse_report_evidence,
+    parse_summary_evidence,
     perfcheck_executable,
     run_local_command,
     sanitized_environment,
+    summarize_arguments,
 )
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from tests import examples_check
 from tests.examples_check import EXAMPLE_NOTEBOOKS, run_standalone_notebook
@@ -75,6 +89,32 @@ class _ErrorResponse(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(frozen=True)
 
     status: Literal["error"]
+
+
+def test_markdown_helper_replaces_output_with_rendered_markdown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Given: a markdown renderer and output replacement boundary.
+    rendered = mo.Html("<p>lesson text</p>")
+    rendered_texts: list[str] = []
+    replaced_outputs: list[mo.Html] = []
+
+    def render_markdown(text: str) -> mo.Html:
+        rendered_texts.append(text)
+        return rendered
+
+    def replace_output(value: mo.Html) -> None:
+        replaced_outputs.append(value)
+
+    monkeypatch.setattr(mo, "md", render_markdown)
+    monkeypatch.setattr(mo.output, "replace", replace_output)
+
+    # When: a lesson emits markdown through the isolated helper.
+    _markdown.md("lesson text")
+
+    # Then: the rendered Html is delegated to Marimo's output replacement.
+    assert rendered_texts == ["lesson text"]
+    assert replaced_outputs == [rendered]
 
 
 def test_secrets_are_excluded_from_the_sanitized_child_environment(
@@ -217,6 +257,142 @@ def test_perfcheck_executable_uses_project_local_console_script() -> None:
     # Then: it is adjacent to Python using the platform-specific script name.
     expected_name = "perfcheck.exe" if os.name == "nt" else "perfcheck"
     assert executable == Path(sys.executable).parent / expected_name
+
+
+def test_lesson_context_resolves_repository_fixtures() -> None:
+    # Given: the shared lesson context factory.
+
+    # When: a lesson requests its local CLI resources.
+    context = lesson_context()
+
+    # Then: its paths stay rooted in this checkout's bundled fixtures.
+    assert context.repository_root == _ROOT
+    assert context.policy_path == _PASS_POLICY
+    assert context.fixture_path == _FIXTURE
+    assert context.executable == perfcheck_executable()
+
+
+def test_collect_arguments_build_the_collect_cli_contract() -> None:
+    # Given: a lesson context and deterministic collection request.
+    context = lesson_context()
+    request = CollectRequest(
+        endpoint="http://127.0.0.1:12345",
+        run=COMPARE_COHORT[0],
+        output_path=Path("raw.json"),
+    )
+
+    # When: the collect command arguments are built.
+    arguments = collect_arguments(context, request)
+
+    # Then: the public CLI receives the fixed UTC interval and output path.
+    assert arguments[-8:] == (
+        "--run-id",
+        "lesson-baseline-1",
+        "--start",
+        "2026-07-01T10:00:00Z",
+        "--end",
+        "2026-07-01T10:10:00Z",
+        "--out",
+        "raw.json",
+    )
+
+
+def test_summarize_arguments_build_the_summary_cli_contract() -> None:
+    # Given: a lesson context and temporary raw and summary paths.
+    context = lesson_context()
+    request = SummaryRequest(Path("raw.json"), Path("summary.json"))
+
+    # When: the summarize command arguments are built.
+    arguments = summarize_arguments(context, request)
+
+    # Then: the policy, source raw run, and output are explicit.
+    assert arguments[-6:] == (
+        "--policy",
+        str(_PASS_POLICY),
+        "--run",
+        "raw.json",
+        "--out",
+        "summary.json",
+    )
+
+
+def test_compare_arguments_build_the_fixed_cohort_cli_contract() -> None:
+    # Given: a lesson context with the fixed comparison cohort's paths.
+    context = lesson_context()
+    paths = tuple(Path(f"{run.run_id}.json") for run in COMPARE_COHORT)
+
+    # When: the compare command arguments are built for summaries.
+    request = CompareRequest(
+        current_paths=paths[2:],
+        baseline_paths=paths[:2],
+        report_json_path=Path("comparison.json"),
+        report_markdown_path=Path("comparison.md"),
+        seed=20260704,
+        resamples=1000,
+    )
+    arguments = compare_arguments(context, request)
+
+    # Then: the cohort ordering and deterministic comparison settings are retained.
+    assert arguments[-6:] == (
+        "--report-md",
+        "comparison.md",
+        "--seed",
+        "20260704",
+        "--resamples",
+        "1000",
+    )
+    assert FAILURE_COHORT[0].run_id == "failure-baseline-1"
+
+
+def test_evidence_parsers_return_only_displayed_fields() -> None:
+    # Given: minimal artifact payloads with the fields each lesson displays.
+
+    # When: raw, summary, and report evidence cross the JSON boundary.
+    raw = parse_raw_evidence(
+        b'{"run_id":"raw-1","schema_version":1,"metric_records":[{}]}'
+    )
+    summary = parse_summary_evidence(
+        b"".join(
+            (
+                b'{"summary_id":"summary-1","source_run_id":"raw-1",',
+                b'"metric_records":[{"summary":{"eligibility":{"eligible":true}}}]}',
+            )
+        )
+    )
+    report = parse_report_evidence(
+        b"".join(
+            (
+                b'{"suite_status":"pass","metrics":[',
+                b'{"metric_id":"latency","method":"bootstrap","status":"pass"}]}',
+            )
+        )
+    )
+
+    # Then: callers receive no unvalidated artifact payload.
+    assert raw == {"run_id": "raw-1", "schema_version": 1, "metric_record_count": 1}
+    assert summary == {
+        "summary_id": "summary-1",
+        "source_run_id": "raw-1",
+        "metric_record_count": 1,
+        "eligible": True,
+    }
+    assert report == {
+        "suite_status": "pass",
+        "metric_id": "latency",
+        "method": "bootstrap",
+        "metric_status": "pass",
+    }
+
+
+def test_summary_evidence_parser_rejects_empty_displayed_records() -> None:
+    # Given: a summary payload without a metric record to display.
+    payload = b'{"summary_id":"summary-1","source_run_id":"raw-1","metric_records":[]}'
+
+    # When: the payload crosses the lesson JSON boundary.
+    with pytest.raises(ValidationError):
+        _ = parse_summary_evidence(payload)
+
+    # Then: no later lesson cell can index an unvalidated empty collection.
 
 
 def test_fixture_server_returns_deterministic_matrix_for_known_query() -> None:
@@ -412,6 +588,21 @@ def test_no_metadata_or_blanket_lesson_suppressions(lesson_path: Path) -> None:
     assert "# /// script" not in source
     assert "# pyright: basic" not in source
     assert "# ruff: noqa:" not in source
+
+
+@pytest.mark.parametrize("lesson_path", _LESSON_PATHS)
+def test_canonical_lessons_have_no_linter_or_type_checker_ignores(
+    lesson_path: Path,
+) -> None:
+    # Given: one canonical numbered lesson.
+
+    # When: its source is read.
+    source = lesson_path.read_text(encoding="utf-8")
+
+    # Then: it contains no local linter or type-checker suppression directives.
+    assert "# noqa" not in source
+    assert "# pyright: ignore" not in source
+    assert "# type: ignore" not in source
 
 
 def test_tampered_raw_artifact_is_rejected_before_summary_is_written(

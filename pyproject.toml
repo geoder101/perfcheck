@@ -50,6 +50,11 @@ ignore = ["COM812", "CPY001", "D203", "D213", "FBT001", "FBT002", "ISC001"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["D", "PLR2004", "S101"]
+"examples/01-overview.py" = ["N999"]
+"examples/02-collect.py" = ["N999"]
+"examples/03-summarize.py" = ["N999"]
+"examples/04-compare.py" = ["N999"]
+"examples/05-failures-and-ci.py" = ["N999"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

@@ -1,169 +1,133 @@
-import marimo  # noqa: D100, N999
+"""Collect a portable perfcheck raw-run artifact."""
+
+import marimo
 
 __generated_with = "0.24.2"
 app = marimo.App(width="medium")
 
 
-@app.cell
-def _():  # noqa: ANN202
-    import marimo as mo  # noqa: PLC0415
-
-    return (mo,)
-
-
-@app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
-    # Collect a raw run
-
-    ## Goal
-
-    Create one portable raw-run artifact with `perfcheck collect`, using a
-    deterministic loopback Prometheus fixture instead of an external service.
-    """
-    )
-    return  # noqa: PLR1711
-
-
-@app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
-    ## Inputs
-
-    The lesson copies nothing into the repository: a policy fixture and matrix
-    fixture are read from the project, while the raw artifact lives only in a
-    helper-managed temporary workspace.
-    """
-    )
-    return  # noqa: PLR1711
-
-
-@app.cell
-def _():  # noqa: ANN202
-    from pathlib import Path  # noqa: I001, PLC0415
-    import json  # noqa: PLC0415
-    import sys  # noqa: PLC0415
+with app.setup:
+    import sys
+    from pathlib import Path
 
     repository_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository_root))
-    from examples._support import (  # noqa: PLC0415
+
+    from examples._markdown import md
+    from examples._support import (
+        CollectRequest,
+        LessonContext,
+        LessonRun,
+        RawEvidence,
+        collect_arguments,
         example_workspace,
+        lesson_context,
         mock_prometheus_endpoint,
-        perfcheck_executable,
+        parse_raw_evidence,
         run_local_command,
     )
 
-    return (
-        example_workspace,
-        json,
-        mock_prometheus_endpoint,
-        perfcheck_executable,
-        repository_root,
-        run_local_command,
-    )
 
+@app.cell(hide_code=True)
+def _() -> None:
+    md(r"""
+# Collect a raw run
 
-@app.cell  # pyright: ignore[reportUnknownArgumentType]
-def _(  # noqa: ANN202, PLR0913, PLR0917  # pyright: ignore[reportUnknownParameterType]
-    example_workspace,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    json,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mock_prometheus_endpoint,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    perfcheck_executable,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    repository_root,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    run_local_command,  # noqa: ANN001  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-):
-    policy_path = repository_root / "tests/fixtures/policy-pass.json"  # pyright: ignore[reportUnknownVariableType]
-    fixture_path = repository_root / "examples/fixtures/prometheus-matrix.json"  # pyright: ignore[reportUnknownVariableType]
-    with (
-        example_workspace() as workspace,  # pyright: ignore[reportUnknownVariableType]
-        mock_prometheus_endpoint(fixture_path) as endpoint,  # pyright: ignore[reportUnknownVariableType]
-    ):
-        raw_path = workspace / "raw-run.json"  # pyright: ignore[reportUnknownVariableType]
-        collect_result = run_local_command(  # pyright: ignore[reportUnknownVariableType]
-            (
-                str(perfcheck_executable()),  # pyright: ignore[reportUnknownArgumentType]
-                "collect",
-                "--suite",
-                str(policy_path),  # pyright: ignore[reportUnknownArgumentType]
-                "--prometheus-url",
-                endpoint,
-                "--run-id",
-                "lesson-collect",
-                "--start",
-                "2026-07-01T10:00:00Z",
-                "--end",
-                "2026-07-01T10:10:00Z",
-                "--out",
-                str(raw_path),  # pyright: ignore[reportUnknownArgumentType]
-            ),
-            cwd=workspace,
-        )
-        raw_payload = json.loads(raw_path.read_text(encoding="utf-8"))  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-    safe_excerpt = {  # pyright: ignore[reportUnknownVariableType]
-        "run_id": raw_payload["run_id"],
-        "schema_version": raw_payload["schema_version"],
-        "metric_record_count": len(raw_payload["metric_records"]),  # pyright: ignore[reportUnknownArgumentType]
-    }
-    return collect_result, safe_excerpt  # pyright: ignore[reportUnknownVariableType]
+## Goal
+
+Create one portable raw-run artifact with `perfcheck collect`, using a
+deterministic loopback Prometheus fixture instead of an external service.
+        """)
 
 
 @app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
-    ## Run
+def _() -> None:
+    md(r"""
+## Inputs
 
-    `collect` runs against a local fixture on an ephemeral loopback port. Its
-    server and temporary workspace are both cleaned up when the cell finishes.
-    """
-    )
-    return  # noqa: PLR1711
-
-
-@app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
-    ## Evidence
-
-    The next cell shows a narrowed, safe excerpt before displaying it: a stable
-    run identifier, schema version, and metric-record count, not request URLs
-    or full artifact internals.
-    """
-    )
-    return  # noqa: PLR1711
-
-
-@app.cell  # pyright: ignore[reportUnknownArgumentType]
-def _(collect_result, safe_excerpt):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    print("Goal: collect deterministic raw evidence")  # noqa: T201
-    print("Inputs: policy fixture and loopback Prometheus fixture")  # noqa: T201
-    print(f"Run: exit status {collect_result.returncode}")  # noqa: T201  # pyright: ignore[reportUnknownMemberType]
-    print(f"Evidence: {safe_excerpt}")  # noqa: T201
-    return  # noqa: PLR1711
-
-
-@app.cell(hide_code=True)
-def _(mo):  # noqa: ANN001, ANN202  # pyright: ignore[reportMissingParameterType, reportUnknownParameterType]
-    mo.md(  # pyright: ignore[reportUnknownMemberType]
-        """
-    ## Takeaway
-
-    `collect` writes a raw run that can move between environments. Use temporary
-    output paths for exploration; production automation should choose its own
-    managed output location.
-    """
-    )
-    return  # noqa: PLR1711
+The lesson copies nothing into the repository: a policy fixture and matrix
+fixture are read from the project, while the raw artifact lives only in a
+helper-managed temporary workspace.
+        """)
 
 
 @app.cell
-def _():  # noqa: ANN202
-    print("Takeaway: collect raw evidence before any policy summary.")  # noqa: T201
-    return  # noqa: PLR1711
+def _() -> tuple[LessonContext, LessonRun]:
+    context = lesson_context()
+    run = LessonRun("lesson-collect", "2026-07-01")
+    return context, run
+
+
+@app.cell
+def _(context: LessonContext, run: LessonRun) -> tuple[int, RawEvidence]:
+    with (
+        example_workspace() as workspace,
+        mock_prometheus_endpoint(context.fixture_path) as endpoint,
+    ):
+        raw_path = workspace / "raw-run.json"
+        request = CollectRequest(
+            endpoint=endpoint,
+            run=run,
+            output_path=raw_path,
+        )
+        collect_result = run_local_command(
+            collect_arguments(context, request),
+            cwd=workspace,
+        )
+        safe_excerpt = parse_raw_evidence(raw_path.read_bytes())
+    collect_status = collect_result.returncode
+    return collect_status, safe_excerpt
+
+
+@app.cell(hide_code=True)
+def _() -> None:
+    md(r"""
+## Run
+
+`collect` runs against a local fixture on an ephemeral loopback port. Its
+server and temporary workspace are both cleaned up when the cell finishes.
+        """)
+
+
+@app.cell(hide_code=True)
+def _() -> None:
+    md(r"""
+## Evidence
+
+The next cell shows a narrowed, safe excerpt before displaying it: a stable
+run identifier, schema version, and metric-record count, not request URLs
+or full artifact internals.
+        """)
+
+
+@app.cell
+def _(collect_status: int, safe_excerpt: RawEvidence) -> None:
+    message = "\n".join(
+        (
+            "Goal: collect deterministic raw evidence",
+            "Inputs: policy fixture and loopback Prometheus fixture",
+            f"Run: exit status {collect_status}",
+            f"Evidence: {safe_excerpt}",
+        )
+    )
+    _ = sys.stdout.write(f"{message}\n")
+
+
+@app.cell(hide_code=True)
+def _() -> None:
+    md(r"""
+## Takeaway
+
+`collect` writes a raw run that can move between environments. Use temporary
+output paths for exploration; production automation should choose its own
+managed output location.
+        """)
+
+
+@app.cell
+def _() -> None:
+    _ = sys.stdout.write("Takeaway: collect raw evidence before any policy summary.\n")
 
 
 if __name__ == "__main__":
-    app.run()  # pyright: ignore[reportUnusedCallResult]
+    _app_run_result = app.run()
