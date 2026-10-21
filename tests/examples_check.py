@@ -19,6 +19,9 @@ _EXPECTED_NOTEBOOK_NAMES: Final = (
     "03-summarize.py",
     "04-compare.py",
     "05-failures-and-ci.py",
+    "06-statistical-foundations.py",
+    "07-summary-and-eligibility.py",
+    "08-bootstrap-and-decisions.py",
 )
 _EXAMPLES_TEST_TIMEOUT_SECONDS: Final = 60.0
 EXAMPLE_NOTEBOOKS: Final[tuple[Path, ...]] = (
@@ -31,7 +34,7 @@ def validate_repository_course() -> None:
     assert (
         tuple(notebook.name for notebook in EXAMPLE_NOTEBOOKS)
         == _EXPECTED_NOTEBOOK_NAMES
-    ), "course tuple must contain exactly the five canonical lessons"
+    ), "course tuple must contain exactly the eight canonical lessons"
     assert all(notebook.is_file() for notebook in EXAMPLE_NOTEBOOKS), (
         "every canonical lesson must exist"
     )
@@ -51,6 +54,16 @@ def validate_repository_course() -> None:
         )
         assert "# /// script" not in notebook.read_text(encoding="utf-8"), (
             f"{notebook.name} must not declare inline script metadata"
+        )
+    for notebook in EXAMPLE_NOTEBOOKS:
+        commands = (
+            f"uv run --group examples marimo edit examples/{notebook.name}",
+            f"uv run --group examples marimo run examples/{notebook.name}",
+            f"uv --directory . run --group examples python examples/{notebook.name}",
+        )
+        assert all(command in index for command in commands), (
+            "curriculum index must include author, consumer, and script commands "
+            f"for {notebook.name}"
         )
 
 
@@ -114,6 +127,9 @@ def main() -> None:
             "-m",
             "pytest",
             str(_ROOT / "tests/test_examples.py"),
+            str(_ROOT / "tests/test_examples_support.py"),
+            str(_ROOT / "tests/test_examples_fixture.py"),
+            str(_ROOT / "tests/test_examples_workflow.py"),
             str(_ROOT / "tests/test_examples_check.py"),
         ),
         cwd=_ROOT,

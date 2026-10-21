@@ -1,0 +1,11 @@
+:root {
+  --color-brand-primary: #1d4ed8;
+  --color-brand-content: #1d4ed8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-brand-primary: #93c5fd;
+    --color-brand-content: #93c5fd;
+  }
+}

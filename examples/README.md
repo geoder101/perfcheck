@@ -70,3 +70,33 @@ use its explicit Python command from the repository root.
 - **Author:** `uv run --group examples marimo edit examples/05-failures-and-ci.py`
 - **Consumer:** `uv run --group examples marimo run examples/05-failures-and-ci.py`
 - **Script:** `uv --directory . run --group examples python examples/05-failures-and-ci.py`
+
+### 06. [06-statistical-foundations.py](06-statistical-foundations.py), statistical foundations
+
+- **Goal:** distinguish populations, samples, realizations, and sampling distributions.
+- **Prerequisite:** complete 05.
+- **CLI command explained:** the collect-to-compare evidence flow.
+- **Duration:** 5 minutes.
+- **Author:** `uv run --group examples marimo edit examples/06-statistical-foundations.py`
+- **Consumer:** `uv run --group examples marimo run examples/06-statistical-foundations.py`
+- **Script:** `uv --directory . run --group examples python examples/06-statistical-foundations.py`
+
+### 07. [07-summary-and-eligibility.py](07-summary-and-eligibility.py), summaries and eligibility
+
+- **Goal:** calculate fixed per-run summaries and inspect eligibility evidence.
+- **Prerequisite:** complete 06.
+- **CLI command explained:** `perfcheck summarize`.
+- **Duration:** 5 minutes.
+- **Author:** `uv run --group examples marimo edit examples/07-summary-and-eligibility.py`
+- **Consumer:** `uv run --group examples marimo run examples/07-summary-and-eligibility.py`
+- **Script:** `uv --directory . run --group examples python examples/07-summary-and-eligibility.py`
+
+### 08. [08-bootstrap-and-decisions.py](08-bootstrap-and-decisions.py), bootstrap decisions
+
+- **Goal:** inspect oriented bootstrap evidence, advisory references, and limits.
+- **Prerequisite:** complete 07.
+- **CLI command explained:** `perfcheck compare`.
+- **Duration:** 5 minutes.
+- **Author:** `uv run --group examples marimo edit examples/08-bootstrap-and-decisions.py`
+- **Consumer:** `uv run --group examples marimo run examples/08-bootstrap-and-decisions.py`
+- **Script:** `uv --directory . run --group examples python examples/08-bootstrap-and-decisions.py`

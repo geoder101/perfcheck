@@ -44,8 +44,12 @@ build:
 lock-check:
   uv lock --check
 
+# Build the documentation from fresh sources and fail on warnings.
+docs-check:
+  uv run --group docs sphinx-build -M html docs docs/_build -E -a -W
+
 # Run the standard local verification suite.
-check: lock-check format-check lint typecheck test examples-check build
+check: lock-check format-check lint typecheck test examples-check docs-check build
 
 # Verify the lockfile and synchronize all development dependencies.
 sync:

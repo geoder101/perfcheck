@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sys
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -15,6 +16,45 @@ if TYPE_CHECKING:
 
 
 _ROOT = Path(__file__).parents[1]
+
+
+def test_example_notebook_tuple_covers_the_eight_canonical_lessons() -> None:
+    # Given: the fixed course tuple consumed by the examples checker.
+
+    # When: its lesson filenames are read in sequence.
+    notebook_names = tuple(path.name for path in examples_check.EXAMPLE_NOTEBOOKS)
+
+    # Then: it contains all and only the eight ordered curriculum lessons.
+    assert notebook_names == (
+        "01-overview.py",
+        "02-collect.py",
+        "03-summarize.py",
+        "04-compare.py",
+        "05-failures-and-ci.py",
+        "06-statistical-foundations.py",
+        "07-summary-and-eligibility.py",
+        "08-bootstrap-and-decisions.py",
+    )
+
+
+def test_validate_repository_course_rejects_a_noncanonical_lesson_tuple(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Given: the repository course with its final lesson omitted from the tuple.
+    monkeypatch.setattr(
+        examples_check,
+        "EXAMPLE_NOTEBOOKS",
+        examples_check.EXAMPLE_NOTEBOOKS[:-1],
+    )
+
+    # When: the checker validates the altered canonical tuple.
+
+    # Then: it rejects the incomplete list before checking generated outputs.
+    with pytest.raises(
+        AssertionError,
+        match="course tuple must contain exactly the eight canonical lessons",
+    ):
+        examples_check.validate_repository_course()
 
 
 def test_run_examples_check_returns_nonzero_for_invalid_path(
@@ -46,6 +86,41 @@ if __name__ == "__main__":
 
     # Then: Marimo reports the invalid notebook with a nonzero process result.
     assert return_code != 0
+
+
+def test_validate_repository_course_rejects_a_missing_lesson_command(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Given: an otherwise complete temporary course without one consumer command.
+    lessons = tuple(tmp_path / path.name for path in examples_check.EXAMPLE_NOTEBOOKS)
+    for lesson in lessons:
+        _ = lesson.write_text("import marimo\n", encoding="utf-8")
+    lines: list[str] = []
+    for lesson in lessons:
+        lines.extend(
+            (
+                f"[{lesson.name}]({lesson.name})",
+                f"uv run --group examples marimo edit examples/{lesson.name}",
+                f"uv --directory . run --group examples python examples/{lesson.name}",
+            )
+        )
+        if lesson != lessons[-1]:
+            lines.append(f"uv run --group examples marimo run examples/{lesson.name}")
+    _ = (tmp_path / "README.md").write_text("\n".join(lines), encoding="utf-8")
+    monkeypatch.setattr(examples_check, "_EXAMPLES_DIRECTORY", tmp_path)
+    monkeypatch.setattr(examples_check, "EXAMPLE_NOTEBOOKS", lessons)
+
+    # When: the examples checker validates the public course index.
+
+    # Then: it identifies the omitted command for the final canonical lesson.
+    with pytest.raises(
+        AssertionError,
+        match=(
+            "curriculum index must include author, consumer, and script commands "
+            f"for {re.escape(lessons[-1].name)}"
+        ),
+    ):
+        examples_check.validate_repository_course()
 
 
 def test_main_exits_for_examples_test_failure_after_marimo_validation(
@@ -84,6 +159,9 @@ def test_main_exits_for_examples_test_failure_after_marimo_validation(
                 "-m",
                 "pytest",
                 str(_ROOT / "tests/test_examples.py"),
+                str(_ROOT / "tests/test_examples_support.py"),
+                str(_ROOT / "tests/test_examples_fixture.py"),
+                str(_ROOT / "tests/test_examples_workflow.py"),
                 str(_ROOT / "tests/test_examples_check.py"),
             ),
             _ROOT,

@@ -119,12 +119,19 @@ def test_check_requires_lock_and_build_gates() -> None:
     # When: deterministic gates and their cross-platform runners are inspected.
 
     # Then: Just uses platform-native shells, owns all gates, and CI invokes it.
+    check_dependencies = (
+        "lock-check",
+        "format-check",
+        "lint",
+        "typecheck",
+        "test",
+        "examples-check",
+        "docs-check",
+        "build",
+    )
     assert '[unix]\nset shell := ["sh", "-cu"]' in recipe
     assert '[windows]\nset shell := ["powershell.exe", "-NoLogo", "-Command"]' in recipe
-    assert (
-        "check: lock-check format-check lint typecheck test examples-check build"
-        in recipe
-    )
+    assert f"check: {' '.join(check_dependencies)}" in recipe
     assert (
         "extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4"
         in workflow

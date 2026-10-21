@@ -19,6 +19,8 @@ uv run perfcheck --help
 
 Developer learning materials for the CLI workflow are in the
 [Marimo curriculum index](examples/README.md).
+The theory and policy boundaries behind that workflow are in the
+[Furo theory documentation](docs/index.rst).
 
 ## Commands
 
