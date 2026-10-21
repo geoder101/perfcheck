@@ -48,6 +48,10 @@ lock-check:
 docs-check:
   uv run --group docs sphinx-build -M html docs docs/_build -E -a -W
 
+# Preview already-built documentation locally, optionally choosing a port.
+docs-preview port="8000": docs-check
+  python -m http.server --directory docs/_build/html {{port}}
+
 # Run the standard local verification suite.
 check: lock-check format-check lint typecheck test examples-check docs-check build
 
