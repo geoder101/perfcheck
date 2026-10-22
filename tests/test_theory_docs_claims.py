@@ -24,9 +24,146 @@ def _assert_no_prohibited_p_value_claim(source: str) -> None:
     )
 
 
+def _assert_fixture_backed_decision_claims(source: str) -> None:
+    normalized = " ".join(source.split())
+    assert "equality with the threshold is ``PASS``" in normalized
+    assert "an anomaly remains ``INCONCLUSIVE``" in normalized
+
+
+def _assert_comparative_boundaries(source: str) -> None:
+    sections = re.split(r"\n(?=[^\n]+\n-+\n)", source)[1:]
+    assert len(sections) == 4
+    for section in sections:
+        normalized = " ".join(section.split())
+        assert "does not determine perfcheck PASS/FAIL" in normalized
+        assert "does not change product policy" in normalized
+        assert (
+            re.search(
+                r"\b(determine|produce|yield)s? (a )?perfcheck (verdict|PASS/FAIL)",
+                normalized.replace("does not determine perfcheck PASS/FAIL", ""),
+                flags=re.IGNORECASE,
+            )
+            is None
+        )
+        assert all(
+            term in normalized
+            for term in ("Dataset:", "Question:", "Assumptions:", "Result:")
+        )
+
+
+def test_comparative_explanation_keeps_each_method_outside_product_policy() -> None:
+    # Given: the linked explanation for canonical lesson 10.
+    source = _read(Path("docs/explanation/comparative-methods.rst"))
+    # When: each method's local artifact and policy boundary is checked.
+    _assert_comparative_boundaries(source)
+    # Then: the explanation links the actual runnable lesson and decisions chapter.
+    assert "<../../examples/10-comparative-methods.py>" in source
+    assert ":doc:`decisions-and-limitations`" in source
+
+
+@pytest.mark.parametrize(
+    "method",
+    ["Welch/t", "Seeded permutation", "Mann--Whitney ranks", "Bayesian posterior"],
+)
+def test_comparative_contract_rejects_misleading_success_claim(method: str) -> None:
+    # Given: the real explanation with one method claiming a product verdict.
+    source = _read(Path("docs/explanation/comparative-methods.rst"))
+    before, section = source.split(f"\n{method}\n", maxsplit=1)
+    mutated = (
+        before
+        + f"\n{method}\n"
+        + section.replace(
+            "does not determine perfcheck PASS/FAIL",
+            "does not determine perfcheck PASS/FAIL. It determines a perfcheck verdict",
+            1,
+        )
+    )
+    # When: the same contract checks this misleading-success fixture.
+    # Then: it rejects the claim even if the other methods retain correct boundaries.
+    with pytest.raises(AssertionError):
+        _assert_comparative_boundaries(mutated)
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "Cohort bootstrap",
+        "Welch or t-test",
+        "F test or p-value",
+        "Permutation test",
+        "Mann--Whitney",
+        "Bayesian framing",
+    ],
+)
+def test_method_artifact_has_evidence_and_a_local_boundary(method: str) -> None:
+    # Given: the method artifact table, excluding the earlier selection table.
+    source = _read(Path("docs/explanation/decisions-and-limitations.rst"))
+    table = source.split(".. list-table:: Method artifacts and boundaries")[1]
+
+    # When: the reader inspects one method's row.
+    row = next(row for row in table.split("   * - ") if row.startswith(method))
+    columns = row.split("\n     - ")
+
+    # Then: question/assumptions, linked evidence, interpretation and boundary coexist.
+    assert len(columns) == 5
+    assert "?" in columns[1]
+    assert "<" in columns[2]
+    assert columns[3].strip()
+    assert (
+        "Implemented." in columns[4]
+        or "does not determine perfcheck PASS/FAIL" in columns[4]
+    )
+
+
+def test_decision_examples_link_exact_fixtures_and_preserve_verdicts() -> None:
+    # Given: the explanation's fixture-backed threshold examples.
+    source = _read(Path("docs/explanation/decisions-and-limitations.rst"))
+
+    # When: a reader follows the equality and advisory claims.
+    _assert_fixture_backed_decision_claims(source)
+
+    # Then: concrete examples and downloadable evidence support those claims.
+    for term in (
+        "15 - 10 = 5",
+        "20 - 15 = 5",
+        "16 - 10 = 6",
+        "20 - 14 = 6",
+        "test_evaluate_regression_uses_a_strict_directional_cohort_bound",
+        "test_evaluate_regression_keeps_directional_reference_anomalies_inconclusive",
+        "test_bootstrap_cohorts_use_pcg64_draw_order_and_linear_quantiles",
+        "<../../tests/test_bootstrap.py>",
+        "<../../tests/test_policy_outcomes.py>",
+        "<../../examples/08-bootstrap-and-decisions.py>",
+        "0.05 / 2 = 0.025",
+    ):
+        assert term in source
+
+
+@pytest.mark.parametrize(
+    ("claim", "mutation"),
+    [
+        ("equality with the threshold is ``PASS``", "equality is ``FAIL``"),
+        ("an anomaly remains ``INCONCLUSIVE``", "an anomaly yields ``FAIL``"),
+    ],
+)
+def test_fixture_backed_claim_contract_rejects_wrong_verdicts(
+    claim: str, mutation: str
+) -> None:
+    # Given: the actual explanation with one fixture-backed verdict reversed.
+    source = _read(Path("docs/explanation/decisions-and-limitations.rst"))
+    normalized = " ".join(source.split())
+    assert claim in normalized
+    mutated = normalized.replace(claim, mutation)
+
+    # When: the same contract checks the misleading source.
+    # Then: it rejects the reversed verdict, not merely a missing method name.
+    with pytest.raises(AssertionError):
+        _assert_fixture_backed_decision_claims(mutated)
+
+
 def test_measurement_page_documents_supported_calculations_with_examples() -> None:
     # Given: the per-run measurement chapter read by a documentation user.
-    measurement = _read(Path("docs/measurement-and-summaries.rst"))
+    measurement = _read(Path("docs/explanation/measurement-and-summaries.rst"))
 
     # When: the user looks for every implemented summary convention.
 
@@ -62,7 +199,7 @@ def test_measurement_page_documents_supported_calculations_with_examples() -> No
 
 def test_eligibility_page_documents_all_fields_and_no_imputation_contract() -> None:
     # Given: the eligibility chapter read before interpreting a comparison.
-    eligibility = _read(Path("docs/eligibility-and-comparability.rst"))
+    eligibility = _read(Path("docs/explanation/eligibility-and-comparability.rst"))
 
     # When: the user checks the implemented quality boundaries.
 
@@ -88,8 +225,8 @@ def test_eligibility_page_documents_all_fields_and_no_imputation_contract() -> N
 
 def test_comparison_and_decision_pages_document_supported_boundaries() -> None:
     # Given: the comparison and verdict chapters read together.
-    comparison = _read(Path("docs/uncertainty-and-comparison.rst"))
-    decisions = _read(Path("docs/decisions-and-limitations.rst"))
+    comparison = _read(Path("docs/explanation/uncertainty-and-comparison.rst"))
+    decisions = _read(Path("docs/explanation/decisions-and-limitations.rst"))
 
     # When: a reader checks method selection, bounds, and verdict semantics.
 
@@ -115,12 +252,42 @@ def test_comparison_and_decision_pages_document_supported_boundaries() -> None:
     assert all(term in decisions for term in decision_terms)
 
 
+def test_decisions_page_contracts_method_selection_and_teaching_alternatives() -> None:
+    # Given: the explanation distinguishing verdict evidence from teaching.
+    decisions = _read(Path("docs/explanation/decisions-and-limitations.rst"))
+
+    # When: its selection and alternative-method tables are inspected.
+
+    # Then: only valid multi-run bootstrap evidence can decide PASS or FAIL.
+    selection_terms = (
+        "Valid multi-run cohort bootstrap",
+        "Advisory single-current reference",
+        "Invalid or inadequate evidence",
+        "``PASS`` or ``FAIL``",
+        "``INCONCLUSIVE``",
+        "``examples/08-bootstrap-and-decisions.py``",
+        "``tests/test_bootstrap.py``",
+        "``tests/test_policy_outcomes.py``",
+    )
+    alternative_methods = (
+        "Cohort bootstrap",
+        "Welch or t-test",
+        "F test or p-value",
+        "Permutation test",
+        "Mann--Whitney",
+        "Bayesian framing",
+    )
+    assert all(term in decisions for term in selection_terms)
+    assert all(method in decisions for method in alternative_methods)
+    assert decisions.count("does not determine perfcheck PASS/FAIL") == 5
+
+
 def test_classical_methods_remain_explicitly_unsupported() -> None:
     # Given: the comparison chapters and the classical contrast lesson.
     source = "\n".join(
         (
-            _read(Path("docs/uncertainty-and-comparison.rst")),
-            _read(Path("docs/decisions-and-limitations.rst")),
+            _read(Path("docs/explanation/uncertainty-and-comparison.rst")),
+            _read(Path("docs/explanation/decisions-and-limitations.rst")),
             _read(Path("examples/08-bootstrap-and-decisions.py")),
         )
     )

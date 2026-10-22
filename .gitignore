@@ -9,4 +9,5 @@ dist/
 *.egg-info/
 __marimo__/
 docs/_build/
+docs/reference/api/
 NOTES.txt

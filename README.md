@@ -17,10 +17,23 @@ Run the CLI through the managed environment:
 uv run perfcheck --help
 ```
 
-Developer learning materials for the CLI workflow are in the
-[Marimo curriculum index](examples/README.md).
-The theory and policy boundaries behind that workflow are in the
-[Furo theory documentation](docs/index.rst).
+Start with the [Project documentation](docs/index.rst) for a workflow overview
+and four Diataxis paths: Tutorials, How-to guides, Reference, and Explanation.
+The [Marimo curriculum index](examples/README.md) offers ten executable lessons
+in order, from the CLI workflow to statistical mechanics and comparative methods.
+
+The Furo documentation site is optional; it is not needed to run the CLI.
+Build it or preview it locally from the repository root:
+
+```bash
+just docs-check
+just docs-preview        # fresh build, then serve at http://localhost:8000
+just docs-preview 8765   # optional port; stop with Ctrl-C
+```
+
+These commands use the optional docs dependency group and build into
+`docs/_build/html`. Reference includes source-parsed AutoAPI documentation of
+internal Python modules, not a supported public Python API.
 
 ## Commands
 
@@ -44,9 +57,7 @@ uv run perfcheck compare --help
 Run the same local checks before contributing documentation or code:
 
 ```bash
-uv run pytest
-uv run ruff check .
-uv run basedpyright
+just check
 ```
 
 ## Scope

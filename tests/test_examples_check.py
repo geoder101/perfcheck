@@ -18,13 +18,13 @@ if TYPE_CHECKING:
 _ROOT = Path(__file__).parents[1]
 
 
-def test_example_notebook_tuple_covers_the_eight_canonical_lessons() -> None:
+def test_example_notebook_tuple_covers_the_ten_canonical_lessons() -> None:
     # Given: the fixed course tuple consumed by the examples checker.
 
     # When: its lesson filenames are read in sequence.
     notebook_names = tuple(path.name for path in examples_check.EXAMPLE_NOTEBOOKS)
 
-    # Then: it contains all and only the eight ordered curriculum lessons.
+    # Then: it contains all and only the ten ordered curriculum lessons.
     assert notebook_names == (
         "01-overview.py",
         "02-collect.py",
@@ -34,6 +34,8 @@ def test_example_notebook_tuple_covers_the_eight_canonical_lessons() -> None:
         "06-statistical-foundations.py",
         "07-summary-and-eligibility.py",
         "08-bootstrap-and-decisions.py",
+        "09-plain-python-mechanics.py",
+        "10-comparative-methods.py",
     )
 
 
@@ -52,7 +54,7 @@ def test_validate_repository_course_rejects_a_noncanonical_lesson_tuple(
     # Then: it rejects the incomplete list before checking generated outputs.
     with pytest.raises(
         AssertionError,
-        match="course tuple must contain exactly the eight canonical lessons",
+        match="course tuple must contain exactly the ten canonical lessons",
     ):
         examples_check.validate_repository_course()
 
@@ -163,6 +165,8 @@ def test_main_exits_for_examples_test_failure_after_marimo_validation(
                 str(_ROOT / "tests/test_examples_fixture.py"),
                 str(_ROOT / "tests/test_examples_workflow.py"),
                 str(_ROOT / "tests/test_examples_check.py"),
+                str(_ROOT / "tests/test_examples_mechanics.py"),
+                str(_ROOT / "tests/test_examples_comparative.py"),
             ),
             _ROOT,
             60.0,

@@ -7,15 +7,6 @@ from typing import Final
 import pytest
 
 _ROOT: Final = Path(__file__).parents[1]
-_DOCS: Final = _ROOT / "docs"
-_DOC_PAGE_STEMS: Final = (
-    "statistical-foundations",
-    "measurement-and-summaries",
-    "eligibility-and-comparability",
-    "uncertainty-and-comparison",
-    "decisions-and-limitations",
-    "references-and-glossary",
-)
 _LESSON_NAMES: Final = (
     "01-overview.py",
     "02-collect.py",
@@ -25,6 +16,8 @@ _LESSON_NAMES: Final = (
     "06-statistical-foundations.py",
     "07-summary-and-eligibility.py",
     "08-bootstrap-and-decisions.py",
+    "09-plain-python-mechanics.py",
+    "10-comparative-methods.py",
 )
 
 
@@ -32,28 +25,10 @@ def _read(relative_path: Path) -> str:
     return (_ROOT / relative_path).read_text(encoding="utf-8")
 
 
-def _assert_docs_index_contract(index: str) -> None:
-    marker = ".. toctree::"
-    assert marker in index, "documentation index must define a toctree"
-    entries_list: list[str] = []
-    for line in index.split(marker, maxsplit=1)[1].splitlines():
-        if not line:
-            continue
-        if not line.startswith("   "):
-            break
-        entry = line.strip()
-        if not entry.startswith(":"):
-            entries_list.append(entry)
-    entries = tuple(entries_list)
-    assert entries == _DOC_PAGE_STEMS
-    for page in _DOC_PAGE_STEMS:
-        assert index.count(f":doc:`{page}`") == 1
-
-
 def _assert_furo_configuration(conf: str, pyproject: str) -> None:
     required_conf = (
         'needs_sphinx = "9.1"',
-        "extensions: list[str] = []",
+        'extensions = ["autoapi.extension"]',
         "nitpicky = True",
         'html_theme = "furo"',
         'html_static_path = ["_static"]',
@@ -68,29 +43,19 @@ def _assert_furo_configuration(conf: str, pyproject: str) -> None:
     assert tuple(re.findall(r'"([^"]+)"', docs_group.group("dependencies"))) == (
         "furo==2025.12.19",
         "sphinx==9.1.1",
+        "sphinx-autoapi==3.8.1",
     )
     n999_paths = tuple(
-        re.findall(r'^"([^"]+)" = \["N999"\]$', pyproject, flags=re.MULTILINE)
+        re.findall(
+            r'^"([^"]+)" = \["N999"(?:, "S311")?\]$', pyproject, flags=re.MULTILINE
+        )
     )
     assert n999_paths == tuple(f"examples/{name}" for name in _LESSON_NAMES)
     base_dependencies = pyproject.split("[project.scripts]", maxsplit=1)[0]
     assert all(
         dependency not in base_dependencies
-        for dependency in ("furo", "marimo", "sphinx")
+        for dependency in ("furo", "marimo", "sphinx", "sphinx-autoapi")
     )
-
-
-def _doc_references(source: str) -> tuple[str, ...]:
-    references: list[str] = []
-    for source_line in source.splitlines():
-        remaining = source_line
-        while ":doc:`" in remaining:
-            _, _, after_marker = remaining.partition(":doc:`")
-            raw_reference, _, remaining = after_marker.partition("`")
-            references.append(
-                raw_reference.rsplit("<", maxsplit=1)[-1].rstrip(">").strip()
-            )
-    return tuple(references)
 
 
 def test_root_navigation_links_to_docs_and_curriculum() -> None:
@@ -100,49 +65,25 @@ def test_root_navigation_links_to_docs_and_curriculum() -> None:
     # When: a developer looks for either learning path.
 
     # Then: the optional Furo site and Marimo curriculum have explicit entry points.
-    assert "[Furo theory documentation](docs/index.rst)" in readme
+    assert "[Project documentation](docs/index.rst)" in readme
     assert "[Marimo curriculum index](examples/README.md)" in readme
 
 
-def test_docs_index_has_each_theory_page_once_in_navigation_order() -> None:
-    # Given: the source for the Furo documentation landing page.
-    index = _read(Path("docs/index.rst"))
+def test_curriculum_links_exactly_ten_lessons_in_canonical_order() -> None:
+    # Given: the public curriculum index and the independent ordered contract.
+    source = _read(Path("examples/README.md"))
 
-    # When: its toctree and reading map are inspected.
-    _assert_docs_index_contract(index)
-
-    # Then: every linked source page exists for Sphinx to resolve.
-    assert all((_DOCS / f"{page}.rst").is_file() for page in _DOC_PAGE_STEMS)
-
-
-def test_docs_index_rejects_a_missing_toctree_page() -> None:
-    # Given: an otherwise valid Furo landing page missing one canonical entry.
-    incomplete_index = _read(Path("docs/index.rst")).replace(
-        "   decisions-and-limitations\n", ""
+    # When: the actual lesson-heading destinations are parsed.
+    links = tuple(
+        match.group(1)
+        for match in re.finditer(
+            r"^### \d{2}\. \[[^\]]+\]\(([^)]+)\)", source, re.MULTILINE
+        )
     )
 
-    # When: the navigation contract validates the altered source.
-
-    # Then: it rejects the broken toctree before a documentation build can mask it.
-    with pytest.raises(AssertionError):
-        _assert_docs_index_contract(incomplete_index)
-
-
-def test_all_sphinx_doc_references_resolve_to_known_sources() -> None:
-    # Given: every theory source page and the index.
-    sources = (
-        _read(Path("docs/index.rst")),
-        *(_read(Path("docs") / f"{page}.rst") for page in _DOC_PAGE_STEMS),
-    )
-
-    # When: every explicit Sphinx document reference is collected.
-    references = tuple(
-        reference for source in sources for reference in _doc_references(source)
-    )
-
-    # Then: each reference maps to one committed Sphinx source file.
-    assert references
-    assert all((_DOCS / f"{reference}.rst").is_file() for reference in references)
+    # Then: omitted, duplicate, extra, or reordered lessons cannot pass.
+    assert links == _LESSON_NAMES
+    assert all((_ROOT / "examples" / link).is_file() for link in links)
 
 
 def test_furo_configuration_uses_locked_optional_dependencies() -> None:

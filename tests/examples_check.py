@@ -22,6 +22,8 @@ _EXPECTED_NOTEBOOK_NAMES: Final = (
     "06-statistical-foundations.py",
     "07-summary-and-eligibility.py",
     "08-bootstrap-and-decisions.py",
+    "09-plain-python-mechanics.py",
+    "10-comparative-methods.py",
 )
 _EXAMPLES_TEST_TIMEOUT_SECONDS: Final = 60.0
 EXAMPLE_NOTEBOOKS: Final[tuple[Path, ...]] = (
@@ -34,7 +36,7 @@ def validate_repository_course() -> None:
     assert (
         tuple(notebook.name for notebook in EXAMPLE_NOTEBOOKS)
         == _EXPECTED_NOTEBOOK_NAMES
-    ), "course tuple must contain exactly the eight canonical lessons"
+    ), "course tuple must contain exactly the ten canonical lessons"
     assert all(notebook.is_file() for notebook in EXAMPLE_NOTEBOOKS), (
         "every canonical lesson must exist"
     )
@@ -131,6 +133,8 @@ def main() -> None:
             str(_ROOT / "tests/test_examples_fixture.py"),
             str(_ROOT / "tests/test_examples_workflow.py"),
             str(_ROOT / "tests/test_examples_check.py"),
+            str(_ROOT / "tests/test_examples_mechanics.py"),
+            str(_ROOT / "tests/test_examples_comparative.py"),
         ),
         cwd=_ROOT,
         timeout_seconds=_EXAMPLES_TEST_TIMEOUT_SECONDS,

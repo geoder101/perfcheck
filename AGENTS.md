@@ -15,6 +15,8 @@ for the supported command workflow and scope.
 ```text
 src/perfcheck/   CLI, domain models, collection, evaluation, persistence, reports
 tests/           behavioral, CLI, artifact, policy, and regression coverage
+docs/            project-first Diataxis documentation and generated internal API
+examples/        ten ordered executable Marimo lessons and local fixtures
 pyproject.toml   package metadata and enforced tool configuration
 justfile         canonical developer commands
 README.md        installation, CLI workflow, and public-surface statement
@@ -38,6 +40,14 @@ README.md        installation, CLI workflow, and public-surface statement
   report modules. The CLI writes JSON and Markdown reports.
 - Tests: start with the test named for the behavior or module being changed.
   `pyproject.toml` declares `tests` as the pytest test path.
+- Documentation entry point: `docs/index.rst`. Diataxis sources live in
+  `docs/tutorials/`, `docs/how-to/`, `docs/reference/`, and `docs/explanation/`.
+  The runnable curriculum is indexed in `examples/README.md`, lessons 01–10.
+- Internal API reference: `docs/conf.py` configures source-parsed AutoAPI over
+  all of `src`; it does not import application modules. Reference owns the
+  generated API navigation; private/special members are excluded. Generated
+  API RST and built HTML are ignored outputs, not hand-maintained sources or
+  promises of Python API compatibility.
 
 ## Artifact Flow
 
@@ -62,6 +72,10 @@ just cli compare --help
 - Build backend: `uv_build`.
 - Sync development dependencies: `just sync`.
 - Build distributions: `just build`.
+- Optional documentation: `just docs-check` builds fresh Furo HTML with warnings
+  treated as errors using the docs dependency group. `just docs-preview [port]`
+  runs that build before serving `docs/_build/html` (default port 8000); stop
+  with Ctrl-C and clean up preview processes after QA.
 
 ## Quality Gates
 
@@ -80,11 +94,13 @@ just lint
 just typecheck
 just lock-check
 just build
+just examples-check
+just docs-check
 just check
 ```
 
 `just check` is the standard complete gate: lock verification, format check,
-lint, type checking, tests, and build.
+lint, type checking, tests, executable examples, documentation, and build.
 
 ## Root Rules
 

@@ -100,3 +100,27 @@ use its explicit Python command from the repository root.
 - **Author:** `uv run --group examples marimo edit examples/08-bootstrap-and-decisions.py`
 - **Consumer:** `uv run --group examples marimo run examples/08-bootstrap-and-decisions.py`
 - **Script:** `uv --directory . run --group examples python examples/08-bootstrap-and-decisions.py`
+
+### 09. [09-plain-python-mechanics.py](09-plain-python-mechanics.py), plain-Python mechanics
+
+- **Goal:** expose mean, linear quantiles, sample spread, slope, and seeded resampling.
+- **Prerequisite:** complete 08.
+- **CLI commands explained:** `perfcheck summarize` and `perfcheck compare`; no CLI invocation.
+- **Boundary:** educational `random.Random` draws are not production NumPy PCG64 evidence.
+- **Explanation:** [Plain-Python mechanics](../docs/explanation/plain-python-mechanics.rst).
+- **Duration:** 5 minutes.
+- **Author:** `uv run --group examples marimo edit examples/09-plain-python-mechanics.py`
+- **Consumer:** `uv run --group examples marimo run examples/09-plain-python-mechanics.py`
+- **Script:** `uv --directory . run --group examples python examples/09-plain-python-mechanics.py`
+
+### 10. [10-comparative-methods.py](10-comparative-methods.py), comparative methods
+
+- **Goal:** contrast Welch/t, seeded permutation, tied ranks, and a simple posterior.
+- **Prerequisite:** complete 09.
+- **CLI command explained:** `perfcheck compare`; no CLI invocation or new policy.
+- **Boundary:** each method does not determine perfcheck PASS/FAIL.
+- **Explanation:** [Comparative methods](../docs/explanation/comparative-methods.rst).
+- **Duration:** 5 minutes.
+- **Author:** `uv run --group examples marimo edit examples/10-comparative-methods.py`
+- **Consumer:** `uv run --group examples marimo run examples/10-comparative-methods.py`
+- **Script:** `uv --directory . run --group examples python examples/10-comparative-methods.py`

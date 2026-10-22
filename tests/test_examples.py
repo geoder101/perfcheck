@@ -18,6 +18,8 @@ _LESSON_OUTPUT_EVIDENCE = (
     (_LESSON_PATHS[5], "sampling-distribution center"),
     (_LESSON_PATHS[6], "Rejected evidence: eligible=false, reason=gap_too_large"),
     (_LESSON_PATHS[7], "Reference advisory:"),
+    (_LESSON_PATHS[8], "reference_quantile=-25.250"),
+    (_LESSON_PATHS[9], "posterior=Beta(4,2)"),
 )
 
 
@@ -125,7 +127,7 @@ def test_validate_repository_course_reports_a_missing_index_entry(
     # When: the shared validator inspects the incomplete public index.
     with pytest.raises(
         AssertionError,
-        match=r"curriculum index must link 08-bootstrap-and-decisions\.py",
+        match=r"curriculum index must link 10-comparative-methods\.py",
     ):
         examples_check.validate_repository_course()
 

@@ -1,17 +1,5 @@
-References and glossary
-=======================
-
-Source map
-----------
-
-The task materials contain no user-supplied statistical-theory URLs to cite.
-The bibliography is therefore intentionally empty rather than inventing a
-source list. The implementation-facing source map for this foundation is the
-``collect`` -> ``summarize`` -> ``compare`` artifact workflow described in
-:doc:`statistical-foundations`.
-
 Glossary
---------
+========
 
 .. glossary::
 

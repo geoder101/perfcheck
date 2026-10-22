@@ -30,6 +30,7 @@ examples = [
 docs = [
     "furo==2025.12.19",
     "sphinx==9.1.1",
+    "sphinx-autoapi==3.8.1",
 ]
 
 [build-system]
@@ -63,6 +64,9 @@ ignore = ["COM812", "CPY001", "D203", "D213", "FBT001", "FBT002", "ISC001"]
 "examples/06-statistical-foundations.py" = ["N999"]
 "examples/07-summary-and-eligibility.py" = ["N999"]
 "examples/08-bootstrap-and-decisions.py" = ["N999"]
+# Lesson 09 deliberately teaches seeded, non-cryptographic resampling.
+"examples/09-plain-python-mechanics.py" = ["N999", "S311"]
+"examples/10-comparative-methods.py" = ["N999"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
