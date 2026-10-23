@@ -61,8 +61,8 @@ def summarize_command(
     )
 
 
-@app.command()
-def collect(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
+@app.command(name="collect")
+def collect_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
     policy_path: Annotated[Path, typer.Option("--suite")],
     run_id: Annotated[str, typer.Option("--run-id")],
     start: Annotated[str, typer.Option("--start")],
@@ -90,8 +90,8 @@ def collect(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
     _run_command(action)
 
 
-@app.command()
-def compare(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
+@app.command(name="compare")
+def compare_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
     policy_path: Annotated[Path, typer.Option("--policy")],
     current_paths: Annotated[list[Path], typer.Option("--current")],
     baseline_paths: Annotated[list[Path], typer.Option("--baseline")],
@@ -101,7 +101,16 @@ def compare(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
     write_summary_cache: Annotated[bool, typer.Option("--write-summary-cache")] = False,
     seed: Annotated[int | None, typer.Option("--seed")] = None,
     resamples: Annotated[int | None, typer.Option("--resamples")] = None,
-    emit_json: Annotated[bool, typer.Option("--json")] = False,
+    emit_json: Annotated[
+        bool,
+        typer.Option(
+            "--json",
+            help=(
+                "Additionally emit the JSON report to stdout; "
+                "--report-json or --report-md is still required."
+            ),
+        ),
+    ] = False,
 ) -> None:
     """Evaluate verified summaries or raw-run convenience inputs under one policy.
 

@@ -145,3 +145,32 @@ def test_reference_options_reject_a_nonexistent_live_option_prefix() -> None:
     # Then: an option prefix cannot masquerade as a complete supported flag.
     with pytest.raises(AssertionError):
         _assert_documented_options(section, result.output)
+
+
+def test_compare_json_option_help_explains_additional_stdout_output() -> None:
+    # Given: the public compare command with its explicit JSON stdout flag.
+    # When: users request option-level help.
+    result = CliRunner().invoke(app, ["compare", "--help"], color=False)
+
+    # Then: the JSON option itself explains stdout and the report-file requirement.
+    assert result.exit_code == 0
+    options = result.stdout.split("Options", maxsplit=1)[1]
+    description = options.split("--json", maxsplit=1)[1].split("--help", maxsplit=1)[0]
+    normalized = " ".join(description.replace("│", " ").split())
+    assert "Additionally emit the JSON report to stdout" in normalized
+    assert "--report-json or --report-md is still required" in normalized
+
+
+def test_compare_guide_shows_json_stdout_capture_with_a_markdown_report() -> None:
+    # Given: the task guide for comparing current and baseline evidence.
+    source = _read(Path("docs/how-to/compare-cohorts.rst"))
+
+    # When: its console examples are inspected.
+    commands = re.findall(r"^\s+\$ (.+)$", source, re.MULTILINE)
+
+    # Then: one example captures JSON stdout while requesting a Markdown file.
+    assert (
+        "uv run perfcheck compare --policy policy.json "
+        "--current summaries/current-1.json --baseline summaries/baseline-1.json "
+        "--report-md reports/comparison.md --json > reports/comparison.json"
+    ) in commands

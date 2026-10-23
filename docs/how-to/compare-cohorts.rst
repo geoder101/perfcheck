@@ -28,6 +28,17 @@ Steps
 
 #. Add ``--json`` if you also want the JSON report on stdout. This does not
    replace the requirement for at least one report-file option.
+
+   .. code-block:: console
+
+      $ uv run perfcheck compare --policy policy.json --current summaries/current-1.json --baseline summaries/baseline-1.json --report-md reports/comparison.md --json > reports/comparison.json
+
+   This writes the Markdown report and captures JSON stdout separately;
+   diagnostics remain on stderr. The shell manages ``>`` redirection, so the
+   capture is not protected by perfcheck's ``--force`` overwrite checks or atomic
+   report writes. Comparison exit statuses remain ``0``/``1``/``2`` for
+   ``PASS``/``FAIL``/``INCONCLUSIVE``.
+
 #. To use raw-run inputs, pass their paths to the same repeated cohort options.
    Summaries are derived in memory. Add ``--write-summary-cache`` only when you
    intentionally want canonical sibling summary caches written. Add ``--force``
