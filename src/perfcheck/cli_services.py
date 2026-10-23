@@ -39,6 +39,7 @@ class CliInputCode(StrEnum):
     INVALID_POLICY_JSON = "invalid policy JSON"
     POLICY_HASH_MISMATCH = "policy hash mismatch"
     RUN_REQUIRED = "run input must be a raw run artifact"
+    REPORT_REQUIRED = "at least one of --report-json or --report-md is required"
     OUTPUT_PATHS_DISTINCT = "output paths must be distinct"
     OUTPUT_EXISTS = "output path already exists; use --force to replace it"
     AVAILABLE_SERIES_MISSING = "available metric is missing its series"

@@ -12,6 +12,7 @@ from rich.console import Console
 from rich.table import Table
 
 from perfcheck.cli_services import (
+    CliInputCode,
     CliInputError,
     effective_summary,
     load_policy,
@@ -94,18 +95,28 @@ def compare(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
     policy_path: Annotated[Path, typer.Option("--policy")],
     current_paths: Annotated[list[Path], typer.Option("--current")],
     baseline_paths: Annotated[list[Path], typer.Option("--baseline")],
-    report_json_path: Annotated[Path, typer.Option("--report-json")],
-    report_markdown_path: Annotated[Path, typer.Option("--report-md")],
+    report_json_path: Annotated[Path | None, typer.Option("--report-json")] = None,
+    report_markdown_path: Annotated[Path | None, typer.Option("--report-md")] = None,
     force: Annotated[bool, typer.Option("--force")] = False,
     write_summary_cache: Annotated[bool, typer.Option("--write-summary-cache")] = False,
     seed: Annotated[int | None, typer.Option("--seed")] = None,
     resamples: Annotated[int | None, typer.Option("--resamples")] = None,
     emit_json: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    """Evaluate verified summaries or raw-run convenience inputs under one policy."""
+    """Evaluate verified summaries or raw-run convenience inputs under one policy.
+
+    Supply --report-json, --report-md, or both. --json also emits JSON to stdout.
+    """
 
     def action() -> None:
-        preflight_paths((report_json_path, report_markdown_path), force)
+        report_paths = tuple(
+            path
+            for path in (report_json_path, report_markdown_path)
+            if path is not None
+        )
+        if not report_paths:
+            raise CliInputError(CliInputCode.REPORT_REQUIRED)
+        preflight_paths(report_paths, force)
         policy = load_policy(policy_path)
         cohorts = ComparisonCohorts(
             current=tuple(
@@ -120,10 +131,12 @@ def compare(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
         outcome = evaluate_regression(policy, cohorts, options(seed, resamples))
         report = build_report(policy, cohorts, outcome)
         json_report = render_json_report(report)
-        write_report(report_json_path, json_report.encode(), force)
-        write_report(
-            report_markdown_path, render_markdown_report(report).encode(), force
-        )
+        if report_json_path is not None:
+            write_report(report_json_path, json_report.encode(), force)
+        if report_markdown_path is not None:
+            write_report(
+                report_markdown_path, render_markdown_report(report).encode(), force
+            )
         _render_outcome(outcome.status)
         if emit_json:
             typer.echo(json_report, nl=False)
@@ -179,6 +192,9 @@ def _exit_code(code: int) -> NoReturn:
 
 
 def _exit_input_error(error: Exception) -> NoReturn:
-    _ = error
-    _console.print("error: invalid command input")
+    match error:
+        case CliInputError(code=CliInputCode.REPORT_REQUIRED):
+            _console.print(f"error: {CliInputCode.REPORT_REQUIRED}")
+        case _:
+            _console.print("error: invalid command input")
     raise typer.Exit(3)

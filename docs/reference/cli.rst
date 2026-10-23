@@ -31,11 +31,15 @@ replace an existing output path.
 
 ``compare`` evaluates current and baseline evidence under one policy. It
 requires ``--policy``, repeated ``--current`` inputs, repeated ``--baseline``
-inputs, ``--report-json``, and ``--report-md``. It accepts raw runs as
+inputs, and at least one of ``--report-json`` or ``--report-md``; supply both
+to write both formats. Only supplied report paths are checked and written.
+It accepts raw runs as
 convenience inputs and derives their summaries in memory; ``--write-summary-cache``
 is the explicit opt-in for writing cache artifacts. ``--seed`` and
-``--resamples`` override bootstrap settings, ``--json`` emits the JSON report,
-and ``--force`` replaces both report destinations.
+``--resamples`` override bootstrap settings, ``--json`` additionally emits the
+JSON report to stdout (it does not replace a report-file option), and ``--force``
+allows replacement of supplied report destinations. Omitting both report-file
+options is an input error with exit status ``3``, even with ``--json``.
 
 Exit outcomes
 -------------

@@ -50,7 +50,8 @@ uv run perfcheck compare --help
 - `collect` writes one raw run artifact from all metrics in a suite.
 - `summarize` writes one canonical summary artifact from a verified raw run.
 - `compare` evaluates current and baseline summaries (or raw-run inputs) and
-  writes JSON and Markdown reports.
+  writes JSON (`--report-json`), Markdown (`--report-md`), or both. At least
+  one report output is required; `--json` additionally emits JSON to stdout.
 
 ## Quality checks
 

@@ -117,6 +117,43 @@ def test_collect_is_exposed_as_a_cli_command() -> None:
     assert "collect" in result.output
 
 
+def test_collect_preserves_existing_destination_without_collection_side_effects(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Given: valid collection inputs, an occupied output, and an injected transport.
+    policy_path, output = tmp_path / "policy.json", tmp_path / "run.json"
+    _write_policy(policy_path, _policy())
+    original = b"keep-run\x00\xff"
+    _ = output.write_bytes(original)
+    requests: list[httpx2.Request] = []
+    clients: list[httpx2.AsyncClient] = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        requests.append(request)
+        return _success_response()
+
+    def create_client() -> httpx2.AsyncClient:
+        client = httpx2.AsyncClient(transport=httpx2.MockTransport(handler))
+        clients.append(client)
+        return client
+
+    monkeypatch.setattr(
+        "perfcheck.collection_service.create_collection_client", create_client
+    )
+
+    # When: collect targets the existing artifact.
+    result = CliRunner().invoke(app, _arguments(policy_path, output))
+
+    # Then: refusal preserves bytes without creating clients, requests, or files.
+    assert result.exit_code == 3
+    assert result.stdout == ""
+    assert result.stderr == "error: invalid command input\n"
+    assert output.read_bytes() == original
+    assert clients == []
+    assert requests == []
+    assert set(tmp_path.iterdir()) == {policy_path, output}
+
+
 def test_collect_prefers_safe_override_and_writes_a_complete_portable_run(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
