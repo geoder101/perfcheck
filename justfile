@@ -12,6 +12,12 @@ default:
 test *args:
   uv run pytest --ignore=tests/test_examples.py --ignore=tests/test_examples_check.py {{args}}
 
+# Measure application statement and branch coverage with the standard test selection.
+[env("COVERAGE_RCFILE", justfile_directory() / "pyproject.toml")]
+[env("COVERAGE_FILE", justfile_directory() / "coverage/.coverage")]
+coverage *args:
+  uv run pytest --ignore=tests/test_examples.py --ignore=tests/test_examples_check.py --cov --cov-config="{{justfile_directory() / 'pyproject.toml'}}" --cov-report=term-missing --cov-report=html --cov-report=json {{args}}
+
 # Validate the optional Marimo curriculum and its focused test modules.
 examples-check:
   uv run --group examples python -m tests.examples_check

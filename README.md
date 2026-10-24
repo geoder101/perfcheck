@@ -61,6 +61,23 @@ Run the same local checks before contributing documentation or code:
 just check
 ```
 
+Coverage is opt-in and does not change `just test` or `just check`:
+
+```bash
+just coverage
+just coverage tests/test_cli_compare.py   # optional pytest selection/arguments
+```
+
+This measures statements and branches in `src/perfcheck` using the same test
+selection as `just test`, including instrumentable Python subprocesses. Open
+`coverage/html/index.html` or inspect `coverage/coverage.json`; combined raw data
+is retained at `coverage/.coverage`. These generated outputs are ignored and replaced on
+each run. There is no coverage threshold. Coverage records execution, not the
+strength of assertions. The optional curriculum remains a separate
+`just examples-check` gate, outside this baseline. Fresh-wheel smoke tests still
+run in clean application-only environments: they verify packaging functionality
+but their installed-wheel execution is not claimed as instrumented coverage.
+
 ## Scope
 
 Internal implementation may change or be removed during breaking cleanup; this

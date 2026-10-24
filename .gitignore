@@ -10,4 +10,6 @@ dist/
 __marimo__/
 docs/_build/
 docs/reference/api/
+coverage/
+.coverage*
 NOTES.txt
