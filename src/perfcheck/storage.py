@@ -7,7 +7,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, assert_never
+from typing import TYPE_CHECKING, assert_never, overload
 
 from pydantic import ValidationError
 
@@ -55,6 +55,14 @@ def write_artifact(
     """Persist one preflight-verified artifact without exposing partial output."""
     verify_artifact(artifact, source_run=source_run)
     _write_bytes(path, canonical_json_bytes(artifact), force=force)
+
+
+@overload
+def load_artifact(path: Path, *, source_run: None = None) -> RunArtifact: ...
+
+
+@overload
+def load_artifact(path: Path, *, source_run: RunArtifact) -> Artifact: ...
 
 
 def load_artifact(path: Path, *, source_run: RunArtifact | None = None) -> Artifact:

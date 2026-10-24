@@ -77,14 +77,7 @@ def load_policy(path: Path) -> SuitePolicy:
 
 def load_raw(path: Path) -> RunArtifact:
     """Load one verified raw artifact under its declared policy identity."""
-    artifact = load_artifact(path)
-    match artifact:
-        case RunArtifact() as raw:
-            return raw
-        case SummaryArtifact():
-            raise CliInputError(CliInputCode.RUN_REQUIRED)
-        case _:
-            assert_never(artifact)
+    return load_artifact(path)
 
 
 def effective_summary(

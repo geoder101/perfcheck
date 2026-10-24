@@ -71,19 +71,3 @@ class ArtifactIntegrityError(PerfcheckError):
     def __str__(self) -> str:
         """Render the immutable identity that failed verification."""
         return f"artifact integrity failure for {self.artifact_id}: {self.detail}"
-
-
-@dataclass(frozen=True, slots=True)
-class PolicyMismatchError(PerfcheckError):
-    """Validated artifacts cannot be compared under one policy contract."""
-
-    expected_policy_sha256: str
-    actual_policy_sha256: str
-
-    @override
-    def __str__(self) -> str:
-        """Render both policy hashes for compatibility diagnostics."""
-        return (
-            "policy mismatch: expected "
-            f"{self.expected_policy_sha256}, received {self.actual_policy_sha256}"
-        )

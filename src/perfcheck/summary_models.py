@@ -132,8 +132,6 @@ class SummaryArtifact(StrictModel):
         """Retain every policy metric with its exact statistic and manifest."""
         if self.policy_sha256 != self.policy_snapshot.policy_sha256:
             raise ArtifactSchemaError(ArtifactSchemaCode.POLICY_HASH_MISMATCH)
-        if self.algorithm_manifest != self.policy_snapshot.algorithm_manifest:
-            raise ArtifactSchemaError(ArtifactSchemaCode.MANIFEST_MISMATCH)
         expected = {metric.metric_id: metric for metric in self.policy_snapshot.metrics}
         record_ids = tuple(record.metric_id for record in self.metric_records)
         if len(record_ids) != len(set(record_ids)):

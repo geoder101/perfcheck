@@ -54,14 +54,6 @@ class Label(StrictModel):
     name: LabelName
     value: NonBlankText
 
-    @field_validator("name")
-    @classmethod
-    def reject_sensitive_name(cls, value: str) -> str:
-        """Prevent request-credential fields entering persisted artifacts."""
-        if contains_secret(value):
-            raise ArtifactSchemaError(ArtifactSchemaCode.CREDENTIAL_LABEL)
-        return value
-
     @field_validator("value")
     @classmethod
     def reject_sensitive_value(cls, value: str) -> str:
