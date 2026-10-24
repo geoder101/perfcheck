@@ -177,11 +177,8 @@ def _record(
 ) -> MetricCollectionRecord:
     match result:
         case CollectionSuccess() as success:
-            return MetricCollectionRecord(
-                metric_id=metric.metric_id,
-                availability=MetricAvailability.AVAILABLE,
-                provenance=_provenance(metric, interval, endpoint_url, success),
-                series=LabelledMetricSeries(
+            try:
+                series = LabelledMetricSeries(
                     metric_id=metric.metric_id,
                     labels=tuple(
                         Label(name=name, value=value)
@@ -194,7 +191,29 @@ def _record(
                         )
                         for sample in success.samples
                     ),
-                ),
+                )
+            except ValueError, OverflowError, OSError:
+                kind = (
+                    FailureKind.MALFORMED_RESPONSE
+                    if success.samples
+                    else FailureKind.EMPTY_SERIES
+                )
+                return _record(
+                    metric,
+                    interval,
+                    endpoint_url,
+                    PrometheusCollectionFailure(
+                        kind,
+                        "matrix cannot form raw evidence",
+                        success.request,
+                        success.response,
+                    ),
+                )
+            return MetricCollectionRecord(
+                metric_id=metric.metric_id,
+                availability=MetricAvailability.AVAILABLE,
+                provenance=_provenance(metric, interval, endpoint_url, success),
+                series=series,
             )
         case PrometheusCollectionFailure() as failure:
             return MetricCollectionRecord(

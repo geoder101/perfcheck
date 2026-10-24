@@ -152,19 +152,21 @@ def preflight_paths(paths: tuple[Path, ...], force: bool) -> None:
 def write_report(path: Path, content: bytes, force: bool) -> None:
     """Atomically write one report without exposing a partial destination."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
-        temporary_path = Path(temporary.name)
-        _ = temporary.write(content)
-        temporary.flush()
-        os.fsync(temporary.fileno())
+    temporary_path: Path | None = None
     try:
+        with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
+            temporary_path = Path(temporary.name)
+            _ = temporary.write(content)
+            temporary.flush()
+            os.fsync(temporary.fileno())
         if force:
             _ = temporary_path.replace(path)
         else:
             os.link(temporary_path, path)
             _ = temporary_path.unlink()
     finally:
-        temporary_path.unlink(missing_ok=True)
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
 
 
 def _load_input_artifact(path: Path) -> Artifact:

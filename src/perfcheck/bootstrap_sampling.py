@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+from math import isfinite
 from typing import Final, assert_never
 
 import numpy as np
 import numpy.typing as npt
 
 from perfcheck.bootstrap_models import (
+    BootstrapInputError,
+    BootstrapValidationCode,
     CohortBootstrapOptions,
     CohortBootstrapResult,
     MetricComparisonInput,
@@ -36,18 +39,16 @@ def bootstrap_metric(
     generator = np.random.Generator(np.random.PCG64(options.seed))
     differences = np.asarray(
         tuple(
-            _draw_mean(current_values, generator)
-            - _draw_mean(baseline_values, generator)
+            difference(
+                _draw_mean(current_values, generator),
+                _draw_mean(baseline_values, generator),
+            )
             for _ in range(effective_resamples)
         ),
         dtype=np.float64,
     )
-    diagnostic_lower_bound = float(
-        np.quantile(differences, _DIAGNOSTIC_QUANTILES[0], method="linear")
-    )
-    diagnostic_upper_bound = float(
-        np.quantile(differences, _DIAGNOSTIC_QUANTILES[1], method="linear")
-    )
+    diagnostic_lower_bound = quantile(differences, _DIAGNOSTIC_QUANTILES[0])
+    diagnostic_upper_bound = quantile(differences, _DIAGNOSTIC_QUANTILES[1])
     return CohortBootstrapResult(
         metric_id=metric_input.metric_id,
         direction=metric_input.direction,
@@ -55,10 +56,8 @@ def bootstrap_metric(
         algorithm_manifest=V1_ALGORITHM_MANIFEST,
         requested_alpha=metric_input.requested_alpha,
         effective_alpha=metric_input.effective_alpha,
-        observed_effect=_mean(current_values) - _mean(baseline_values),
-        lower_decision_bound=float(
-            np.quantile(differences, metric_input.effective_alpha, method="linear")
-        ),
+        observed_effect=difference(_mean(current_values), _mean(baseline_values)),
+        lower_decision_bound=quantile(differences, metric_input.effective_alpha),
         diagnostic_lower_bound=diagnostic_lower_bound,
         diagnostic_upper_bound=diagnostic_upper_bound,
         effective_seed=options.seed,
@@ -101,4 +100,29 @@ def mean(values: npt.NDArray[np.float64]) -> float:
 
 
 def _mean(values: npt.NDArray[np.float64]) -> float:
-    return float(np.mean(values))
+    try:
+        with np.errstate(over="raise", invalid="raise"):
+            return float(np.mean(values))
+    except FloatingPointError as error:
+        raise BootstrapInputError(
+            BootstrapValidationCode.NONFINITE_ARITHMETIC
+        ) from error
+
+
+def difference(current: float, baseline: float) -> float:
+    """Reject nonfinite contrasts before they enter comparison evidence."""
+    value = current - baseline
+    if not isfinite(value):
+        raise BootstrapInputError(BootstrapValidationCode.NONFINITE_ARITHMETIC)
+    return value
+
+
+def quantile(values: npt.NDArray[np.float64], probability: float) -> float:
+    """Calculate the fixed linear quantile with typed arithmetic failures."""
+    try:
+        with np.errstate(over="raise", invalid="raise"):
+            return float(np.quantile(values, probability, method="linear"))
+    except FloatingPointError as error:
+        raise BootstrapInputError(
+            BootstrapValidationCode.NONFINITE_ARITHMETIC
+        ) from error

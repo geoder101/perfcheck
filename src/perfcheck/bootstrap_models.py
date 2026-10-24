@@ -26,6 +26,7 @@ class BootstrapValidationCode(StrEnum):
     INVALID_RESAMPLES = "requested resamples must be positive"
     INVALID_SEED = "bootstrap seed must be nonnegative"
     NONFINITE_INPUT = "run-level values must be finite"
+    NONFINITE_ARITHMETIC = "bootstrap arithmetic must remain finite"
     REFERENCE_OVERRIDE = "seed and resamples are invalid for baseline reference"
     REFERENCE_REQUIRES_ONE_CURRENT = "baseline reference requires one current run"
 

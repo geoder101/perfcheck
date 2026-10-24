@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-import numpy as np
-
 from perfcheck.bootstrap_models import BaselineReferenceResult, MetricComparisonInput
-from perfcheck.bootstrap_sampling import mean, oriented_float64_values
+from perfcheck.bootstrap_sampling import (
+    difference,
+    mean,
+    oriented_float64_values,
+    quantile,
+)
 from perfcheck.model_types import V1_ALGORITHM_MANIFEST, ComparisonMethod
 
 
@@ -17,14 +20,8 @@ def reference_metric(metric_input: MetricComparisonInput) -> BaselineReferenceRe
     baseline_values = oriented_float64_values(
         metric_input.baseline, metric_input.direction
     )
-    reference_quantile = float(
-        np.quantile(
-            baseline_values,
-            1.0 - metric_input.effective_alpha,
-            method="linear",
-        )
-    )
-    reference_effect = mean(current_values) - reference_quantile
+    reference_quantile = quantile(baseline_values, 1.0 - metric_input.effective_alpha)
+    reference_effect = difference(mean(current_values), reference_quantile)
     return BaselineReferenceResult(
         metric_id=metric_input.metric_id,
         direction=metric_input.direction,
