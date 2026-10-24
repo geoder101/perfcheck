@@ -87,6 +87,11 @@ branch = true
 source = ["src/perfcheck"]
 patch = ["subprocess"]
 
+[tool.coverage.report]
+exclude_also = [
+    '(?m:^[ \t]*case _:[ \t]*\r?\n[ \t]+assert_never\()',
+]
+
 [tool.coverage.html]
 directory = "coverage/html"
 

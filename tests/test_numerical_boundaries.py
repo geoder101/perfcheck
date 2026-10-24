@@ -193,3 +193,37 @@ def test_bootstrap_rejects_empty_cohort(current: bool) -> None:
         if current
         else BootstrapValidationCode.EMPTY_BASELINE
     )
+
+
+def test_summary_withholds_scalar_when_finite_delta_overflows() -> None:
+    # Given: a complete eligible window with finite endpoints whose delta overflows.
+    summary_input = _input(
+        tuple(range(0, 361, 15)), Statistic.DELTA, EligibilityPolicy()
+    )
+    values = (-1e308, *((0.0,) * 23), 1e308)
+    summary_input = replace(
+        summary_input,
+        samples=tuple(
+            FloatSample(timestamp=sample.timestamp, value=value)
+            for sample, value in zip(summary_input.samples, values, strict=True)
+        ),
+    )
+
+    # When: last minus first produces infinity without raising OverflowError.
+    result = summarize(summary_input)
+
+    # Then: arithmetic alone makes the summary ineligible; window evidence survives.
+    assert result.statistic is Statistic.DELTA
+    assert result.value is None
+    assert result.eligibility.eligible is False
+    assert result.eligibility.reason is EligibilityReason.NONFINITE_VALUE
+    assert result.point_count == result.eligibility.retained_points == 25
+    assert result.eligibility.expected_points == 25
+    assert result.eligibility.coverage == 1.0
+    assert result.eligibility.analysis_start == summary_input.source_interval.start
+    assert result.eligibility.analysis_end == summary_input.source_interval.end
+    assert result.eligibility.analysis_duration_seconds == 360.0
+    assert result.eligibility.leading_gap_seconds == 0.0
+    assert result.eligibility.trailing_gap_seconds == 0.0
+    assert result.eligibility.max_adjacent_gap_seconds == 15.0
+    assert result.eligibility.max_allowed_gap_seconds >= 15.0

@@ -35,7 +35,9 @@ def test_coverage_measures_only_application_branches_and_subprocesses() -> None:
     assert isinstance(report, dict)
     assert report.get("fail_under", 0) == 0
     assert "exclude_lines" not in report
-    assert "exclude_also" not in report
+    assert report.get("exclude_also") == [
+        r"(?m:^[ \t]*case _:[ \t]*\r?\n[ \t]+assert_never\()"
+    ]
 
 
 def test_coverage_recipe_preserves_test_selection_and_requests_reports() -> None:

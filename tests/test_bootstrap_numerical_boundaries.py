@@ -1,9 +1,11 @@
+from math import inf, nan
 from sys import float_info
 
 import pytest
 
 from perfcheck.bootstrap import (
     BootstrapInputError,
+    BootstrapValidationCode,
     CohortBootstrapOptions,
     MetricComparisonInput,
     RunValue,
@@ -92,3 +94,46 @@ def test_reference_extreme_finite_arithmetic_has_typed_failure(
 
     # Then: reference and cohort arithmetic use the same safe typed failure contract.
     assert caught.value.exit_code == 3
+
+
+@pytest.mark.parametrize("threshold", [-1.0, nan, inf, -inf])
+def test_bootstrap_rejects_negative_or_nonfinite_practical_threshold(
+    threshold: float,
+) -> None:
+    # Given: ordinary finite cohorts with only the practical threshold invalid.
+    metric = MetricComparisonInput(
+        metric_id="latency",
+        direction=Direction.HIGHER_IS_WORSE,
+        requested_alpha=0.05,
+        effective_alpha=0.05,
+        practical_threshold=threshold,
+        current=(RunValue("current", 2.0),),
+        baseline=(RunValue("baseline", 1.0),),
+    )
+
+    # When: the normal bootstrap entry point validates the comparison input.
+    with pytest.raises(BootstrapInputError) as caught:
+        _ = bootstrap_cohorts((metric,))
+
+    # Then: threshold rejection is distinguishable from cohort or arithmetic errors.
+    assert caught.value.code is BootstrapValidationCode.INVALID_PRACTICAL_THRESHOLD
+
+
+def test_reference_rejects_two_otherwise_valid_current_values() -> None:
+    # Given: valid finite comparison inputs with two distinct current runs.
+    metric = MetricComparisonInput(
+        metric_id="latency",
+        direction=Direction.HIGHER_IS_WORSE,
+        requested_alpha=0.05,
+        effective_alpha=0.05,
+        practical_threshold=0.0,
+        current=(RunValue("current-1", 2.0), RunValue("current-2", 3.0)),
+        baseline=(RunValue("baseline", 1.0),),
+    )
+
+    # When: advisory reference calculation receives a multi-run current cohort.
+    with pytest.raises(BootstrapInputError) as caught:
+        _ = baseline_references((metric,))
+
+    # Then: the reference-specific cardinality error identifies the invalid input.
+    assert caught.value.code is BootstrapValidationCode.REFERENCE_REQUIRES_ONE_CURRENT

@@ -78,6 +78,12 @@ strength of assertions. The optional curriculum remains a separate
 run in clean application-only environments: they verify packaging functionality
 but their installed-wheel execution is not claimed as instrumented coverage.
 
+In addition to coverage.py's default exclusions, reporting excludes audited
+exhaustive `case _:` guards immediately followed by `assert_never(...)`.
+Ordinary wildcard fallbacks and validation errors remain measured. These
+exclusions adjust the statement and branch denominators; they do not execute
+more tests or represent additional tested behavior.
+
 ## Scope
 
 Internal implementation may change or be removed during breaking cleanup; this
