@@ -22,8 +22,8 @@ def mutated_json(
             case str():
                 assert isinstance(target, dict)
                 target = target[key]
-            case unreachable:
-                assert_never(unreachable)
+            case _:
+                assert_never(key)
     key = path[-1]
     match key:
         case int():
@@ -32,6 +32,6 @@ def mutated_json(
         case str():
             assert isinstance(target, dict)
             target[key] = value
-        case unreachable:
-            assert_never(unreachable)
+        case _:
+            assert_never(key)
     return json.dumps(payload)

@@ -33,8 +33,8 @@ def test_collect_rejects_invalid_policy_before_client_creation(
             _ = policy_path.write_text(
                 mutated_json(cli_policy(), ("policy_id",), "changed"), encoding="utf-8"
             )
-        case unreachable:
-            assert_never(unreachable)
+        case _:
+            assert_never(kind)
     output = tmp_path / "run.json"
 
     def unexpected_client() -> None:

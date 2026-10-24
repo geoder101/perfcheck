@@ -139,3 +139,84 @@ def test_writer_refuses_existing_destination_without_force(
     # Then: the original and only the original remains.
     assert path.read_bytes() == b"keep exactly"
     assert set(tmp_path.iterdir()) == {path}
+
+
+def test_report_preserves_write_error_when_cleanup_also_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: an early write failure followed by a separate cleanup failure.
+    cleanup_error = PermissionError("injected cleanup failure")
+
+    def unlink(_path: Path, *, missing_ok: bool = False) -> None:
+        del missing_ok
+        raise cleanup_error
+
+    # When: report cleanup cannot remove the partially written temporary file.
+    with (
+        failing_filesystem(
+            FailureCase("report", "write", force=False, existing=False), monkeypatch
+        ) as original,
+        monkeypatch.context() as patch,
+    ):
+        patch.setattr(Path, "unlink", unlink)
+        with pytest.raises(OSError, match="injected persistence failure") as caught:
+            cli_services.write_report(tmp_path / "report", b"report", force=False)
+
+    # Then: the primary write failure, not the cleanup failure, reaches the caller.
+    assert caught.value is original
+    assert not (tmp_path / "report").exists()
+
+
+def test_report_preserves_publication_conflict_when_cleanup_also_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: a real no-force publication conflict and a failing cleanup operation.
+    destination = tmp_path / "report"
+    _ = destination.write_bytes(b"keep exactly")
+    conflicts: list[FileExistsError] = []
+    cleanup_error = PermissionError("injected cleanup failure")
+
+    def link(source: Path, target: Path) -> None:
+        try:
+            os.link(source, target)
+        except FileExistsError as error:
+            conflicts.append(error)
+            raise
+
+    def unlink(_path: Path, *, missing_ok: bool = False) -> None:
+        del missing_ok
+        raise cleanup_error
+
+    # When: the atomic link refuses to overwrite and its temporary cleanup fails.
+    with monkeypatch.context() as patch:
+        patch.setattr(cli_services, "os", SimpleNamespace(fsync=os.fsync, link=link))
+        patch.setattr(Path, "unlink", unlink)
+        with pytest.raises(FileExistsError) as caught:
+            cli_services.write_report(destination, b"new report", force=False)
+
+    # Then: the identical publication error and the existing bytes are preserved.
+    assert conflicts == [caught.value]
+    assert conflicts[0] is caught.value
+    assert destination.read_bytes() == b"keep exactly"
+
+
+def test_report_propagates_cleanup_error_without_a_primary_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: successful forced publication followed by a failing cleanup operation.
+    cleanup_error = PermissionError("injected cleanup failure")
+    destination = tmp_path / "report"
+
+    def unlink(_path: Path, *, missing_ok: bool = False) -> None:
+        del missing_ok
+        raise cleanup_error
+
+    # When: cleanup is the only failing operation.
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, "unlink", unlink)
+        with pytest.raises(PermissionError) as caught:
+            cli_services.write_report(destination, b"complete report", force=True)
+
+    # Then: cleanup failures are not silently suppressed on the successful path.
+    assert caught.value is cleanup_error
+    assert destination.read_bytes() == b"complete report"

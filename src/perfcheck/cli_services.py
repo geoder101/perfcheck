@@ -153,6 +153,7 @@ def write_report(path: Path, content: bytes, force: bool) -> None:
     """Atomically write one report without exposing a partial destination."""
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
+    publication_succeeded = False
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
             temporary_path = Path(temporary.name)
@@ -164,9 +165,14 @@ def write_report(path: Path, content: bytes, force: bool) -> None:
         else:
             os.link(temporary_path, path)
             _ = temporary_path.unlink()
+        publication_succeeded = True
     finally:
         if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                if publication_succeeded:
+                    raise
 
 
 def _load_input_artifact(path: Path) -> Artifact:
