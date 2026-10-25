@@ -113,6 +113,13 @@ and mutation evidence are not published on Pages.
 `tests/test_suite_aggregation.py`: one worker, 600-second child budget. It does
 not mutate checkout sources or run in ordinary checks; Windows is unsupported.
 
+The central `do_not_mutate_patterns` rule excludes standalone, unqualified
+`assert_never(...)` lines in audited exhaustive guards. Native generation also
+protects parent-case deletion when it contains an excluded guard; meaningful
+sibling status, return and enabled-selection code remains eligible. This changes
+the mutation denominator, not the strength or number of application tests.
+Coverage exclusions and `mutate_only_covered_lines = false` are unchanged.
+
 Before a fresh run, inspect and archive the entire existing ignored `mutation/`
 directory outside the checkout to a new, unused destination (or remove that exact
 directory only if its evidence is no longer needed). A nonempty output is refused;
@@ -130,7 +137,8 @@ baseline or evidence failure; `incomplete` records an interrupted/budget-limited
 experiment. Killed, surviving, timeout and internal-error outcomes are distinct.
 Survivors are advisory with no score gate: inspect the saved killed/surviving
 diffs and selected-test assertions before deciding whether a test gap exists.
-Do not equate guard-removal survival with proven equivalence.
+An all-killed pilot is valid; survivor inspection artifacts exist only when a
+survivor is present. Neither exclusion nor survival proves equivalence.
 
 The manual Actions workflow retains approved available evidence and a summary
 for seven days, downloadable from its run's artifact list. Unexpected workflow

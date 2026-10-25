@@ -109,6 +109,7 @@ pytest_add_cli_args = ["-p", "no:pytest_cov", "-p", "tools.mutation_probe"]
 also_copy = ["tools/"]
 max_stack_depth = -1
 mutate_only_covered_lines = false
+do_not_mutate_patterns = ['^[ \t]*assert_never\(']
 type_check_command = []
 timeout_constant = 1
 timeout_multiplier = 15
