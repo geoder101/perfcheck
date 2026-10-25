@@ -153,6 +153,17 @@ def test_beta_posterior_is_conditional_on_bernoulli_model(
     assert "prior=Beta(1,1)" in comparative_output
 
 
+def test_known_sigma_tail_and_exact_permutation_are_visible(
+    comparative_output: str,
+) -> None:
+    # Given: the executable educational lesson with its fixed normal model.
+    # When: the fresh arithmetic receipt is inspected.
+    # Then: the two tails are distinct from Monte Carlo and product verdicts.
+    assert "Exact permutation p=0.050000; allocations=20" in comparative_output
+    assert "SE=2.000; z=-2.000; lower-tail p=0.02275013" in comparative_output
+    assert "known sigma=10; n=25; null mean=100; observed mean=96" in comparative_output
+
+
 def test_comparative_receipt_repeats_without_workspace_artifacts(
     comparative_output: str, tmp_path: Path
 ) -> None:

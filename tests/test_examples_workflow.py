@@ -3,20 +3,118 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import pytest
+from examples._capstone import Scenario, run_capstone
 from examples._support import (
     mock_prometheus_endpoint,
     perfcheck_executable,
     run_local_command,
 )
+from perfcheck.report_schemas import Report
+from perfcheck.run_models import RunArtifact
+from perfcheck.summary_models import SummaryArtifact
 
 from tests.examples_check import run_standalone_notebook
 
 if TYPE_CHECKING:
-    import pytest
+    from examples._capstone import CapstoneReceipt
 
 _ROOT = Path(__file__).parents[1]
 _FIXTURE = _ROOT / "examples/fixtures/prometheus-matrix.json"
 _PASS_POLICY = _ROOT / "tests/fixtures/policy-pass.json"
+
+
+@pytest.fixture(scope="module", params=tuple(Scenario))
+def capstone(request: pytest.FixtureRequest) -> CapstoneReceipt:
+    return run_capstone(Scenario(request.param))
+
+
+def test_selected_capstone_has_real_decision_and_cleaned_workspace(
+    capstone: CapstoneReceipt,
+) -> None:
+    # Given: one selected scenario, executed through the actual console script.
+    expected = {
+        Scenario.PASS: (0, "pass", 4, 0.0),
+        Scenario.REGRESSION: (1, "fail", 4, 10.0),
+        Scenario.ADVISORY_REFERENCE: (2, "inconclusive", 3, 10.0),
+    }
+    code, status, count, effect = expected[capstone.scenario]
+
+    # When: its persisted report is inspected after the helper returns.
+    report = Report.model_validate_json(capstone.report_json)
+    metric = report.metrics[0]
+
+    # Then: actual artifacts, not synthesized decisions, explain the CLI outcome.
+    assert (capstone.comparison_status, report.suite_status) == (code, status)
+    assert metric.status == status
+    assert metric.effect == effect
+    assert metric.direction == "higher_is_worse"
+    assert (metric.statistic, metric.unit, metric.practical_threshold) == (
+        "mean", "seconds", 0.0
+    )
+    assert (metric.baseline.count, metric.current.count) == (2, count - 2)
+    assert metric.sample_size_warning
+    assert metric.exclusions == ()
+    assert metric.options.effective_alpha == 0.05
+    assert metric.options.requested_alpha == 0.05
+    assert capstone.stage_statuses == (0,) * (count * 2)
+    assert len(capstone.commands) == count * 2 + 2
+    assert capstone.overwrite_status == 3
+    assert capstone.overwrite_context == "error: invalid command input"
+    assert not capstone.workspace.exists()
+    assert metric.metric_id in capstone.report_markdown
+    assert status.upper() in capstone.report_markdown
+    if count == 3:
+        assert metric.method == "baseline_reference"
+        assert metric.reference_anomaly is True
+        assert metric.reference_quantile == 10.0
+        assert metric.decision_lower_bound is None
+        assert metric.options.effective_seed is None
+        assert metric.options.requested_resamples is None
+        assert metric.options.effective_resamples is None
+        assert "--seed" not in capstone.commands[-2]
+        assert "--resamples" not in capstone.commands[-2]
+    else:
+        assert metric.method == "cohort_bootstrap"
+        assert metric.decision_lower_bound == effect
+        assert metric.options.effective_seed == 20260705
+        assert metric.options.requested_resamples == 1000
+        assert metric.options.effective_resamples == 2000
+
+
+def test_capstone_sources_are_unique_eligible_and_comparable(
+    capstone: CapstoneReceipt,
+) -> None:
+    # Given: real collected raw artifacts and canonical CLI summaries.
+    runs = tuple(RunArtifact.model_validate_json(p) for p in capstone.raw_artifacts)
+    summaries = tuple(
+        SummaryArtifact.model_validate_json(p) for p in capstone.summary_artifacts
+    )
+
+    # When: source provenance and eligibility are inspected across both cohorts.
+    identities = {(run.run_id, run.content_sha256) for run in runs}
+
+    # Then: every summary traces to a distinct nonoverlapping source under one policy.
+    assert len(identities) == len(runs)
+    assert len({run.run_id for run in runs}) == len(runs)
+    assert len({run.content_sha256 for run in runs}) == len(runs)
+    assert len({run.policy_sha256 for run in runs}) == 1
+    for previous, following in zip(runs, runs[1:], strict=False):
+        assert previous.source_interval.end < following.source_interval.start
+    for run, summary in zip(runs, summaries, strict=True):
+        assert summary.source_run_id == run.run_id
+        assert summary.source_content_sha256 == run.content_sha256
+        assert summary.policy_sha256 == run.policy_sha256
+        series = run.metric_records[0].series
+        assert series is not None
+        assert len(series.samples) == 41
+        assert series.samples[0].timestamp == run.source_interval.start
+        assert series.samples[-1].timestamp == run.source_interval.end
+        selected = summary.metric_records[0].summary
+        assert selected is not None
+        assert selected.eligibility.eligible
+        assert selected.eligibility.retained_points == 41
+        assert selected.eligibility.coverage == 1.0
 
 
 def test_tampered_raw_artifact_is_rejected_before_summary_is_written(
@@ -107,5 +205,8 @@ def test_failures_lesson_handles_existing_report_preflight_without_secret_leakag
     assert (
         "Handled failure: exit status 3 — error: invalid command input" in result.stdout
     )
+    assert "Selected scenario: pass" in result.stdout
+    assert "decision_lower_bound" in result.stdout
+    assert "eligible=True" in result.stdout
     assert "fake-bearer-token" not in result.stdout
     assert "fake-bearer-token" not in result.stderr

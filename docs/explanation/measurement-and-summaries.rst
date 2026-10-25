@@ -14,6 +14,27 @@ Let the retained observations, ordered by timestamp, be
 naive left-to-right sum, reducing rounding error when magnitudes differ. It
 does not make finite-precision arithmetic exact or rescue a non-finite input.
 
+Choose the question before the statistic
+---------------------------------------
+
+A summary deliberately discards information. A mean describes average level;
+a tail quantile describes a high position; an endpoint difference describes
+net movement. Choose the statistic because it answers the operational
+question, not because it happens to produce a favorable comparison.
+
+For instance, ``(10, 10, 10, 50)`` ms and ``(20, 20, 20, 20)`` ms both have
+mean 20 ms. The first includes a high tail, while the second doesn't. The
+same mean therefore needn't imply the same experience. Conversely, the p95
+of these four observations relies heavily on very little tail evidence.
+No choice recovers events the measurement process never observed.
+
+The mean here weights retained *observations* equally. An irregular time
+series isn't automatically a time-weighted average. Nor is a p95 of scraped
+values necessarily a p95 of individual request latencies: that depends on
+what the query returns. Preserve the metric's unit and meaning through the
+whole workflow. See :doc:`experimental-design` for why the choice of
+experimental unit matters.
+
 Location and tails
 ------------------
 
@@ -51,6 +72,12 @@ Location and tails
    :math:`0.3(6)+0.7(8)=7.4`. The same linear rule gives P95 = 7.7 and
    P99 = 7.94.
 
+   A finite-sample interpolated P95 needn't have exactly 95% of observed values
+   below it. In this four-point example, only three of four values are below
+   7.7. The interpolation convention provides a reproducible estimate, not
+   an exact statement about empirical ranks. A p95 is also unrelated to a
+   test's p-value; see :doc:`probability-and-distributions`.
+
 Extremes and spread
 -------------------
 
@@ -76,6 +103,96 @@ Extremes and spread
    Worked example: for :math:`(3, 5, 7)`, :math:`\bar{x}=5` and the squared
    deviations sum to :math:`4+0+4=8`; thus ``std`` =
    :math:`\sqrt{8/(3-1)}=2`.
+
+Why divide by n minus one? (optional mathematics)
+------------------------------------------------
+
+Estimating the center from the same sample pulls the squared deviations
+downward. Once :math:`\bar{x}` is fixed, the deviations must sum to zero,
+so only :math:`n-1` are free to vary. Under IID sampling with finite variance
+:math:`\sigma^2`, the identity
+
+.. math::
+
+   \sum_i(X_i-\bar{X})^2
+   =\sum_i(X_i-\mu)^2-n(\bar{X}-\mu)^2
+
+gives expectation :math:`n\sigma^2-n(\sigma^2/n)=(n-1)\sigma^2`.
+Dividing by :math:`n-1` therefore makes :math:`s^2` unbiased for the population
+variance under those assumptions. Dividing by :math:`n` would have expectation
+:math:`(n-1)\sigma^2/n` instead.
+
+The square root :math:`s` isn't itself generally an unbiased estimator of
+:math:`\sigma`. More importantly, the IID derivation doesn't establish IID
+sampling for a time series. Perfcheck computes the corrected sample spread
+as a descriptive statistic; it doesn't certify the sampling assumptions
+needed for that unbiasedness interpretation.
+
+Standard deviation isn't standard error
+--------------------------------------
+
+Standard deviation describes spread among observations. Standard error (SE)
+is the standard deviation of an estimator's sampling distribution. For an
+average of independent, identically distributed values with variance
+:math:`\sigma^2`,
+
+.. math::
+
+   \operatorname{Var}(\bar{X})
+   =\operatorname{Var}\left(\frac{1}{n}\sum_i X_i\right)
+   =\frac{1}{n^2}\sum_i\operatorname{Var}(X_i)
+   =\frac{\sigma^2}{n},
+   \qquad \operatorname{SE}(\bar{X})=\frac{\sigma}{\sqrt{n}}.
+
+We usually don't know :math:`\sigma`, so :math:`s/\sqrt{n}` estimates the
+SE under this model. For ``(3, 5, 7)`` ms, the sample SD is 2 ms and the
+estimated SE of the mean is :math:`2/\sqrt{3}\approx1.155` ms. These are
+different quantities calculated from the same values. Quadrupling the number
+of independent observations halves the model's SE; it doesn't halve the
+underlying population SD.
+
+This calculation is educational, not an extra perfcheck output. If the inputs
+are run summaries, :math:`n` counts independent runs. If the inputs are
+within-run scrapes, using their count as independent repetitions needs a
+separate justification. Perfcheck's ``std`` describes within-run values;
+it isn't the standard error of the between-run comparison.
+
+Optional mathematics: dependence and finite populations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Without independence, the full variance calculation includes covariances:
+
+.. math::
+
+   \operatorname{Var}(\bar{X})=
+   \frac{1}{n^2}\left(\sum_i\operatorname{Var}(X_i)
+   +2\sum_{i<j}\operatorname{Cov}(X_i,X_j)\right).
+
+Positive covariance, common in nearby time measurements, can make the
+independence-based SE too small. Scraping twice as fast doesn't necessarily
+create twice the information. It can simply observe the same state more often.
+
+A different dependence arises when taking a simple random sample *without
+replacement* from a fixed finite population of size :math:`N`. Define
+:math:`\sigma_N^2=N^{-1}\sum_{j=1}^N(x_j-\mu_N)^2`. Then
+
+.. math::
+
+   \operatorname{SE}(\bar{X})=
+   \frac{\sigma_N}{\sqrt{n}}\sqrt{\frac{N-n}{N-1}}.
+
+The final square root is the finite-population correction with this definition
+of population variance. Using sample variance with denominator :math:`n-1`
+instead gives the estimated SE :math:`(s/\sqrt{n})\sqrt{1-n/N}`.
+For :math:`N=100`, :math:`n=25`, and :math:`\sigma_N=10` ms, the model SE is
+:math:`2\sqrt{75/99}\approx1.741` ms rather than 2 ms. At a census
+:math:`n=N`, uncertainty about this fixed finite-population mean is zero,
+not uncertainty about future changing conditions.
+
+These formulas require genuine simple random sampling without replacement.
+A benchmark's hypothetical future runs aren't a fixed list of 100 objects,
+and a long scrape window isn't a census of all future service behavior.
+Perfcheck doesn't apply a finite-population correction.
 
 Ordered and trend summaries
 ---------------------------
@@ -127,3 +244,19 @@ overflows or produces a non-finite result, the metric is marked
 substitute scalar. The result records its selected statistic and the exact
 eligibility evidence, so downstream comparison can distinguish a valid value
 from missing evidence.
+
+From one summary to a cohort
+---------------------------
+
+Suppose two runs have retained values ``(1, 1, 1, 9)`` and ``(5, 5, 5, 5)``.
+Their linear P95 values are 7.8 and 5, so the mean of the per-run P95 values
+is 6.4. Pooling all eight observations instead gives P95 = 7.6. These answer
+different questions even with equal run sizes; unequal sizes also change
+the weighting. Perfcheck compares the run-level scalars and doesn't pool
+the raw points to make a cohort quantile.
+
+Work through the arithmetic and gate evidence in
+`lesson 07 <../../examples/07-summary-and-eligibility.py>`_, then follow
+:doc:`eligibility-and-comparability` into :doc:`inference-and-power`.
+The descriptive formulas explain what a value means. Whether a difference
+is precise or practically meaningful is a further question.

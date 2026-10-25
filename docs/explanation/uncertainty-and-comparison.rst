@@ -6,6 +6,11 @@ baseline cohort under one policy. It produces reproducible evidence for that
 configured comparison. It does not establish that either cohort represents all
 future deployments.
 
+Prerequisites are :doc:`probability-and-distributions` for sampling distributions
+and :doc:`experimental-design` for choosing independent runs. For classical
+p-values, coverage and power, read :doc:`inference-and-power`. This chapter
+describes the implemented numerical contract, not an exact inference theorem.
+
 Orientation and comparable cohorts
 ----------------------------------
 
@@ -29,10 +34,14 @@ For either direction, the observed effect is then
    - \overline{z}_{\mathrm{baseline}}.
 
 A positive effect therefore always means the current cohort is worse in the
-policy's direction. For example, if latency is lower-is-worse, a current mean
-of 90 ms and baseline mean of 80 ms become -90 and -80, so the oriented effect
-is :math:`-90 - (-80) = 10`. A throughput metric configured as
-higher-is-worse needs no sign change.
+policy's direction. Ordinary latency is **higher-is-worse**: baseline 80 ms and
+current 90 ms give :math:`90-80=+10` ms without changing signs. Throughput is
+ordinarily **lower-is-worse**: baseline 1000 requests/s and current 900 requests/s
+become -1000 and -900, giving :math:`-900-(-1000)=+100` requests/s of worsening.
+A throughput increase to 1100 instead gives :math:`-1100-(-1000)=-100`, an
+improvement. These are differences in original units, not percentages or ratios.
+The configured direction controls the calculation; a mislabeled policy cannot
+be repaired by statistical resampling.
 
 Before selecting a method, perfcheck requires all supplied runs to carry the
 selected policy hash and the expected metric fingerprints. A fingerprint covers
@@ -58,6 +67,10 @@ For example, with three enabled metrics, the effective alpha is
 :math:`0.05 / 3`. Disabled metrics do not increase :math:`m`. This is a fixed
 family-wise adjustment for the configured gates, not a general multiple-testing
 framework or a claim about every possible metric someone could inspect.
+Enabled metrics that later become inconclusive still count in the denominator.
+The union-bound argument and its calibration premise are derived in
+:doc:`multiple-testing`. A nominal allocation is not proof that an approximate
+bootstrap decision achieves a 5% family-wise false-failure rate.
 
 Cohort bootstrap evidence
 --------------------------
@@ -88,6 +101,36 @@ where :math:`m` is the enabled metric count. The report retains the seed,
 requested count, and effective count because they are part of the numerical
 provenance. It uses float64 arithmetic for these calculations.
 
+Each metric starts a fresh generator with the selected seed. Within each
+replicate, production draws the current cohort first and the baseline second.
+Changing input order, generator, draw order, arithmetic or quantile convention
+can change the result even if the headline seed is unchanged. Reproducibility
+requires the recorded numerical contract, not merely the word "bootstrap".
+
+Why resampling might approximate uncertainty
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The empirical distribution assigns probability :math:`1/n` to each of a
+cohort's :math:`n` observed run values. Sampling from it replaces an unknown
+population by the observed distribution. Repeating a statistic on these samples
+approximates how that statistic might vary if the empirical distribution were
+the population. It doesn't simulate new deployments from a validated workload
+model and doesn't make the original cohort larger.
+
+For an independent sample and a sufficiently regular statistic, the empirical
+distribution can approximate features of the population well enough to make
+bootstrap inference useful. A difference of means is a natural candidate, but
+finite variance, adequate tail information and a suitable sampling design still
+matter. Here each input is already one run-level summary; bootstrapping run
+means estimates variability across run means, not request-level latency
+variability. Bootstrapping run p99 values concerns the mean of those run p99
+values, not the p99 of all requests pooled across runs.
+
+The bootstrap distribution is centered near the observed effect. It isn't a
+null distribution constructed under "no regression". Counting its negative
+replicates and labeling the fraction a p-value would require a separate
+justification. The production method doesn't do that.
+
 Bounds and their meanings
 -------------------------
 
@@ -113,6 +156,50 @@ assumptions and repeated use. perfcheck records deterministic percentile
 bootstrap evidence and a policy rule instead of exposing a general confidence
 interval procedure.
 
+Where the approximation can fail
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Ordinary within-cohort resampling treats run values as exchangeable independent
+draws from stable cohort populations. Adjacent runs can instead share cache
+state, hardware contention or traffic conditions. Then an IID bootstrap may
+understate uncertainty by treating correlated information as fresh information.
+Paired baseline/current measurements also require preserving the pairs to
+estimate their dependence; independent cohort resampling doesn't do so.
+Block, paired or hierarchical resampling are possible statistical alternatives,
+but aren't implemented modes and need a design-specific justification.
+
+A small cohort can't reveal rare slow runs that never occurred in it. Heavy
+tails can make means and tail quantiles unstable; infinite-variance settings
+can invalidate familiar mean-bootstrap asymptotics. Skewness, estimator bias,
+unequal cohort sizes and finite samples can impair percentile coverage even
+when observations are independent. Constant observed values produce a
+degenerate bootstrap distribution, not proof that the real workload has zero
+variance. Neither minimum run counts nor a small-sample warning validate a
+coverage claim.
+
+There are two separate sources of uncertainty:
+
+* **Sampling uncertainty:** which original runs were collected. More independent,
+  representative runs can improve this information; resampling can't invent it.
+* **Monte Carlo error:** approximating a bootstrap distribution with finitely
+  many replicates. More resamples can reduce this numerical error but cannot
+  repair bias, dependence or an unrepresentative cohort.
+
+For intuition, at the floor :math:`B=2000m` the expected number of draws below
+a continuous bootstrap population's :math:`0.05/m` quantile is only
+:math:`B(0.05/m)=100`. The probability-scale SD of an empirical tail fraction
+is roughly :math:`\sqrt{a(1-a)/B}` for :math:`a=0.05/m`, conditional on the
+original data and independent draws. Quantile error in measurement units also
+depends on the distribution's local density; 100 tail draws don't guarantee a
+particular bound accuracy. Ties and interpolation complicate that intuition.
+Trying seeds until a desired verdict appears is selection, not validation.
+
+Demonstrated calibration would require studying repeated datasets under
+specified workload-generating processes, measuring coverage or false-failure
+rates with uncertainty, and checking whether those processes represent the
+intended use. Fixed-seed fixtures check arithmetic and reproducibility. They
+don't supply that calibration evidence or a universal coverage guarantee.
+
 Baseline reference evidence
 ---------------------------
 
@@ -136,3 +223,14 @@ It marks ``reference_anomaly`` when
 threshold. That flag is advisory evidence only. A baseline-reference metric
 remains ``INCONCLUSIVE`` even when it records an anomaly, and it does not make
 the suite fail.
+
+An empirical upper baseline quantile isn't automatically a prediction bound
+for a future run. Its tail uncertainty, baseline size and possible drift still
+matter. The advisory status prevents treating this single-current contrast as
+the multi-run bootstrap decision.
+
+Continue with :doc:`decisions-and-limitations` for strict threshold boundaries,
+then :doc:`plain-python-mechanics` for transparent arithmetic.
+:download:`Lab 08 <../../examples/08-bootstrap-and-decisions.py>` demonstrates
+the product rule; :download:`Lab 10 <../../examples/10-comparative-methods.py>`
+contrasts methods that don't determine its verdicts.

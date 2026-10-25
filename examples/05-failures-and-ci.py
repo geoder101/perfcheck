@@ -1,4 +1,4 @@
-"""Handle a documented perfcheck CLI failure safely in CI."""
+"""Audit a real CLI performance-verification workflow and its CI outcome."""
 
 import marimo
 
@@ -10,35 +10,29 @@ with app.setup:
     import sys
     from pathlib import Path
 
+    import marimo as mo
+
     repository_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository_root))
 
+    from examples._capstone import CapstoneReceipt, Scenario, run_capstone
+    from examples._capstone_evidence import CapstoneReport
     from examples._markdown import md
-    from examples._support import (
-        FAILURE_COHORT,
-        CollectRequest,
-        CompareRequest,
-        LessonContext,
-        LessonRun,
-        collect_arguments,
-        compare_arguments,
-        example_workspace,
-        lesson_context,
-        mock_prometheus_endpoint,
-        run_local_command,
-    )
+    from examples._support import parse_summary_evidence
 
 
 @app.cell(hide_code=True)
 def _() -> None:
     md(r"""
-    # Handle a CLI failure safely in CI
+    # Performance verification: a CLI capstone
 
     ## Goal
 
-    Construct local raw-run comparison inputs, then safely demonstrate the documented
-    preflight failure caused by attempting to overwrite report outputs.
-        """)
+    Ask whether current mean latency is worse than baseline, then trace the
+    answer from timestamped observations to eligible per-run summaries and a
+    real canonical JSON/Markdown report. Preserve the child exit status for CI.
+    Lessons 01-04 introduced each link; here we audit the whole chain.
+    """)
 
 
 @app.cell(hide_code=True)
@@ -46,52 +40,29 @@ def _() -> None:
     md(r"""
     ## Inputs
 
-    This lesson independently makes four fixed UTC runs from the bundled policy
-    and loopback fixtures. `compare` accepts those raw-run convenience inputs;
-    a fixed seed and resample count make the first call reproducible before the
-    second intentionally omits `--force`.
-        """)
+    Select **one** scenario. Pass and regression plan two baseline and two
+    current runs; advisory-reference plans two baseline and one current run.
+    Each selection starts a fresh temporary workspace and loopback fixture.
+    No remote service, benchmark workload, or previous lesson output is used.
+
+    The metric is mean latency in seconds, higher-is-worse, threshold **0 s**.
+    Fixture warmup/cooldown are both zero. These reduced minima and constant
+    synthetic samples demonstrate plumbing, **not statistical calibration**.
+    Unique run IDs and nonoverlapping UTC intervals establish provenance,
+    not independence or exchangeability. Labs 06-10 examine those limits.
+    """)
 
 
 @app.cell
-def _() -> tuple[LessonContext, tuple[LessonRun, ...]]:
-    context = lesson_context()
-    runs = FAILURE_COHORT
-    return context, runs
-
-
-@app.cell
-def _(context: LessonContext, runs: tuple[LessonRun, ...]) -> tuple[int, int, str]:
-    with (
-        example_workspace() as workspace,
-        mock_prometheus_endpoint(context.fixture_path) as endpoint,
-    ):
-        raw_paths: list[Path] = []
-        for run in runs:
-            raw_path = workspace / f"{run.run_id}.json"
-            _ = run_local_command(
-                collect_arguments(
-                    context,
-                    CollectRequest(endpoint=endpoint, run=run, output_path=raw_path),
-                ),
-                cwd=workspace,
-            )
-            raw_paths.append(raw_path)
-        compare_request = CompareRequest(
-            current_paths=tuple(raw_paths[2:]),
-            baseline_paths=tuple(raw_paths[:2]),
-            report_json_path=workspace / "existing-report.json",
-            report_markdown_path=workspace / "existing-report.md",
-            seed=20260705,
-            resamples=1000,
-        )
-        compare_command = compare_arguments(context, compare_request)
-        initial_compare = run_local_command(compare_command, cwd=workspace)
-        handled_failure = run_local_command(compare_command, cwd=workspace)
-    initial_compare_status = initial_compare.returncode
-    handled_failure_status = handled_failure.returncode
-    failure_context = (handled_failure.stderr or "").strip()
-    return initial_compare_status, handled_failure_status, failure_context
+def _() -> tuple[mo.ui.dropdown]:
+    scenario_selector = mo.ui.dropdown(
+        options=[scenario.value for scenario in Scenario],
+        value="pass",
+        allow_select_none=False,
+        label="CLI scenario",
+    )
+    mo.output.replace(scenario_selector)
+    return (scenario_selector,)
 
 
 @app.cell(hide_code=True)
@@ -99,10 +70,22 @@ def _() -> None:
     md(r"""
     ## Run
 
-    The first comparison writes its reports. The second uses the same paths
-    without `--force`; the CLI preflight rejects stale output before it reads or
-    overwrites evidence. The nonzero child status is captured, not propagated.
-        """)
+    Only the selected workflow executes: public `collect` for each run,
+    public `summarize` for each raw artifact, then public `compare` on the
+    summaries under the same policy. Bootstrap uses seed 20260705 and requests
+    1000 resamples (the engine records its effective floor of 2000).
+    Reference receives **neither seed nor resamples**.
+
+    A repeat compare intentionally omits `--force` at the same report paths.
+    This is an input error (3), not a regression (1) or uncertainty (2).
+    Temporary files and the fixture process are cleaned up on cell completion.
+    """)
+
+
+@app.cell
+def _(scenario_selector: mo.ui.dropdown) -> tuple[CapstoneReceipt]:
+    receipt = run_capstone(Scenario(scenario_selector.value))
+    return (receipt,)
 
 
 @app.cell(hide_code=True)
@@ -110,28 +93,49 @@ def _() -> None:
     md(r"""
     ## Evidence
 
-    Expected handled failure: exit status 3 with `error: invalid command input`.
-    Only sanitized stderr is displayed, and this lesson itself exits 0 so CI can
-    test its failure-handling branch rather than accidentally failing the job.
-        """)
+    Inspect the actual report fields below: cohort counts, oriented effect,
+    alpha, lower decision bound, threshold, method, and stochastic provenance.
+    Bootstrap FAIL requires a bound **strictly greater** than the threshold;
+    equality is PASS. PASS means the configured rule did not flag regression,
+    not proof of equivalence. A reference anomaly is advisory and remains
+    INCONCLUSIVE even when the current value is elevated.
+
+    Expected compare statuses: pass **0**, regression **1**, reference **2**.
+    The notebook captures them; it does not convert a teaching FAIL to a
+    notebook crash or silently relabel INCONCLUSIVE as PASS.
+    """)
 
 
 @app.cell
-def _(
-    failure_context: str, handled_failure_status: int, initial_compare_status: int
-) -> None:
-    handled_failure_line = " — ".join(
-        (f"Handled failure: exit status {handled_failure_status}", failure_context)
+def _(receipt: CapstoneReceipt) -> None:
+    report = CapstoneReport.model_validate_json(receipt.report_json)
+    eligibility = tuple(
+        parse_summary_evidence(payload)["eligible"]
+        for payload in receipt.summary_artifacts
     )
     message = "\n".join(
         (
-            "Goal: handle a documented CLI failure without failing the lesson",
-            "Inputs: fixture reports intentionally left at temporary output paths",
-            f"Run: initial compare exit status {initial_compare_status}",
-            handled_failure_line,
+            "Goal: verify latency through the actual public CLI",
+            f"Selected scenario: {receipt.scenario.value}",
+            "Inputs: synthetic timestamped loopback observations; temporary outputs",
+            (
+                f"Run: stages={receipt.stage_statuses}; "
+                f"compare={receipt.comparison_status}"
+            ),
+            (
+                f"Evidence: eligible={all(eligibility)}; "
+                f"suite_status={report.suite_status}"
+            ),
+            f"JSON report (temporary): {report.metrics[0].model_dump_json()}",
+            f"Markdown report (temporary): {receipt.report_markdown}",
+            (
+                f"Handled failure: exit status {receipt.overwrite_status} — "
+                f"{receipt.overwrite_context}"
+            ),
         )
     )
     _ = sys.stdout.write(f"{message}\n")
+    mo.output.replace(mo.vstack([mo.md(message), mo.md(receipt.report_markdown)]))
 
 
 @app.cell(hide_code=True)
@@ -139,16 +143,22 @@ def _() -> None:
     md(r"""
     ## Takeaway
 
-    In CI, preserve the child process status and sanitized context as evidence.
-    Decide whether that status should fail the job at the workflow boundary; a
-    teaching probe must catch it so the notebook remains a successful process.
-        """)
+    Decide the question, metric direction, meaningful threshold, run plan and
+    eligibility rules **before** observing outcomes. Retain real reports and
+    investigate a FAIL rather than inferring a cause from a bound. In production,
+    plan representative independent runs, realistic warmup/cooldown and a
+    domain-justified threshold; do not copy this tiny fixture as a power study.
+
+    Continue with the standalone documentation case study
+    `docs/tutorials/performance-verification-case-study.rst` and labs 06-10.
+    """)
 
 
 @app.cell
 def _() -> None:
     _ = sys.stdout.write(
-        "Takeaway: CI owns policy for a captured nonzero child status.\n"
+        "Takeaway: CI owns policy for a captured nonzero child status; "
+        "synthetic reproducibility is not scientific validation.\n"
     )
 
 

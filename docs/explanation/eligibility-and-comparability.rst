@@ -6,6 +6,12 @@ It is a data-quality and scope check, not a hypothesis test. A failed gate
 records an explicit reason and produces no replacement value. The later
 comparison stage can therefore preserve exclusions and their source run IDs.
 
+Think of eligibility as admission to a specific calculation, not a certificate
+of scientific validity. A well-spaced set of measurements from the wrong
+workload can pass every gate. A genuinely representative run can fail because
+collection lost too much evidence. Both distinctions matter when interpreting
+an exclusion or a successful summary.
+
 Analysis window
 ---------------
 
@@ -100,6 +106,29 @@ Gaps
    :math:`G_{\max}=(3+1)15=60` seconds. A 75-second adjacent gap yields
    ``gap_too_large``.
 
+Why count, coverage, and gaps are separate
+-----------------------------------------
+
+Imagine a 300-second analyzed window with a 15-second step. Its expected
+timestamps are 0, 15, ..., 300, giving 21 points. If all but the 150-second
+point are present, 20 points remain, coverage is :math:`20/21`, and the
+largest gap is 30 seconds. Under the defaults described above, those three
+gates pass.
+
+Now omit the first four timestamps, 0, 15, 30, and 45. There are 17 points,
+coverage is :math:`17/21\approx0.810`, and the leading gap is 60 seconds.
+Coverage and the default gap limit pass, but the default 20-point minimum
+fails. Alternatively, a longer series can lose a contiguous block while
+retaining enough total points and overall coverage; its largest gap can
+still fail. None of the gates is a substitute for the others.
+
+These checks assume the configured step and source interval describe the
+intended collection. They don't test whether missing points were unusually
+slow, whether repeated scrapes share state, or whether the workload changed.
+The coverage ratio measures temporal collection completeness, not statistical
+confidence-interval coverage. See :doc:`inference-and-power` for the latter
+meaning of coverage.
+
 Input integrity and no imputation
 ---------------------------------
 
@@ -116,6 +145,15 @@ cohorts are assembled, a missing metric, an unavailable metric, or an
 ineligible summary is excluded with its exact reason instead of being replaced
 by zero, a mean, or another estimate.
 
+For example, if telemetry disappears during overload, the retained mean can
+understate the load period even when a gate still passes. Rejecting the run
+avoids manufacturing a scalar, but analyzing only surviving runs may still
+select the easier conditions. Missingness therefore needs a design-level
+investigation as well as an artifact-level reason. Compare planned runs,
+usable runs, and exclusions separately for each side. See
+:doc:`experimental-design` for failure-dependent missingness and predeclared
+exclusion rules.
+
 Comparability of usable runs
 ----------------------------
 
@@ -129,3 +167,27 @@ These checks establish consistent, traceable inputs for a configured policy.
 They do not prove independence, equal distributions, causal comparability, or
 representativeness. Interpret those assumptions using the cautions in
 :doc:`statistical-foundations`, not as consequences of an eligibility pass.
+
+For example, two nonoverlapping, correctly hashed runs may share the same
+unrecorded background contention. Another pair may use identical policies
+but different traffic mixes outside what those policies describe. Integrity
+checks can verify the recorded evidence without verifying all facts about
+the environment that produced it. Distinct provenance identifies inputs;
+it isn't proof of independent experimental units.
+
+Keep three questions separate when reviewing a report:
+
+#. **Integrity:** are these the verified artifacts and source identities
+   claimed by the comparison?
+#. **Eligibility and compatibility:** do the retained values meet the fixed
+   policy's data requirements and comparison constraints?
+#. **Scientific scope:** does the collection design support the intended
+   inference about builds, workloads, and environments?
+
+Perfcheck enforces the first two through its artifact and policy rules.
+The third requires judgment and evidence about the experiment. More runs,
+more bootstrap draws, or a stricter alpha cannot repair a wrong experimental
+unit or a confounded design. Continue with :doc:`experimental-design`,
+:doc:`inference-and-power`, and :doc:`multiple-testing`; use
+`lesson 07 <../../examples/07-summary-and-eligibility.py>`_ to inspect the
+concrete eligibility evidence behind this distinction.
