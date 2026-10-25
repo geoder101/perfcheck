@@ -7,16 +7,23 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal, assert_never
 
 import pytest
-from pydantic import BaseModel
+from tools.mutation_ci_models import Manifest, Start, Status
+from tools.mutation_evidence import NativeStats
 
-
-class StartHashes(BaseModel):
-    source_sha256: str
-    lock_sha256: str
-
+type Failure = Literal[
+    "baseline",
+    "timeout",
+    "malformed",
+    "missing",
+    "mismatch",
+    "counts",
+    "sha",
+    "report",
+    "symlink",
+]
 
 _ROOT: Final = Path(__file__).parents[1]
 _WORKFLOW: Final = _ROOT / ".github/workflows/mutation.yml"
@@ -68,6 +75,7 @@ def campaign(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
     monkeypatch.setenv("GITHUB_RUN_ID", "123")
     monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
+    monkeypatch.setenv("RUNNER_TEMP", str(root))
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(root / "summary.md"))
     monkeypatch.setenv("GITHUB_OUTPUT", str(root / "outputs"))
     monkeypatch.setenv("MUTATION_OUTCOME", "success")
@@ -75,47 +83,35 @@ def campaign(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     assert prepared.returncode == 0, prepared.stderr
     output = root / "mutation"
     (output / "mutants/src/perfcheck").mkdir(parents=True)
-    receipt = StartHashes.model_validate_json(
-        (root / "mutation-ci/start.json").read_text()
+    receipt = Start.model_validate_json((root / "mutation-ci/start.json").read_text())
+    manifest = Manifest(
+        target=_TARGET,
+        tests="tests/test_suite_aggregation.py",
+        source_sha256=receipt.source_sha256,
+        lock_sha256=receipt.lock_sha256,
+        workers=1,
+        child_budget_seconds=600,
     )
-    _ = (output / "manifest.json").write_text(
-        json.dumps(
-            {
-                "target": _TARGET,
-                "tests": "tests/test_suite_aggregation.py",
-                "source_sha256": receipt.source_sha256,
-                "lock_sha256": receipt.lock_sha256,
-                "workers": 1,
-                "child_budget_seconds": 600,
-            }
-        )
+    _ = (output / "manifest.json").write_text(manifest.model_dump_json())
+    status = Status(
+        status="complete",
+        detail="validated",
+        elapsed_seconds=2.0,
+        source_unchanged=True,
     )
-    _ = (output / "status.json").write_text(
-        json.dumps(
-            {
-                "status": "complete",
-                "detail": "validated",
-                "elapsed_seconds": 2.0,
-                "source_unchanged": True,
-            }
-        )
+    _ = (output / "status.json").write_text(status.model_dump_json())
+    stats = NativeStats(
+        killed=1,
+        survived=1,
+        total=2,
+        no_tests=0,
+        skipped=0,
+        suspicious=0,
+        timeout=0,
+        check_was_interrupted_by_user=0,
+        segfault=0,
     )
-    stats = dict.fromkeys(
-        (
-            "killed",
-            "survived",
-            "total",
-            "no_tests",
-            "skipped",
-            "suspicious",
-            "timeout",
-            "check_was_interrupted_by_user",
-            "segfault",
-        ),
-        0,
-    )
-    stats.update(killed=1, survived=1, total=2)
-    _ = (output / "mutants/mutmut-cicd-stats.json").write_text(json.dumps(stats))
+    _ = (output / "mutants/mutmut-cicd-stats.json").write_text(stats.model_dump_json())
     keys = {f"perfcheck.regression_aggregation.mutmut_{i}": i for i in (0, 1)}
     _ = (output / f"mutants/{_TARGET}.meta").write_text(
         json.dumps(
@@ -141,7 +137,9 @@ def campaign(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         "generated-baseline.log",
         "export.log",
     ):
-        _ = (output / name).write_text("fixture evidence\n")
+        _ = (output / name).write_text(
+            "" if name == "parse.log" else "fixture evidence\n"
+        )
     return root
 
 
@@ -162,7 +160,7 @@ def test_workflow_is_manual_bounded_and_read_only() -> None:
         "uv sync --locked --group dev --group docs --group examples --group mutation"
         in workflow
     )
-    assert "just mutation 2>&1 | tee mutation-ci/stdout.log" in workflow
+    assert 'just mutation 2>&1 | tee "$RUNNER_TEMP/mutation-ci/stdout.log"' in workflow
     assert "set -o pipefail" in workflow
     assert "MUTATION_OUTCOME: ${{ steps.pilot.outcome }}" in workflow
     assert (
@@ -171,7 +169,7 @@ def test_workflow_is_manual_bounded_and_read_only() -> None:
     assert "if: always()" in workflow
     assert "steps.evidence.outputs.publish == 'true'" in workflow
     assert "retention-days: 7" in workflow
-    assert "mutation-ci/evidence/" in workflow
+    assert "${{ runner.temp }}/mutation-ci/evidence/" in workflow
     assert all(
         word not in workflow
         for word in (
@@ -225,32 +223,27 @@ def test_survivors_are_advisory_with_actual_checkout_receipt(campaign: Path) -> 
         "mismatch",
         "counts",
         "sha",
-        "symlink",
         "report",
+        "symlink",
     ],
 )
 def test_invalid_or_unavailable_evidence_fails_honestly(
     campaign: Path,
     monkeypatch: pytest.MonkeyPatch,
-    failure: str,
+    failure: Failure,
 ) -> None:
     # Given: a controlled invalid, interrupted, missing or contradictory receipt.
     status = campaign / "mutation/status.json"
     match failure:
         case "baseline" | "timeout":
             monkeypatch.setenv("MUTATION_OUTCOME", "failure")
-            _ = status.write_text(
-                json.dumps(
-                    {
-                        "status": "invalid" if failure == "baseline" else "incomplete",
-                        "detail": "baseline failed"
-                        if failure == "baseline"
-                        else "budget exhausted",
-                        "elapsed_seconds": 1.0,
-                        "source_unchanged": False,
-                    }
-                )
+            failed = Status(
+                status="invalid" if failure == "baseline" else "incomplete",
+                detail=failure,
+                elapsed_seconds=1.0,
+                source_unchanged=False,
             )
+            _ = status.write_text(failed.model_dump_json())
         case "malformed":
             _ = status.write_text('{"status": "invented"}')
         case "missing":
@@ -264,10 +257,12 @@ def test_invalid_or_unavailable_evidence_fails_honestly(
         case "sha":
             monkeypatch.setenv("GITHUB_SHA", "0" * 40)
         case "symlink":
+            if sys.platform == "win32":
+                pytest.skip("Unix symlink control")
             status.unlink()
             status.symlink_to(campaign / "uv.lock")
         case _:
-            pytest.fail("unknown control")
+            assert_never(failure)
     # When: the same exporter used by the workflow runs.
     result = command(campaign, "export")
     # Then: no missing/invalid evidence becomes a successful empty experiment.
@@ -280,7 +275,7 @@ def test_invalid_or_unavailable_evidence_fails_honestly(
     assert "Status: complete" not in summary
 
 
-def test_prepare_rejects_wrong_revision_and_stale_results(campaign: Path) -> None:
+def test_prepare_rejects_stale_results(campaign: Path) -> None:
     # Given: an existing campaign cannot be reused for a fresh dispatch.
     # When: preparation is repeated.
     result = command(campaign, "prepare")

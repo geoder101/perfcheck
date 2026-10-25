@@ -10,9 +10,10 @@ import sys
 import time
 from collections import Counter
 from pathlib import Path
-from typing import Final, assert_never
+from typing import assert_never
 
 from tools.mutation_campaign import BUDGET, SELECTION, TARGET
+from tools.mutation_ci_artifacts import ci_directory, safe, stage
 from tools.mutation_ci_models import Manifest, Start, Status
 from tools.mutation_evidence import (
     EvidenceError,
@@ -20,33 +21,6 @@ from tools.mutation_evidence import (
     read_inventory,
     read_stats,
     require,
-)
-
-_FILES: Final = (
-    "status.json",
-    "manifest.json",
-    "outcomes.json",
-    "inspection.json",
-    "imports.jsonl",
-    "inspection-imports.jsonl",
-    "results.txt",
-    "parse.log",
-    "baseline.log",
-    "run.log",
-    "export.log",
-    "generated-baseline.log",
-    "forced-failure.log",
-    "inspect-killed.diff",
-    "inspect-survived.diff",
-    *(
-        f"inspect-{verdict}-{index}.log"
-        for verdict in ("killed", "survived")
-        for index in range(3)
-    ),
-    "mutants/mutmut-cicd-stats.json",
-    "mutants/mutmut-stats.json",
-    f"mutants/{TARGET}",
-    f"mutants/{TARGET}.meta",
 )
 
 
@@ -60,20 +34,6 @@ def head(root: Path) -> str:
     ).strip()
 
 
-def safe(root: Path, relative: str) -> Path:
-    """Reject redirected paths before reading or staging artifact content."""
-    path = root / relative
-    require(
-        all(
-            not part.is_symlink()
-            for part in (path, *path.parents)
-            if part != root.parent
-        ),
-        "redirected evidence path",
-    )
-    return path
-
-
 def digest(path: Path) -> str:
     """Hash a known input without persisting its contents."""
     return hashlib.sha256(path.read_bytes()).hexdigest()
@@ -82,7 +42,8 @@ def digest(path: Path) -> str:
 def prepare(root: Path) -> None:
     """Refuse stale outputs and record source identity before the pilot."""
     require(not safe(root, "mutation").exists(), "existing mutation output")
-    require(not safe(root, "mutation-ci").exists(), "existing CI receipt")
+    ci = ci_directory()
+    require(not ci.exists(), "existing CI receipt")
     start = Start.model_validate(
         {
             "tested_sha": head(root),
@@ -96,8 +57,8 @@ def prepare(root: Path) -> None:
         }
     )
     require(start.tested_sha == start.expected_sha, "checkout SHA mismatch")
-    (root / "mutation-ci").mkdir()
-    _ = (root / "mutation-ci/start.json").write_text(start.model_dump_json(indent=2))
+    ci.mkdir()
+    _ = (ci / "start.json").write_text(start.model_dump_json(indent=2))
 
 
 def counts(output: Path) -> NativeStats:
@@ -126,26 +87,15 @@ def counts(output: Path) -> NativeStats:
 
 def export(root: Path) -> int:
     """Always explain unavailable evidence; publish only safely staged known files."""
-    ci = safe(root, "mutation-ci")
+    ci = ci_directory()
     ci.mkdir(exist_ok=True)
     published = False
     message = "Evidence rejected or unavailable; no complete experiment claimed."
     code = 1
     try:
-        candidates = (
-            "mutation-ci/start.json",
-            "mutation-ci/stdout.log",
-            *(f"mutation/{name}" for name in _FILES),
-        )
-        selected = tuple(safe(root, name) for name in candidates)
-        stage = safe(root, "mutation-ci/evidence")
-        stage.mkdir()
-        for path in selected:
-            if path.is_file():
-                destination = stage / path.relative_to(root)
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                _ = shutil.copyfile(path, destination)
+        accepted = stage(root, ci)
         published = True
+        require(accepted, "redirected evidence rejected; safe diagnostics retained")
         start = Start.model_validate_json((ci / "start.json").read_text())
         require(
             start.tested_sha
@@ -211,7 +161,7 @@ def export(root: Path) -> int:
                 ):
                     require(
                         (output / name).stat().st_mtime_ns >= start.started_ns
-                        and (output / name).stat().st_size > 0,
+                        and ((output / name).stat().st_size > 0 or name == "parse.log"),
                         "stale or empty evidence",
                     )
                 stats = counts(output)
@@ -221,8 +171,8 @@ def export(root: Path) -> int:
                     f"other outcomes: 0. Tested SHA: `{start.tested_sha}`."
                 )
                 code = 0
-            case unreachable:
-                assert_never(unreachable)
+            case _:
+                assert_never(status.status)
     except EvidenceError, OSError, ValueError, KeyError, subprocess.SubprocessError:
         code = 1
     summary = (
@@ -230,13 +180,13 @@ def export(root: Path) -> int:
         + message
         + "\n\n"
         + "Survivors are advisory; no survival-score gate. Command: `just mutation`.\n"
-        "Target: `"
+        + "Target: `"
         + TARGET
         + "`; tests: `"
         + SELECTION
         + "`.\n"
         + "One worker; 600-second child budget. Download approved evidence from this "
-        "run's mutation-evidence artifact (7-day retention); not published on Pages.\n"
+        + "run's mutation-evidence artifact (7-day retention); not on Pages.\n"
     )
     _ = (ci / "summary.md").write_text(summary)
     if published:
@@ -251,14 +201,12 @@ def export(root: Path) -> int:
 def main() -> int:
     """Expose the two fixed workflow phases without forwarding pilot options."""
     root = Path.cwd()
-    match sys.argv[1:]:
-        case ["prepare"]:
-            prepare(root)
-            return 0
-        case ["export"]:
-            return export(root)
-        case _:
-            return 2
+    if sys.argv[1:] == ["prepare"]:
+        prepare(root)
+        return 0
+    if sys.argv[1:] == ["export"]:
+        return export(root)
+    return 2
 
 
 if __name__ == "__main__":

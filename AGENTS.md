@@ -71,6 +71,8 @@ just cli compare --help
 - Package and environment manager: `uv`.
 - Build backend: `uv_build`.
 - Sync development dependencies: `just sync`.
+- Ordinary sync uses locked dev/docs/examples groups, excluding optional mutmut;
+  rerun it after mutation work to restore the ordinary environment.
 - Build distributions: `just build`.
 - Optional documentation: `just docs-check` builds fresh Furo HTML with warnings
   treated as errors using the docs dependency group. `just docs-preview [port]`
@@ -101,6 +103,17 @@ just check
 
 `just check` is the standard complete gate: lock verification, format check,
 lint, type checking, tests, executable examples, documentation, and build.
+It and `just test` remain coverage-free and mutation-free. Opt-in commands:
+
+- `just coverage [pytest args]`: exploratory statement/branch reports, no default floor.
+- `just coverage-check`: zero-argument fresh full-suite 99% combined coverage gate.
+- `just mutation`: optional Unix-only aggregation pilot; installs its dedicated
+  group, uses one worker/600-second child budget, and refuses nonempty `mutation/`.
+  Archive retained evidence outside the checkout before rerunning; then `just sync`.
+
+README owns evidence interpretation and the one-time GitHub Pages owner checklist.
+Hosted CI/platform/deployment results remain pending until a real repository run;
+Pages is docs-only, including internal AutoAPI, never coverage/mutation evidence.
 
 ## Root Rules
 

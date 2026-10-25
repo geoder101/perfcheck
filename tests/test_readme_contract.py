@@ -104,3 +104,112 @@ def test_governance_maps_optional_documentation_without_a_public_python_api(
     assert "does not import" in guidance
     assert "just docs-preview [port]" in guidance
     assert "CLI only" in guidance
+
+
+@pytest.mark.parametrize("command", ["sync", "coverage", "coverage-check", "mutation"])
+def test_developer_guides_map_existing_opt_in_recipes(command: str) -> None:
+    # Given: the actual canonical recipes and both developer entry points.
+    root = _README_PATH.parent
+    recipes = (root / "justfile").read_text(encoding="utf-8")
+    guides = (_README_PATH, root / "AGENTS.md")
+
+    # When: a contributor looks up each quality command.
+    documented = tuple(path.read_text(encoding="utf-8") for path in guides)
+
+    # Then: both guides name a real recipe rather than an invented command.
+    assert re.search(rf"^{re.escape(command)}(?:[ *:].*)?:", recipes, re.MULTILINE)
+    assert all(f"just {command}" in source for source in documented)
+
+
+def test_readme_distinguishes_exploration_from_fresh_coverage_gate() -> None:
+    # Given: coverage is opt-in and application measurement has a fixed scope.
+    root = _README_PATH.parent
+    recipe = (root / "tools/coverage_gate.py").read_text(encoding="utf-8")
+
+    # When: users read the measurement and downloadable evidence contract.
+    source = " ".join(_README_PATH.read_text(encoding="utf-8").split())
+
+    # Then: the fixed gate, raw data, provenance and failure limits are explicit.
+    assert '"--cov-fail-under=99"' in recipe
+    assert all(
+        claim in source
+        for claim in (
+            "exploratory",
+            "no threshold",
+            "99%",
+            "statements and branches",
+            "coverage.py precision",
+            "coverage/.coverage",
+            "tested SHA",
+            "PR head",
+            "partial",
+            "unavailable",
+            "seven days",
+        )
+    )
+    assert "There is no coverage threshold." not in source
+
+
+def test_readme_explains_optional_mutation_and_safe_fresh_runs() -> None:
+    # Given: the pilot is deliberately bounded and refuses existing output.
+    root = _README_PATH.parent
+    config = (root / "pyproject.toml").read_text(encoding="utf-8")
+
+    # When: developers read how to run and interpret the pilot.
+    source = " ".join(_README_PATH.read_text(encoding="utf-8").split())
+
+    # Then: instructions match the target, selection, cost and evidence contract.
+    for path in (
+        "src/perfcheck/regression_aggregation.py",
+        "tests/test_suite_aggregation.py",
+    ):
+        assert path in source
+        assert path in config
+    assert all(
+        claim in source
+        for claim in (
+            "Unix-only",
+            "one worker",
+            "600-second",
+            "nonempty",
+            "archive",
+            "just sync",
+            "JSON",
+            "results.txt",
+            "status.json",
+            "advisory",
+            "no score gate",
+            "not native mutmut HTML",
+        )
+    )
+
+
+def test_readme_records_owner_hosting_prerequisites_without_live_claims() -> None:
+    # Given: workflows exist but the GitHub repository has not been created.
+    root = _README_PATH.parent
+    workflow = (root / ".github/workflows/pages.yml").read_text(encoding="utf-8")
+
+    # When: the owner follows the one-time hosting checklist.
+    source = " ".join(_README_PATH.read_text(encoding="utf-8").split())
+
+    # Then: environment protection and future hosted verification are explicit.
+    assert "github.event.repository.default_branch" in workflow
+    assert all(
+        claim in source
+        for claim in (
+            "Settings > Pages",
+            "GitHub Actions",
+            "github-pages",
+            "default branch",
+            "no tags",
+            "reviewers",
+            "pinned actions",
+            "No PAT",
+            "not yet created",
+            "Linux/macOS/Windows",
+            "PRs",
+            "non-default",
+            "internal Python",
+        )
+    )
+    assert "github.io" not in source

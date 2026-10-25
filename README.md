@@ -58,22 +58,35 @@ uv run perfcheck compare --help
 Run the same local checks before contributing documentation or code:
 
 ```bash
+just sync
 just check
 ```
 
-Coverage is opt-in and does not change `just test` or `just check`:
+`just sync` installs the locked dev/docs/examples groups, excluding optional
+mutation tooling (and removes it after a pilot). Ordinary `just test` and
+`just check` remain coverage-free and mutation-free.
+
+### Coverage evidence
+
+Coverage is opt-in:
 
 ```bash
 just coverage
 just coverage tests/test_cli_compare.py   # optional pytest selection/arguments
+just coverage-check                     # fixed fresh full-suite 99% combined gate
 ```
 
 This measures statements and branches in `src/perfcheck` using the same test
 selection as `just test`, including instrumentable Python subprocesses. Open
 `coverage/html/index.html` or inspect `coverage/coverage.json`; combined raw data
-is retained at `coverage/.coverage`. These generated outputs are ignored and replaced on
-each run. There is no coverage threshold. Coverage records execution, not the
-strength of assertions. The optional curriculum remains a separate
+is retained at `coverage/.coverage`. These generated outputs are ignored.
+`just coverage` is exploratory with no threshold unless explicitly requested.
+`just coverage-check` accepts no arguments, clears old reports before measurement,
+and enforces 99% combined statements and branches using coverage.py precision
+semantics, not an average of percentages or rounded terminal text. Failed tests
+or a failed threshold remain failures; early errors may leave reports unavailable.
+Coverage records execution, not the strength of assertions. The optional
+curriculum remains a separate
 `just examples-check` gate, outside this baseline. Fresh-wheel smoke tests still
 run in clean application-only environments: they verify packaging functionality
 but their installed-wheel execution is not claimed as instrumented coverage.
@@ -83,6 +96,74 @@ exhaustive `case _:` guards immediately followed by `assert_never(...)`.
 Ordinary wildcard fallbacks and validation errors remain measured. These
 exclusions adjust the statement and branch denominators; they do not execute
 more tests or represent additional tested behavior.
+
+The independent Linux CI coverage job retains selected HTML, JSON, hidden raw
+`.coverage`, and provenance in an Actions artifact for seven days. Download it
+from the run's Actions page; open `html/index.html` and inspect `provenance.json`.
+The tested SHA is the actual checkout (a PR merge revision can differ from the
+separately labeled PR head). Failed-gate evidence is partial; missing, stale or
+invalid reports are unavailable, never replaced with earlier success. Coverage
+and mutation evidence are not published on Pages.
+
+### Optional mutation pilot
+
+`just mutation` explicitly installs the dedicated mutation group with pinned
+`mutmut==3.8.0`. This Unix-only manual pilot mutates a disposable snapshot of
+`src/perfcheck/regression_aggregation.py`, selecting only
+`tests/test_suite_aggregation.py`: one worker, 600-second child budget. It does
+not mutate checkout sources or run in ordinary checks; Windows is unsupported.
+
+Before a fresh run, inspect and archive the entire existing ignored `mutation/`
+directory outside the checkout to a new, unused destination (or remove that exact
+directory only if its evidence is no longer needed). A nonempty output is refused;
+old results are never reused. Then run:
+
+```bash
+just mutation
+just sync       # restore the ordinary environment without mutmut
+```
+
+Inspect `mutation/status.json`, native JSON statistics, `results.txt`, logs,
+manifest and mutated-copy import receipts; these are not native mutmut HTML.
+`complete` means a validated nonzero experiment; `invalid` signals infrastructure,
+baseline or evidence failure; `incomplete` records an interrupted/budget-limited
+experiment. Killed, surviving, timeout and internal-error outcomes are distinct.
+Survivors are advisory with no score gate: inspect the saved killed/surviving
+diffs and selected-test assertions before deciding whether a test gap exists.
+Do not equate guard-removal survival with proven equivalence.
+
+The manual Actions workflow retains approved available evidence and a summary
+for seven days, downloadable from its run's artifact list. Unexpected workflow
+failure means invalid/incomplete/unavailable infrastructure or evidence, not a
+penalty for survivors. It never publishes results on Pages.
+
+### One-time GitHub hosting setup (owner)
+
+The GitHub repository is not yet created; no live site or hosted platform result
+is claimed. Pages publishes only the existing Furo/Sphinx documentation, including
+source-parsed AutoAPI for internal Python modules. A public documentation site
+does not make those modules a supported public Python API.
+
+1. Create the GitHub repository and push this checkout to its actual default branch.
+   Enable Actions and allow the workflows' pinned actions under repository or
+   organization policy; do not assume the branch is named `main`.
+2. Select **Settings > Pages > Build and deployment > Source > GitHub Actions**.
+3. Configure the **github-pages** environment's deployment branch restrictions to
+   the actual default branch only, with no tags. Required reviewers are optional
+   unless the owner requires them; the environment name alone is not protection.
+4. On the first default-branch push, verify Linux/macOS/Windows `just check`, the
+   independent coverage gate, and downloaded provenance/raw/HTML evidence. These
+   hosted results, especially Windows, still require a real run.
+5. Manually dispatch the mutation workflow and check its status and downloadable
+   seven-day artifacts. Dispatch Pages on the default branch and verify the
+   deployment output URL, landing page, nested API pages and CSS/assets.
+
+Pages allows only default-branch pushes/manual dispatches: PRs never deploy,
+and non-default branches/tags are denied before dependency installation/build.
+Authorization/build use read-only contents permissions; only the dependent deploy
+job gets Pages-write/OIDC permissions and consumes the same run's docs artifact.
+No PAT or branch-push publishing is needed. The URL comes from deployment output,
+not a hardcoded future repository address.
 
 ## Scope
 
