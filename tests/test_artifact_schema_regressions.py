@@ -12,7 +12,7 @@ from perfcheck.models import (
     Status,
     SummaryArtifact,
 )
-from tests.test_artifact_schema import VALID_RUN_JSON, valid_summary_json
+from tests.artifact_schema_support import VALID_RUN_JSON, valid_summary_json
 
 
 @pytest.mark.parametrize(

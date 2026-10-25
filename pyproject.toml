@@ -34,6 +34,9 @@ docs = [
     "sphinx==9.1.1",
     "sphinx-autoapi==3.8.1",
 ]
+mutation = [
+    "mutmut==3.8.0; sys_platform != 'win32'",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.13,<0.13"]
@@ -43,7 +46,7 @@ build-backend = "uv_build"
 typeCheckingMode = "all"
 pythonVersion = "3.14"
 pythonPlatform = "All"
-include = ["src", "tests", "examples"]
+include = ["src", "tests", "examples", "tools"]
 exclude = ["**/__pycache__", "**/.venv", "build", "dist"]
 
 [tool.ruff]
@@ -97,3 +100,16 @@ directory = "coverage/html"
 
 [tool.coverage.json]
 output = "coverage/coverage.json"
+
+[tool.mutmut]
+source_paths = ["src/"]
+only_mutate = ["src/perfcheck/regression_aggregation.py"]
+pytest_add_cli_args_test_selection = ["tests/test_suite_aggregation.py"]
+pytest_add_cli_args = ["-p", "no:pytest_cov", "-p", "tools.mutation_probe"]
+also_copy = ["tools/"]
+max_stack_depth = -1
+mutate_only_covered_lines = false
+type_check_command = []
+timeout_constant = 1
+timeout_multiplier = 15
+debug = true

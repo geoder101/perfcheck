@@ -18,6 +18,10 @@ test *args:
 coverage *args:
   uv run pytest --ignore=tests/test_examples.py --ignore=tests/test_examples_check.py --cov --cov-config="{{justfile_directory() / 'pyproject.toml'}}" --cov-report=term-missing --cov-report=html --cov-report=json {{args}}
 
+# Enforce fresh full-suite combined statement and branch coverage at 99%.
+coverage-check:
+  uv run python -m tools.coverage_gate
+
 # Validate the optional Marimo curriculum and its focused test modules.
 examples-check:
   uv run --group examples python -m tests.examples_check
@@ -61,7 +65,12 @@ docs-preview port="8000": docs-check
 # Run the standard local verification suite.
 check: lock-check format-check lint typecheck test examples-check docs-check build
 
-# Verify the lockfile and synchronize all development dependencies.
+# Run the optional Unix-only aggregation mutation pilot in isolation.
+mutation:
+  uv sync --locked --group dev --group docs --group examples --group mutation
+  uv run --locked --no-sync python -m tools.mutation_runner
+
+# Verify the lockfile and synchronize ordinary development dependencies.
 sync:
   just lock-check
-  uv sync --locked --all-groups
+  uv sync --locked --group dev --group docs --group examples

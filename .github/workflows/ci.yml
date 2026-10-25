@@ -4,6 +4,9 @@ on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     name: Python 3.14 on ${{ matrix.os }}
@@ -13,13 +16,65 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           python-version: "3.14"
           enable-cache: true
       - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
         with:
           just-version: "1.58.0"
-      - run: uv sync --locked --all-groups
+      - run: uv sync --locked --group dev --group docs --group examples
       - run: just check
+
+  coverage:
+    name: Fresh combined coverage evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.14"
+          enable-cache: true
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: "1.58.0"
+      - run: uv sync --locked --group dev --group docs --group examples
+      - name: Start coverage invocation
+        env:
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: uv run python -m tools.quality_evidence prepare
+      - name: Fixed fresh coverage gate
+        id: gate
+        run: just coverage-check
+      - name: Export coverage evidence and summary
+        id: evidence
+        if: always()
+        env:
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
+        run: |
+          if ! uv run python -m tools.quality_evidence export --outcome "$GATE_OUTCOME"; then
+            printf '\nCoverage export failed or gate did not pass; unavailable reports are not a passing measurement.\n' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Retain coverage evidence
+        if: always() && steps.evidence.outputs.publish == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            coverage/evidence/html/
+            coverage/evidence/coverage.json
+            coverage/evidence/.coverage
+            coverage/evidence/provenance.json
+            coverage/evidence/start.json
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: warn

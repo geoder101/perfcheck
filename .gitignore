@@ -12,4 +12,6 @@ docs/_build/
 docs/reference/api/
 coverage/
 .coverage*
+mutation/
+mutants/
 NOTES.txt

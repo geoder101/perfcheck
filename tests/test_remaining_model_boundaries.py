@@ -16,7 +16,11 @@ from perfcheck.models import (
     Status,
     SummaryArtifact,
 )
-from tests.test_artifact_schema import POLICY_SHA256, VALID_RUN_JSON, valid_summary_json
+from tests.artifact_schema_support import (
+    POLICY_SHA256,
+    VALID_RUN_JSON,
+    valid_summary_json,
+)
 
 BASELINE_RESULT_JSON: Final = """
 {

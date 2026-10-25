@@ -1,0 +1,111 @@
+name: Documentation Pages
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  authorize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      trusted: ${{ steps.authorization.outputs.trusted }}
+      sha: ${{ steps.authorization.outputs.sha }}
+    steps:
+      - name: Authorize event
+        id: authorization
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          EVENT_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          python3 -I - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          event = os.environ["EVENT_NAME"]
+          ref = os.environ["EVENT_REF"]
+          branch = os.environ["DEFAULT_BRANCH"]
+          sha = os.environ["EVENT_SHA"]
+          if event not in {"push", "workflow_dispatch"}:
+              raise SystemExit("Unsupported Pages event")
+          if not branch or any(ord(char) < 33 for char in branch) or ref != "refs/heads/" + branch:
+              raise SystemExit("Pages requires the repository default branch")
+          if not re.fullmatch(r"[0-9a-f]{40}", sha):
+              raise SystemExit("Invalid immutable event SHA")
+          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
+              output.write(f"trusted=true\nsha={sha}\n")
+          PY
+
+  build:
+    needs: authorize
+    if: needs.authorize.outputs.trusted == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          persist-credentials: false
+      - name: Verify checkout
+        env:
+          EXPECTED_SHA: ${{ needs.authorize.outputs.sha }}
+        shell: bash
+        run: |
+          python3 -I - <<'PY'
+          import os
+          import subprocess
+
+          head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          if head != os.environ["EXPECTED_SHA"]:
+              raise SystemExit("Checkout SHA differs from authorized event SHA")
+          status = subprocess.check_output(["git", "status", "--porcelain"], text=True)
+          if status:
+              raise SystemExit("Pages requires a clean checkout")
+          print(f"Verified Pages source SHA: {head}")
+          PY
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.14"
+          enable-cache: false
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+        with:
+          just-version: "1.58.0"
+      - run: uv sync --locked --group dev --group docs --group examples
+      - name: Build fresh documentation
+        run: |
+          rm -rf docs/_build
+          just docs-check
+          uv run --no-sync python -m tools.pages_authorization
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          name: github-pages
+          path: docs/_build/html
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy documentation
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        with:
+          artifact_name: github-pages
