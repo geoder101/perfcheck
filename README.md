@@ -77,6 +77,91 @@ just check
 mutation tooling (and removes it after a pilot). Ordinary `just test` and
 `just check` remain coverage-free and mutation-free.
 
+### Optional Podman environment
+
+`podman.just` forwards to the original `justfile`, which remains authoritative.
+The host needs Just >=1.57, Podman, and `sh` on Linux or Windows PowerShell on
+Windows; host Python, uv, and TeX aren't required. Run from the checkout root:
+
+```bash
+just -f podman.just build
+just -f podman.just run sync
+just -f podman.just run check
+just -f podman.just run test tests/test_cli_compare.py -q
+just -f podman.just run cli compare --help
+just -f podman.just                 # default: list the container's project recipes
+just -f podman.just preview         # fresh docs build, then preview on port 8000
+just -f podman.just preview 8765     # optional host port; stop with Ctrl-C
+```
+
+Image build and initial sync need network access. A warm cache doesn't guarantee
+offline `check`: fresh-wheel tests and isolated builds may fetch dependencies.
+Podman build and run disable automatic proxy-environment forwarding with
+`--http-proxy=false`; proxy-dependent contributors must configure networking
+deliberately rather than rely on inherited host proxy variables.
+The image pins Python 3.14.7 and uv 0.12.9 by image digest and verifies Just 1.58.0
+release checksums (amd64/arm64); Debian apt packages aren't fully locked.
+
+On native Linux, use rootless Podman. The writable checkout mount uses
+`--userns=keep-id` and SELinux shared relabeling (`:z`), not recursive checkout
+chown. Reports, builds, and other outputs written under `/workspace` persist in
+the checkout after the disposable container exits. Remote engines need an
+explicit engine-visible source path and sharing/ownership setup.
+
+On Windows, start a Linux Podman machine and configure its checkout sharing and
+writable ownership first. Set the source to the actual absolute Linux path
+visible to that engine, then use the same commands above in PowerShell:
+
+```powershell
+# Example only: replace with your provider's actual mounted checkout path.
+$env:PERFCHECK_CONTAINER_SOURCE = '/actual/mounted/checkout'
+just -f podman.just build
+just -f podman.just run sync
+just -f podman.just run check
+```
+
+`PERFCHECK_CONTAINER_SOURCE` is required on Windows. Its value is provider-specific;
+don't blindly translate a `C:\...` path into a Linux path. Native Linux keep-id
+and SELinux behavior doesn't apply to Windows/VM sharing. Windows PowerShell 5.1
+is intended but untested; the forwarding tests exercise PowerShell 7 on Linux.
+Windows script launch uses process-scoped `-ExecutionPolicy Bypass`, not a
+machine- or user-level policy change. Organization Group Policy can still block
+execution.
+Preview publishes only `127.0.0.1:<port>:8000`; Windows desktop reachability through
+the Podman machine still needs verification. Ordinary `run` publishes no ports.
+
+The three optional overrides are:
+
+| Variable | Default / purpose |
+| --- | --- |
+| `PERFCHECK_CONTAINER_IMAGE` | `localhost/perfcheck-dev:py314-uv0129-just1580`, used by both build and run |
+| `PERFCHECK_CONTAINER_SOURCE` | Native Linux checkout path; otherwise an engine-visible absolute Linux path, without colons or backslashes |
+| `PERFCHECK_CONTAINER_STATE_VOLUME` | `perfcheck-dev-<hash>-py314-v1`, a named volume; `<hash>` is the first 12 hex characters of SHA-256 of the host checkout path |
+
+The volume stores `/container-state/venv` and `/container-state/uv-cache`, isolated
+from the host `.venv` and cache. Don't run concurrent sync or mutation state
+operations against the same volume. To reset it, stop all users, identify the
+exact volume with `podman volume ls`, and remove only that volume, for example
+`podman volume rm perfcheck-dev-0123456789ab-py314-v1` after replacing the example
+hash with the verified checkout hash. Don't use blanket prune commands. The next
+`run sync` recreates the environment; checkout outputs remain separate.
+
+Don't run concurrent host/container writers to the same `docs/_build/`, `dist/`,
+`coverage/`, or `mutation/` outputs. Distinct state volumes don't prevent these
+shared-checkout output collisions; serialize writers or use separate checkouts.
+
+For the optional mutation pilot, preserve existing `mutation/` evidence as
+described below, then run `just -f podman.just run mutation` followed by
+`just -f podman.just run sync`. This executes the Unix-only pilot inside Linux,
+not native Windows. Container checks likewise verify Linux behavior, not native
+Windows compatibility; VM performance isn't directly comparable to native runs.
+The adapter preserves arguments up to inner Just; existing shell-recipe quoting
+semantics still apply to `test`, `cli`, and other recipes.
+
+Validation so far: focused image-contract/fake-Podman tests passed, along with
+host format, lint, and type checks. No Podman engine was available, so real image
+builds, container execution, and Windows behavior remain unverified.
+
 ### Coverage evidence
 
 Coverage is opt-in:

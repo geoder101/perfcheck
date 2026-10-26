@@ -78,6 +78,18 @@ just cli compare --help
   treated as errors using the docs dependency group. `just docs-preview [port]`
   runs that build before serving `docs/_build/html` (default port 8000); stop
   with Ctrl-C and clean up preview processes after QA.
+- Optional Podman forwarding: see README's "Optional Podman environment" for
+  `just -f podman.just build`, `run sync`, `run check`, source/state overrides,
+  and platform/validation limits. The original `justfile` remains authoritative;
+  don't duplicate its recipes in `podman.just`. Keep container state separate
+  from host `.venv`, serialize sync/mutation state operations, and preserve evidence
+  before cleanup. Container checks don't establish native Windows compatibility.
+  Never run concurrent host/container writers to the same `docs/_build/`, `dist/`,
+  `coverage/`, or `mutation/`; distinct state volumes don't isolate these outputs.
+  Windows launch uses process-scoped ExecutionPolicy Bypass, not machine/user
+  changes; organization Group Policy can still block it. Build/run disable proxy
+  environment forwarding (`--http-proxy=false`); configure proxy networking
+  deliberately when needed.
 
 ## Quality Gates
 
