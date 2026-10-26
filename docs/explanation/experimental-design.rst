@@ -105,7 +105,7 @@ unpaired evidence isn't a substitute for a design-aware analysis. See
 :doc:`uncertainty-and-comparison` for the implemented method.
 
 Warmup, drift, outliers, and missingness
---------------------------------------
+--------------------------------------------
 
 Warmup is an initial transient, such as cache filling or compilation. Decide
 whether cold-start or warmed behavior is the target before choosing a trim.
@@ -152,16 +152,17 @@ For the mean per-run p95 question above, a defensible plan states:
 #. Provenance sufficient to reconstruct which builds and conditions produced
    each artifact, without placing secrets in labels, queries, or metadata.
 
-For instance, collect alternating randomized sequential build runs after the
-same reset and warmup procedure, under one recorded policy. Keep source run
-identities and failures. Compare only after the planned collection finishes.
+For instance, collect a planned set of runs for each build in a randomly
+shuffled, sequential order, applying the same reset and warmup procedure
+before each run under one recorded policy. Keep source run identities and
+failures. Compare only after the planned collection finishes.
 The run count should be motivated by variability and the meaningful effect,
 not by a universal rule that a particular small count is enough. Continue to
 :doc:`inference-and-power` for that reasoning and :doc:`multiple-testing` for
 the consequences of inspecting many metrics or repeatedly checking results.
 
 Reproducibility isn't representativeness
---------------------------------------
+--------------------------------------------
 
 Artifact hashes and seeds help another reader reproduce the recorded
 calculation. They can't show that an idle-host benchmark represents a loaded
@@ -171,5 +172,5 @@ for that CI environment while supporting only a narrow deployment claim.
 Likewise, eligibility checks establish that a configured measurement window
 has enough usable evidence. They aren't tests of IID sampling, absence of
 confounding, or causality. Use :doc:`eligibility-and-comparability` and
-`lesson 07 <../../examples/07-summary-and-eligibility.py>`_ to inspect what
+:download:`lesson 07 <../../examples/07-summary-and-eligibility.py>` to inspect what
 the gates actually record, then state the assumptions the design still needs.

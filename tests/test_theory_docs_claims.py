@@ -7,6 +7,12 @@ from typing import Final
 import pytest
 
 _ROOT: Final = Path(__file__).parents[1]
+_COMPARATIVE_METHODS: Final = (
+    "Welch/t",
+    "Seeded permutation",
+    "Mann--Whitney ranks",
+    "Bayesian posterior",
+)
 
 
 def _read(relative_path: Path) -> str:
@@ -31,10 +37,13 @@ def _assert_fixture_backed_decision_claims(source: str) -> None:
 
 
 def _assert_comparative_boundaries(source: str) -> None:
-    sections = re.split(r"\n(?=[^\n]+\n-+\n)", source)[1:]
-    assert len(sections) == 4
-    for section in sections:
-        normalized = " ".join(section.split())
+    sections = {
+        section.partition("\n")[0]: section
+        for section in re.split(r"\n(?=[^\n]+\n-+\n)", source)[1:]
+    }
+    assert all(method in sections for method in _COMPARATIVE_METHODS)
+    for method in _COMPARATIVE_METHODS:
+        normalized = " ".join(sections[method].split())
         assert "does not determine perfcheck PASS/FAIL" in normalized
         assert "does not change product policy" in normalized
         assert (
@@ -63,7 +72,7 @@ def test_comparative_explanation_keeps_each_method_outside_product_policy() -> N
 
 @pytest.mark.parametrize(
     "method",
-    ["Welch/t", "Seeded permutation", "Mann--Whitney ranks", "Bayesian posterior"],
+    _COMPARATIVE_METHODS,
 )
 def test_comparative_contract_rejects_misleading_success_claim(method: str) -> None:
     # Given: the real explanation with one method claiming a product verdict.
@@ -89,7 +98,7 @@ def test_comparative_contract_rejects_misleading_success_claim(method: str) -> N
     [
         "Cohort bootstrap",
         "Welch or t-test",
-        "F test or p-value",
+        "F variance test",
         "Permutation test",
         "Mann--Whitney",
         "Bayesian framing",
@@ -262,7 +271,8 @@ def test_decisions_page_contracts_method_selection_and_teaching_alternatives() -
     selection_terms = (
         "Valid multi-run cohort bootstrap",
         "Advisory single-current reference",
-        "Invalid or inadequate evidence",
+        "Incomparable or inadequate evidence after input validation",
+        "Duplicate source identity or content",
         "``PASS`` or ``FAIL``",
         "``INCONCLUSIVE``",
         "``examples/08-bootstrap-and-decisions.py``",
@@ -272,12 +282,15 @@ def test_decisions_page_contracts_method_selection_and_teaching_alternatives() -
     alternative_methods = (
         "Cohort bootstrap",
         "Welch or t-test",
-        "F test or p-value",
+        "F variance test",
         "Permutation test",
         "Mann--Whitney",
         "Bayesian framing",
     )
     assert all(term in decisions for term in selection_terms)
+    assert "validation before metric evaluation and report assembly" in " ".join(
+        decisions.split()
+    )
     assert all(method in decisions for method in alternative_methods)
     assert decisions.count("does not determine perfcheck PASS/FAIL") == 5
 

@@ -10,6 +10,12 @@ The workflow turns metric observations into a policy decision:
 #. ``summarize`` verifies that raw evidence and writes a canonical summary.
 #. ``compare`` evaluates current and baseline evidence under one policy.
 
+Welcome! Start with :doc:`explanation/learning-paths` to choose a beginner,
+practitioner, or deep-dive route through the existing guides and executable labs.
+For a quick first run, use :doc:`tutorials/first-comparison`; for a complete
+artifact-to-CI walkthrough, use :doc:`tutorials/performance-verification-case-study`.
+The statistical teaching models explain assumptions without adding CLI methods.
+
 Choose the documentation path that fits your goal.
 
 .. toctree::

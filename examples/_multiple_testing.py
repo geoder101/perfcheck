@@ -2,13 +2,15 @@
 
 import math
 from dataclasses import dataclass
-from typing import Literal, assert_never
+from typing import Final, Literal, assert_never
 
 import numpy as np
 
+from examples._inference import MAX_REPETITIONS, FloatVector
 from examples._power import normal_cdf
 
 type Method = Literal["none", "Bonferroni", "Holm", "BH"]
+MAX_FAMILY_SIZE: Final = 40
 
 
 def independent_fwer(size: int, alpha: float) -> float:
@@ -37,8 +39,8 @@ def adjust_pvalues(values: tuple[float, ...], method: Method) -> tuple[float, ..
                 index = order[rank]
                 previous = min(previous, size * values[index] / (rank + 1))
                 adjusted[index] = previous
-        case unreachable:
-            assert_never(unreachable)
+        case _:
+            assert_never(method)
     return tuple(adjusted)
 
 
@@ -54,10 +56,13 @@ class FamilyExperiment:
     seed: int = 42
 
     def __post_init__(self) -> None:
-        if not 1 <= self.size <= 40 or not 0 <= self.true_nulls <= self.size:
+        if (
+            not 1 <= self.size <= MAX_FAMILY_SIZE
+            or not 0 <= self.true_nulls <= self.size
+        ):
             message = "size must be 1..40; true_nulls must be 0..size"
             raise ValueError(message)
-        if not 1 <= self.repetitions <= 512 or self.seed < 0:
+        if not 1 <= self.repetitions <= MAX_REPETITIONS or self.seed < 0:
             message = "repetitions must be 1..512; seed must be nonnegative"
             raise ValueError(message)
         if not 0 < self.alpha < 1:
@@ -96,14 +101,17 @@ def simulate_families(inputs: FamilyExperiment) -> FamilySimulation:
     )
     rows: list[FamilyResult] = []
     for _ in range(inputs.repetitions):
-        zvalues = rng.normal(means, 1.0)
+        zvalues: FloatVector = rng.normal(means, 1.0)
         pvalues = tuple(normal_cdf(-float(z)) for z in zvalues)
         adjusted = adjust_pvalues(pvalues, inputs.method)
         rejected = tuple(p <= inputs.alpha for p in adjusted)
         false_rejections = sum(rejected[: inputs.true_nulls])
         rows.append(
             FamilyResult(
-                pvalues, adjusted, rejected, false_rejections,
+                pvalues,
+                adjusted,
+                rejected,
+                false_rejections,
                 false_rejections / max(1, sum(rejected)),
             )
         )
@@ -112,11 +120,16 @@ def simulate_families(inputs: FamilyExperiment) -> FamilySimulation:
     fdr_se = (
         math.sqrt(
             math.fsum((row.fdp - fdr) ** 2 for row in rows)
-            / (inputs.repetitions - 1) / inputs.repetitions
+            / (inputs.repetitions - 1)
+            / inputs.repetitions
         )
-        if inputs.repetitions > 1 else 0.0
+        if inputs.repetitions > 1
+        else 0.0
     )
     return FamilySimulation(
-        tuple(rows), fwer, fdr,
-        math.sqrt(fwer * (1 - fwer) / inputs.repetitions), fdr_se,
+        tuple(rows),
+        fwer,
+        fdr,
+        math.sqrt(fwer * (1 - fwer) / inputs.repetitions),
+        fdr_se,
     )

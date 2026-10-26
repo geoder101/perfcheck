@@ -64,7 +64,12 @@ def test_readme_links_project_first_docs_and_curriculum() -> None:
     targets = _assert_local_links(source, _README_PATH.parent)
 
     # Then: users reach the project landing page before the ten-lesson curriculum.
-    assert targets == ("docs/index.rst", "examples/README.md")
+    assert targets == (
+        "docs/index.rst",
+        "examples/README.md",
+        "docs/explanation/learning-paths.rst",
+        "docs/tutorials/performance-verification-case-study.rst",
+    )
     assert "just docs-check" in source
     assert "just docs-preview" in source
     assert "optional" in source.lower()

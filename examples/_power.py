@@ -6,6 +6,8 @@ from statistics import NormalDist
 
 import numpy as np
 
+from examples._inference import MAX_REPETITIONS, MAX_SAMPLE_SIZE, MAX_SIGMA, FloatVector
+
 
 def normal_cdf(value: float) -> float:
     """Evaluate the lower standard-normal tail without cancellation in that tail."""
@@ -38,7 +40,7 @@ class PowerExperiment:
     alpha: float = 0.05
 
     def __post_init__(self) -> None:
-        if not 1 <= self.n <= 500 or not 0 < self.sigma <= 100:
+        if not 1 <= self.n <= MAX_SAMPLE_SIZE or not 0 < self.sigma <= MAX_SIGMA:
             message = "n must be 1..500; sigma must be positive and at most 100"
             raise ValueError(message)
         if not 0 < self.alpha < 1 or not math.isfinite(self.effect):
@@ -73,7 +75,7 @@ class NullExperiment:
     seed: int = 42
 
     def __post_init__(self) -> None:
-        if not 1 <= self.repetitions <= 512 or self.seed < 0:
+        if not 1 <= self.repetitions <= MAX_REPETITIONS or self.seed < 0:
             message = "repetitions must be 1..512; seed must be nonnegative"
             raise ValueError(message)
 
@@ -90,7 +92,7 @@ class NullPvalues:
 def null_pvalues(inputs: NullExperiment) -> NullPvalues:
     """Use right tails of Z~N(0,1); discrete rounds up, violated uses 2Z."""
     rng = np.random.Generator(np.random.PCG64(inputs.seed))
-    draws = rng.normal(size=inputs.repetitions)
+    draws: FloatVector = rng.normal(size=inputs.repetitions)
     continuous = tuple(normal_cdf(-float(z)) for z in draws)
     return NullPvalues(
         continuous=continuous,

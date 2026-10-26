@@ -1,9 +1,15 @@
+import importlib.util
+import re
+import sys
 from dataclasses import replace
+from pathlib import Path
+from xml.etree import ElementTree as ET
 
 import numpy as np
 import pytest
 from examples import _inference as inference
 from examples import _inference_plots as plots
+from examples._support import run_local_command
 
 
 def test_bootstrap_when_default_inputs_preserves_draw_receipt() -> None:
@@ -69,7 +75,9 @@ def test_intervals_when_seeded_report_actual_containment() -> None:
     assert result == inference.coverage_experiment(experiment)
     assert result.coverage == sum(row.contains for row in result.intervals) / 512
     assert 0.90 < result.coverage < 0.99
-    assert all(row.contains == (row.lower <= 100 <= row.upper) for row in result.intervals)
+    assert all(
+        row.contains == (row.lower <= 100 <= row.upper) for row in result.intervals
+    )
     assert result.mc_se > 0
 
 
@@ -96,3 +104,104 @@ def test_chart_when_series_differ_has_labels_and_noncolor_encoding() -> None:
     assert 'role="img"' in svg
     assert "stroke-dasharray" in svg
     assert "http" not in svg.replace("http://www.w3.org/2000/svg", "")
+
+
+def test_inference_lesson_when_executed_retains_receipts(tmp_path: Path) -> None:
+    # Given: the actual notebook, executed from an unrelated empty workspace.
+    if importlib.util.find_spec("marimo") is None:
+        pytest.skip("inference lesson requires the optional examples group")
+    lesson = (
+        Path(__file__).resolve().parents[1] / "examples/08-bootstrap-and-decisions.py"
+    )
+    # When: the notebook runs as a bounded offline Python script.
+    result = run_local_command(
+        (sys.executable, str(lesson)), cwd=tmp_path, timeout_seconds=15.0
+    )
+    # Then: default numerical receipts and the separate coverage experiment survive.
+    assert result.returncode == 0, result.stderr
+    assert "effective_resamples=4000" in result.stdout
+    assert "oriented_effect=10.000; lower_bound=9.000" in result.stdout
+    assert "reference_effect=9.075; anomaly=True; verdict=INCONCLUSIVE" in result.stdout
+    assert "Welch t=-17.321" in result.stdout
+    assert "Known-sigma CI: achieved coverage=" in result.stdout
+    assert tuple(tmp_path.iterdir()) == ()
+
+
+@pytest.mark.parametrize("method", ["none", "Bonferroni", "Holm", "BH"])
+def test_singleton_family_when_rendered_has_three_visible_series(method: str) -> None:
+    # Given: the actual multiplicity panel, whose raw and adjusted p coincide at m=1.
+    if importlib.util.find_spec("marimo") is None:
+        pytest.skip("multiplicity panel requires the optional examples group")
+    script = (
+        "from examples._multiplicity_panel import multiplicity_panel; "
+        "from examples._multiple_testing import FamilyExperiment; "
+        f"print(multiplicity_panel(FamilyExperiment(size=1,true_nulls=1,method='{method}')).text)"
+    )
+    # When: all three real panel series are rendered, including the coincident cutoff.
+    result = run_local_command(
+        (sys.executable, "-c", script),
+        cwd=Path(__file__).resolve().parents[1],
+        timeout_seconds=15.0,
+    )
+    assert result.returncode == 0, result.stderr
+    match = re.search(r"<svg\b.*?</svg>", result.stdout, flags=re.DOTALL)
+    assert match is not None
+    svg = ET.fromstring(match[0])  # noqa: S314 - trusted local renderer output
+    groups = svg.findall(".//{*}g[@data-series]")
+    # Then: distinct coincident glyphs and a nonzero cutoff segment remain visible.
+    assert len(groups) == 3
+    raw = groups[0].find("{*}circle")
+    adjusted = groups[1].find("{*}rect")
+    cutoff = groups[2].find("{*}line")
+    assert raw is not None
+    assert adjusted is not None
+    assert cutoff is not None
+    assert float(raw.attrib["r"]) > 0
+    assert float(adjusted.attrib["width"]) > 2 * float(raw.attrib["r"])
+    assert float(adjusted.attrib["x"]) + float(adjusted.attrib["width"]) / 2 == float(
+        raw.attrib["cx"]
+    )
+    assert float(adjusted.attrib["y"]) + float(adjusted.attrib["height"]) / 2 == float(
+        raw.attrib["cy"]
+    )
+    assert (
+        float(cutoff.attrib["x1"])
+        < float(raw.attrib["cx"])
+        < float(cutoff.attrib["x2"])
+    )
+    assert cutoff.attrib["y1"] == cutoff.attrib["y2"]
+
+
+def test_chart_when_narrow_keeps_axis_labels_and_legends_outside_scaled_svg() -> None:
+    # Given: an annotated chart whose figure must work without magnification.
+    spec = plots.PlotSpec("Readable experiment", "Shift (ms)", "Density (1/ms)")
+    series = (plots.Series("Measured curve", ((0.0, 0.0), (1.0, 1.0))),)
+    # When: the responsive figure is generated.
+    markup = plots.line_plot(spec, series)
+    figure = ET.fromstring(markup)  # noqa: S314 - trusted local renderer output
+    # Then: axis labels and legend text use HTML sizing, not SVG viewport scaling.
+    assert figure.tag == "figure"
+    assert figure.find("figcaption") is not None
+    assert figure.find(".//*[@data-axis='x']") is not None
+    assert figure.find(".//*[@data-axis='y']") is not None
+    legend = figure.find(".//ul")
+    assert legend is not None
+    assert "Measured curve" in "".join(legend.itertext())
+
+
+def test_chart_when_regions_overlap_uses_distinct_noncolor_fills() -> None:
+    # Given: alpha and beta regions like the power panel, with equal gray outlines.
+    spec = plots.PlotSpec("Power regions", "Shift (ms)", "Density (1/ms)")
+    points = ((0.0, 0.0), (1.0, 1.0), (2.0, 0.0))
+    series = tuple(
+        plots.Series(label, points, shade=True) for label in ("alpha", "beta")
+    )
+    # When: the probability regions are rendered.
+    markup = plots.line_plot(spec, series)
+    figure = ET.fromstring(markup)  # noqa: S314 - trusted local renderer output
+    polygons = figure.findall(".//{*}polygon")
+    # Then: separate pattern definitions and legend swatches encode both regions.
+    assert len(polygons) == 2
+    assert polygons[0].attrib["fill"] != polygons[1].attrib["fill"]
+    assert all(row.attrib["fill"].startswith("url(#") for row in polygons)
+    assert len(figure.findall(".//{*}pattern")) == 2

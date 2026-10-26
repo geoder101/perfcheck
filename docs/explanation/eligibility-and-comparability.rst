@@ -107,7 +107,7 @@ Gaps
    ``gap_too_large``.
 
 Why count, coverage, and gaps are separate
------------------------------------------
+-----------------------------------------------
 
 Imagine a 300-second analyzed window with a 15-second step. Its expected
 timestamps are 0, 15, ..., 300, giving 21 points. If all but the 150-second
@@ -189,5 +189,5 @@ The third requires judgment and evidence about the experiment. More runs,
 more bootstrap draws, or a stricter alpha cannot repair a wrong experimental
 unit or a confounded design. Continue with :doc:`experimental-design`,
 :doc:`inference-and-power`, and :doc:`multiple-testing`; use
-`lesson 07 <../../examples/07-summary-and-eligibility.py>`_ to inspect the
+:download:`lesson 07 <../../examples/07-summary-and-eligibility.py>` to inspect the
 concrete eligibility evidence behind this distinction.

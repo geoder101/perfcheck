@@ -8,7 +8,7 @@ Start with :doc:`statistical-foundations` for populations and samples, then use
 this chapter to separate a model's predictions from an observed result.
 
 Events, counting, and what is equally likely
--------------------------------------------
+------------------------------------------------
 
 A sample space contains the possible outcomes of a procedure. An event is a
 subset of those outcomes. For ten coin tosses, an outcome is an ordered string
@@ -43,7 +43,7 @@ probability depends on a workload and run-generation model, not on counting
 the two labels "exceeds" and "doesn't exceed" as equally likely outcomes.
 
 Combining and conditioning events
---------------------------------
+--------------------------------------
 
 For events :math:`A` and :math:`B`, the complement rule is
 :math:`\Pr(A^c)=1-\Pr(A)`. To avoid counting their overlap twice,
@@ -87,7 +87,7 @@ of data under a null hypothesis isn't the probability that the null is true.
 Perfcheck doesn't infer that posterior probability from its bootstrap bounds.
 
 Random variables and their moments
----------------------------------
+---------------------------------------
 
 A random variable maps an outcome to a number. The coin string is an outcome;
 its head count :math:`K` is a discrete random variable. A run's measured
@@ -118,7 +118,7 @@ independent evidence understates uncertainty. The run-level bridge is developed
 in :doc:`experimental-design` and :doc:`measurement-and-summaries`.
 
 PMF, PDF, CDF, survival, and quantiles
-------------------------------------
+------------------------------------------
 
 A probability mass function (PMF) assigns :math:`\Pr(X=k)` to each possible
 discrete value. Its masses sum to one. A probability density function (PDF)
@@ -171,7 +171,7 @@ or a shared outage can violate independence. Perfcheck's cohort bootstrap
 doesn't assume that run summaries follow a binomial distribution.
 
 Uniform: equal density over an interval
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For :math:`X\sim\operatorname{Uniform}(a,b)`, with :math:`a<b`, density is
 :math:`1/(b-a)` inside the interval and zero outside. The CDF is zero below
@@ -186,7 +186,7 @@ randomized delay; "values stay within bounds" alone doesn't justify it.
 Perfcheck doesn't turn a bounded metric into a uniform model.
 
 Normal: a model for symmetric variation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For :math:`X\sim N(\mu,\sigma^2)`, with :math:`\sigma>0`,
 
@@ -204,7 +204,7 @@ heavy-tailed, and a normal model even assigns some probability to negative
 values. Perfcheck doesn't require raw observations to be normal.
 
 Averages: LLN and CLT answer different questions
------------------------------------------------
+-----------------------------------------------------
 
 For IID observations with finite expectation, the law of large numbers (LLN)
 says the sample mean converges to that expectation as sample size grows. It
@@ -232,4 +232,4 @@ Increasing the number of scrapes from one busy host isn't the same experiment
 as repeating independent runs. Use :doc:`experimental-design` before applying
 this intuition, then continue to :doc:`inference-and-power` and
 :doc:`multiple-testing`. To connect these ideas to artifacts, revisit
-`lesson 06 <../../examples/06-statistical-foundations.py>`_.
+:download:`lesson 06 <../../examples/06-statistical-foundations.py>`.

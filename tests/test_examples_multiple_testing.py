@@ -21,7 +21,7 @@ def test_bonferroni_when_twenty_tests_divides_alpha() -> None:
 
 
 @pytest.mark.parametrize(
-    "method,expected",
+    ("method", "expected"),
     [
         ("none", (0.04, 0.001, 0.03, 0.2)),
         ("Bonferroni", (0.16, 0.004, 0.12, 0.8)),
@@ -64,10 +64,10 @@ def test_family_when_seeded_has_reproducible_adjusted_decisions() -> None:
     assert result.fwer_mc_se >= 0
 
 
-@pytest.mark.parametrize("size,repetitions", [(41, 128), (20, 513)])
+@pytest.mark.parametrize(("size", "repetitions"), [(41, 128), (20, 513)])
 def test_family_when_budget_exceeded_rejects(size: int, repetitions: int) -> None:
     # Given: an oversized interactive experiment.
     # When: its inputs are constructed.
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=r"size|repetitions"):
         _ = multiple.FamilyExperiment(size=size, repetitions=repetitions)
     # Then: no uncontrolled simulation can run.

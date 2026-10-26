@@ -27,6 +27,12 @@ def _() -> None:
 Learn the supported evidence flow: `collect` writes a portable raw run,
 `summarize` verifies that raw run and creates a canonical summary, and
 `compare` evaluates summaries under one policy.
+
+The running question is: **is current mean latency worse than baseline?**
+Before collecting, choose the unit, direction, practical threshold, planned
+runs and eligibility rules. Lessons 02-04 expose the evidence chain; lesson 05
+joins it into a real CLI capstone with pass, regression and advisory outcomes.
+The local synthetic data teach reproducibility, not production calibration.
         """)
 
 
@@ -103,6 +109,8 @@ def _() -> None:
 
 Start every workflow through the CLI: collect raw evidence, summarize a
 verified raw run, then compare verified inputs under one policy.
+Continue into labs 06-10 for the statistical reasoning behind these artifacts;
+repeatable output alone does not establish a representative experiment.
         """)
 
 

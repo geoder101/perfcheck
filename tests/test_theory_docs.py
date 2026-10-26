@@ -28,7 +28,9 @@ def _read(relative_path: Path) -> str:
 def _assert_furo_configuration(conf: str, pyproject: str) -> None:
     required_conf = (
         'needs_sphinx = "9.1"',
-        'extensions = ["autoapi.extension"]',
+        'extensions = ["autoapi.extension", "sphinx.ext.imgmath"]',
+        'imgmath_image_format = "svg"',
+        "imgmath_use_preview = True",
         "nitpicky = True",
         'html_theme = "furo"',
         'html_static_path = ["_static"]',

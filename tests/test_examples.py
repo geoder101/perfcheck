@@ -89,6 +89,43 @@ def test_curriculum_index_lists_each_lesson_once_in_numeric_order() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ("index_path", "page"),
+    [
+        ("docs/explanation/index.rst", "learning-paths"),
+        ("docs/explanation/index.rst", "probability-and-distributions"),
+        ("docs/explanation/index.rst", "experimental-design"),
+        ("docs/explanation/index.rst", "inference-and-power"),
+        ("docs/explanation/index.rst", "multiple-testing"),
+        ("docs/tutorials/index.rst", "performance-verification-case-study"),
+    ],
+)
+def test_learning_pages_when_integrated_have_one_toctree_entry(
+    index_path: str, page: str
+) -> None:
+    # Given: a completed educational page and its owning documentation index.
+    source = (_ROOT / index_path).read_text(encoding="utf-8")
+    # When: the toctree entries are read.
+    entries = tuple(
+        line.strip() for line in source.splitlines() if line.startswith("   ")
+    )
+    # Then: the page is reachable once, without a duplicate chapter.
+    assert entries.count(page) == 1
+
+
+def test_learning_routes_when_entering_docs_are_discoverable() -> None:
+    # Given: the two public entry points and the shared route guide.
+    landing = (_ROOT / "docs/index.rst").read_text(encoding="utf-8")
+    readme = (_ROOT / "README.md").read_text(encoding="utf-8")
+    # When: the welcome links and route headings are read.
+    routes = (_ROOT / "docs/explanation/learning-paths.rst").read_text(encoding="utf-8")
+    # Then: both entry points lead to beginner, practitioner and deep-dive routes.
+    assert ":doc:`explanation/learning-paths`" in landing
+    assert "(docs/explanation/learning-paths.rst)" in readme
+    assert all(name in routes for name in ("Beginner", "Practitioner", "Deep dive"))
+    assert ":download:`curriculum index <../../examples/README.md>`" in routes
+
+
 def test_documentation_scope_preserves_cli_only_setup_and_explicit_commands() -> None:
     # Given: the public curriculum index.
     index = (_ROOT / "examples/README.md").read_text(encoding="utf-8")

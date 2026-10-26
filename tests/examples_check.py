@@ -114,6 +114,10 @@ def run_examples_check(notebooks: tuple[Path, ...]) -> int:
                 cwd=workspace,
             )
         assert not workspace.exists()
+        if result.returncode != 0:
+            _ = sys.stderr.write(
+                f"Marimo check failed: {notebook}\n{result.stdout}{result.stderr}"
+            )
         if exit_code == 0 and result.returncode != 0:
             exit_code = result.returncode
     return exit_code
@@ -135,10 +139,19 @@ def main() -> None:
             str(_ROOT / "tests/test_examples_check.py"),
             str(_ROOT / "tests/test_examples_mechanics.py"),
             str(_ROOT / "tests/test_examples_comparative.py"),
+            str(_ROOT / "tests/test_examples_probability.py"),
+            str(_ROOT / "tests/test_examples_design.py"),
+            str(_ROOT / "tests/test_examples_inference.py"),
+            str(_ROOT / "tests/test_examples_power.py"),
+            str(_ROOT / "tests/test_examples_multiple_testing.py"),
         ),
         cwd=_ROOT,
         timeout_seconds=_EXAMPLES_TEST_TIMEOUT_SECONDS,
     )
+    if test_result.returncode != 0:
+        _ = sys.stderr.write(
+            f"Focused examples tests failed:\n{test_result.stdout}{test_result.stderr}"
+        )
     if exit_code == 0:
         exit_code = test_result.returncode
     if exit_code != 0:

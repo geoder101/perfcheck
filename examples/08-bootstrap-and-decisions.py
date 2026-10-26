@@ -1,4 +1,4 @@
-"""Explain perfcheck bootstrap evidence and decision boundaries."""
+"""Explore oriented bootstrap decisions and a separate known-sigma CI experiment."""
 
 import marimo
 
@@ -11,25 +11,20 @@ with app.setup:
     import sys
     from pathlib import Path
 
-    import numpy as np
-    import numpy.typing as npt
+    import marimo as mo
 
     repository_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository_root))
 
+    from examples._inference import (
+        BootstrapExperiment,
+        CoverageExperiment,
+        bootstrap_experiment,
+        coverage_experiment,
+    )
+    from examples._inference_controls import lab_slider
+    from examples._inference_plots import PlotSpec, histogram, interval_plot
     from examples._markdown import md
-
-    type LessonInputs = tuple[
-        npt.NDArray[np.float64],
-        npt.NDArray[np.float64],
-        float,
-        int,
-        int,
-        int,
-        float,
-    ]
-    type BootstrapEvidence = tuple[float, float, str, float, bool, str]
-    type ClassicalContrast = tuple[float]
 
 
 @app.cell(hide_code=True)
@@ -39,230 +34,202 @@ def _() -> None:
 
     ## Goal
 
-    Inspect a transparent, reproducible bootstrap demonstration, then contrast
-    it with advisory reference evidence and a classical test. This lesson is not
-    an alternate implementation: the supported perfcheck surface remains its CLI.
-    For a lower-is-worse metric, orientation is \(y=-x\), so a positive effect
-    \(\Delta=\bar y_{current}-\bar y_{baseline}\) means worsening.
-        """)
+    Change a run-level cohort, inspect the **actual bootstrap distribution**, and
+    distinguish its one-sided percentile decision bound from repeated-sampling
+    confidence-interval coverage. These educational calculations are not a new
+    product engine: use the CLI for validated perfcheck decisions.
 
-
-@app.cell(hide_code=True)
-def _() -> None:
-    md(r"""
     ## Inputs
 
-    The fixed throughput cohorts below are lower-is-worse. The nominal
-    \(\alpha=0.05\) is divided across two enabled metrics, giving effective
-    \(\alpha=0.025\). A fixed PCG64 seed and requested resample count make the
-    with-replacement cohort draws reproducible. The displayed floor reproduces
-    the documented demonstration semantics without calling product internals.
-        """)
+    Baseline throughput is `(100,99,101,100)` units/s. The current cohort starts
+    at `(90,89,91,90)` units/s. The shift control adds the same raw units/s to
+    every current observation. With lower-is-worse, orientation is \(y=-x\), so
+    positive current-minus-baseline effect means worsening.
 
-
-@app.cell
-def _() -> tuple[LessonInputs]:
-    baseline = np.asarray((100.0, 99.0, 101.0, 100.0), dtype=np.float64)
-    current = np.asarray((90.0, 89.0, 91.0, 90.0), dtype=np.float64)
-    requested_alpha = 0.05
-    enabled_metric_count = 2
-    effective_alpha = requested_alpha / enabled_metric_count
-    seed = 20260808
-    requested_resamples = 1000
-    effective_resamples = max(requested_resamples, 2000 * enabled_metric_count)
-    practical_threshold = 3.0
-    lesson_inputs: LessonInputs = (
-        baseline,
-        current,
-        effective_alpha,
-        effective_resamples,
-        requested_resamples,
-        seed,
-        practical_threshold,
-    )
-    return (lesson_inputs,)
-
-
-@app.cell
-def _(lesson_inputs: LessonInputs) -> tuple[BootstrapEvidence]:
-    (
-        _baseline,
-        _current,
-        _effective_alpha,
-        _effective_resamples,
-        _,
-        _seed,
-        _practical_threshold,
-    ) = lesson_inputs
-    _oriented_baseline = -_baseline
-    _oriented_current = -_current
-    _generator = np.random.Generator(np.random.PCG64(_seed))
-    _differences = np.asarray(
-        tuple(
-            float(
-                np.mean(
-                    _oriented_current[
-                        _generator.integers(
-                            0,
-                            len(_oriented_current),
-                            size=len(_oriented_current),
-                        )
-                    ],
-                ),
-            )
-            - float(
-                np.mean(
-                    _oriented_baseline[
-                        _generator.integers(
-                            0,
-                            len(_oriented_baseline),
-                            size=len(_oriented_baseline),
-                        )
-                    ],
-                ),
-            )
-            for _ in range(_effective_resamples)
-        ),
-        dtype=np.float64,
-    )
-    _oriented_effect = float(np.mean(_oriented_current) - np.mean(_oriented_baseline))
-    _lower_decision_bound = float(
-        np.quantile(_differences, _effective_alpha, method="linear"),
-    )
-    _bootstrap_verdict = (
-        "FAIL" if _lower_decision_bound > _practical_threshold else "PASS"
-    )
-    _reference_quantile = float(
-        np.quantile(
-            _oriented_baseline,
-            1.0 - _effective_alpha,
-            method="linear",
-        ),
-    )
-    _reference_effect = float(np.mean(_oriented_current[:1]) - _reference_quantile)
-    _reference_anomaly = _reference_effect > _practical_threshold
-    _reference_status = "INCONCLUSIVE"
-    bootstrap_evidence: BootstrapEvidence = (
-        _oriented_effect,
-        _lower_decision_bound,
-        _bootstrap_verdict,
-        _reference_effect,
-        _reference_anomaly,
-        _reference_status,
-    )
-    return (bootstrap_evidence,)
-
-
-@app.cell(hide_code=True)
-def _() -> None:
-    md(r"""
     ## Run
 
-    This transparent demonstration negates the lower-is-worse inputs, creates
-    PCG64 index draws with replacement for each cohort, and subtracts the drawn
-    means. Its linear percentile at effective \(\alpha\) is compared strictly:
-    \(L_{\alpha}>\tau\) fails, while equality with \(\tau\) passes.
-        """)
+    Orient both cohorts, then resample current followed by baseline in each
+    PCG64 draw. Use float64 means and a linear percentile at effective alpha
+    0.05/m, with at least 2000*m draws. Compare the lower bound strictly with
+    the practical threshold: equality passes. The controls below recompute
+    the actual distribution; the later known-sigma experiment is separate.
+    """)
 
 
 @app.cell
-def _(lesson_inputs: LessonInputs) -> tuple[ClassicalContrast]:
-    _baseline, _current, _, _, _, _, _ = lesson_inputs
-    _standard_error = math.sqrt(
-        float(np.var(_current, ddof=1) / len(_current))
-        + float(np.var(_baseline, ddof=1) / len(_baseline)),
+def _() -> tuple[mo.ui.switch, mo.ui.slider, mo.ui.slider, mo.ui.slider, mo.ui.number]:
+    direction = mo.ui.switch(value=False, label="Higher is worse (off: lower is worse)")
+    shift = lab_slider((-15, 20, 1), 0, "Current shift (units/s)")
+    threshold = lab_slider((0, 20, 0.25), 3, "Practical threshold (units/s)")
+    enabled = lab_slider((1, 20, 1), 2, "Enabled metrics m")
+    bootstrap_seed = mo.ui.number(
+        0, 20260850, value=20260808, step=1, label="PCG64 seed", full_width=True
     )
-    _welch_t_statistic = float(np.mean(_current) - np.mean(_baseline)) / _standard_error
-    classical_contrast: ClassicalContrast = (_welch_t_statistic,)
-    return (classical_contrast,)
-
-
-@app.cell(hide_code=True)
-def _() -> None:
-    md(r"""
-    ## Evidence
-
-    The reference demonstration compares one current observation against the
-    upper-tail oriented baseline quantile. It can flag an anomaly but is always
-    **INCONCLUSIVE** and cannot yield a perfcheck pass or fail. Separately, the
-    Welch t-statistic and p-value concepts are classical contrast material; this
-    lesson does not compute a p-value, and neither concept creates a perfcheck
-    verdict.
-        """)
+    mo.output.replace(mo.vstack([direction, shift, threshold, enabled, bootstrap_seed]))
+    return direction, shift, threshold, enabled, bootstrap_seed
 
 
 @app.cell
 def _(
-    bootstrap_evidence: BootstrapEvidence,
-    classical_contrast: ClassicalContrast,
-    lesson_inputs: LessonInputs,
+    direction: mo.ui.switch,
+    shift: mo.ui.slider,
+    threshold: mo.ui.slider,
+    enabled: mo.ui.slider,
+    bootstrap_seed: mo.ui.number,
 ) -> None:
-    (
-        _oriented_effect,
-        _lower_decision_bound,
-        _bootstrap_verdict,
-        _reference_effect,
-        _reference_anomaly,
-        _reference_status,
-    ) = bootstrap_evidence
-    (_welch_t_statistic,) = classical_contrast
-    _, _, _, _effective_resamples, _requested_resamples, _seed, _practical_threshold = (
-        lesson_inputs
+    _inputs = BootstrapExperiment(
+        current=tuple(x + float(shift.value) for x in (90.0, 89.0, 91.0, 90.0)),
+        higher_is_worse=direction.value,
+        enabled=int(enabled.value),
+        seed=int(bootstrap_seed.value),
+        threshold=float(threshold.value),
     )
-    message = "\n".join(
+    _result = bootstrap_experiment(_inputs)
+    _alpha = 0.05 / _inputs.enabled
+    _direction = "higher_is_worse" if direction.value else "lower_is_worse"
+    _receipt = "\n".join(
         (
             "Goal: evaluate oriented percentile-bootstrap evidence",
             (
-                "Inputs: direction=lower_is_worse; requested_alpha=0.050; "
-                "effective_alpha=0.025; "
-                f"seed={_seed}; requested_resamples={_requested_resamples}; "
-                f"effective_resamples={_effective_resamples}"
+                f"Inputs: direction={_direction}; requested_alpha=0.050; "
+                f"effective_alpha={_alpha:.3f}; seed={_inputs.seed}; "
+                f"requested_resamples=1000; effective_resamples={len(_result.draws)}"
             ),
+            "Run: PCG64 float64, current then baseline per draw; linear quantile",
             (
-                "Bootstrap PASS/FAIL decision: "
-                f"oriented_effect={_oriented_effect:.3f}; "
-                f"lower_bound={_lower_decision_bound:.3f}; "
-                f"strict comparison {_lower_decision_bound:.3f} "
-                f"> {_practical_threshold:.3f}; verdict={_bootstrap_verdict}"
+                f"Bootstrap PASS/FAIL decision: oriented_effect={_result.effect:.3f}; "
+                f"lower_bound={_result.lower:.3f}; "
+                f"strict comparison {_result.lower:.3f} "
+                f"> {_inputs.threshold:.3f}; verdict={_result.verdict}"
             ),
             "Strict threshold note: equality with the threshold would PASS, not FAIL.",
             (
-                "Reference advisory: "
-                f"reference_effect={_reference_effect:.3f}; "
-                f"anomaly={_reference_anomaly}; verdict={_reference_status} "
+                f"Reference advisory: reference_effect={_result.reference_effect:.3f}; "
+                f"anomaly={_result.reference_anomaly}; verdict=INCONCLUSIVE "
                 "(advisory only; no perfcheck verdict)"
             ),
             (
                 "Classical contrast only: "
-                f"Welch t={_welch_t_statistic:.3f}; p-value not computed; "
-                "no perfcheck verdict; "
+                f"Welch t={(-10 + float(shift.value)) / math.sqrt(1 / 3):.3f}; "
+                "p-value not computed; no perfcheck verdict; "
                 "perfcheck does not calculate t-tests or p-values"
             ),
-        ),
+        )
     )
-    _ = sys.stdout.write(f"{message}\n")
+    _ = sys.stdout.write(_receipt + "\n")
+    _evidence = (
+        f"## Evidence\nEffect **{_result.effect:.3f} units/s**; "
+        f"lower bound **{_result.lower:.3f}**; threshold **{_inputs.threshold:g}**. "
+        f"Strict-rule demonstration: **{_result.verdict}**. "
+        "Equality passes. Reference stays **INCONCLUSIVE**, even when anomalous."
+    )
+    _assumptions = (
+        f"Effective alpha={_alpha:.5f}; resamples={len(_result.draws)}. "
+        "IID independent runs within each cohort; no pairing "
+        "or time dependence. This finite seeded distribution has "
+        "Monte Carlo error. It does not establish nominal coverage "
+        "for every population. The min-resample floor is 2000 * m, "
+        "not a coverage guarantee."
+    )
+    mo.output.replace(
+        mo.vstack(
+            [
+                mo.md(_evidence),
+                mo.Html(
+                    histogram(
+                        _result.draws,
+                        PlotSpec(
+                            "Actual percentile bootstrap",
+                            "Oriented effect (units/s)",
+                            "Draws (count)",
+                        ),
+                        (_result.lower, "Lower decision bound"),
+                    )
+                ),
+                mo.md(_assumptions),
+            ]
+        )
+    )
 
 
 @app.cell(hide_code=True)
 def _() -> None:
     md(r"""
-    ## Takeaway
+    ## A different question — repeated confidence intervals
 
-    Perfcheck's verdict comes from the seeded, oriented percentile bound and its
-    strict practical-threshold comparison. Reference evidence and classical
-    inference remain explanatory contrasts, not alternate decision paths.
-        """)
+    Model: IID Normal observations, true mean **100 ms**, **known population
+    sigma**. Each repetition draws a fresh mean from its exact sampling law
+    \(\bar X\sim N(100,\sigma^2/n)\), then forms
+    \(\bar X\pm z_{(1+c)/2}\sigma/\sqrt n\).
+    The fixed mean is either contained or missed by each realized interval.
+    **This is not percentile-bootstrap coverage or perfcheck validation.**
+    """)
 
 
 @app.cell
+def _() -> tuple[mo.ui.slider, mo.ui.slider, mo.ui.slider, mo.ui.slider]:
+    ci_n = lab_slider((2, 100, 1), 25, "CI sample size n")
+    ci_sigma = lab_slider((1, 30, 1), 10, "Known sigma (ms)")
+    ci_confidence = lab_slider((0.80, 0.99, 0.01), 0.95, "Nominal confidence")
+    ci_repetitions = lab_slider((32, 512, 32), 128, "CI repetitions")
+    mo.output.replace(mo.vstack([ci_n, ci_sigma, ci_confidence, ci_repetitions]))
+    return ci_n, ci_sigma, ci_confidence, ci_repetitions
+
+
+@app.cell
+def _(
+    ci_n: mo.ui.slider,
+    ci_sigma: mo.ui.slider,
+    ci_confidence: mo.ui.slider,
+    ci_repetitions: mo.ui.slider,
+) -> None:
+    _inputs = CoverageExperiment(
+        n=int(ci_n.value),
+        sigma=float(ci_sigma.value),
+        confidence=float(ci_confidence.value),
+        repetitions=int(ci_repetitions.value),
+    )
+    _result = coverage_experiment(_inputs)
+    _message = (
+        f"Known-sigma CI: achieved coverage={_result.coverage:.4f}; "
+        f"nominal={_inputs.confidence:.4f}; MC SE={_result.mc_se:.4f}; "
+        f"repetitions={_inputs.repetitions}; seed=42; no perfcheck verdict"
+    )
+    _ = sys.stdout.write(_message + "\n")
+    _explanation = (
+        f"**Achieved coverage {_result.coverage:.1%} versus nominal "
+        f"{_inputs.confidence:.1%}**, over all {_inputs.repetitions} repetitions. "
+        f"Monte Carlo SE: {_result.mc_se:.2%} "
+        "(plug-in binomial estimate; rough +/-2 SE is not exact). "
+        "Chart shows the first 40 only. Seed 42 fixes the "
+        "demonstration, not the general coverage rate. Coverage "
+        "is a property of the procedure under this model, not a "
+        "probability that a fixed parameter changes between repetitions."
+    )
+    mo.output.replace(
+        mo.vstack(
+            [
+                mo.Html(interval_plot(_result)),
+                mo.md(_explanation),
+            ]
+        )
+    )
+
+
+@app.cell(hide_code=True)
 def _() -> None:
+    md("""
+    ## Takeaway
+
+    Only validated oriented bootstrap evidence feeds the CLI policy decision.
+    Reference anomalies stay advisory; known-sigma CI coverage is a distinct,
+    explicitly modeled experiment, not evidence of bootstrap calibration.
+    """)
     _takeaway = (
-        "Takeaway: only the oriented bootstrap bound can produce a perfcheck "
-        "PASS or FAIL.\n"
+        "Takeaway: only the oriented bootstrap bound can produce "
+        "a perfcheck PASS or FAIL.\n"
     )
-    _ = sys.stdout.write(
-        _takeaway,
-    )
+    _ = sys.stdout.write(_takeaway)
 
 
 if __name__ == "__main__":

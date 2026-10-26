@@ -54,6 +54,11 @@ def _() -> None:
     Fixed run IDs, UTC intervals, a policy fixture, explicit bootstrap seed and
     resamples, and a bundled loopback matrix fixture make this lesson repeatable.
     Every raw run, summary, and report stays in a temporary workspace.
+
+    This fixture sets mean latency higher-is-worse and threshold 0 seconds.
+    Two runs per cohort are reduced teaching minima, not a recommended run
+    budget. Unique nonoverlapping sources meet traceability checks but do not
+    prove independence, a stable workload or causal comparability.
         """)
 
 
@@ -196,6 +201,10 @@ def _() -> None:
 
     CI can retain both portable formats for review while using the compare exit
     status as its decision signal. The paths in this lesson are temporary.
+    Here the oriented effect and lower bound both equal the zero threshold:
+    the strict bound-greater-than-threshold rule therefore returns PASS.
+    That is not proof of equivalence. Continue to lesson 05 to select an actual
+    CLI regression or single-current advisory reference instead.
         """)
 
 

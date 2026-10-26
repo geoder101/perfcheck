@@ -48,6 +48,11 @@ def _() -> None:
 The lesson copies nothing into the repository: a policy fixture and matrix
 fixture are read from the project, while the raw artifact lives only in a
 helper-managed temporary workspace.
+
+For our latency question, the fixture supplies 41 timestamped observations
+at 15-second steps over ten minutes. These are synthetic constant values,
+not a load generator or measured request durations. A raw run retains their
+timestamps and query provenance; it is not yet a regression verdict.
         """)
 
 
@@ -121,6 +126,8 @@ def _() -> None:
 `collect` writes a raw run that can move between environments. Use temporary
 output paths for exploration; production automation should choose its own
 managed output location.
+Next, summarize verifies the source and checks eligibility. Lesson 05 repeats
+this collection for planned, nonoverlapping baseline and current runs.
         """)
 
 

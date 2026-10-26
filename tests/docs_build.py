@@ -32,5 +32,5 @@ def build_docs(project: Path) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         text=True,
         check=False,
-        timeout=120,
+        timeout=600,
     )

@@ -8,82 +8,24 @@ app = marimo.App(width="medium")
 
 with app.setup:
     import math
-    import random
     import sys
     from pathlib import Path
+
+    import marimo
 
     repository_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository_root))
 
     from examples._markdown import md
-
-    def finite_values(values: tuple[float, ...]) -> tuple[float, ...]:
-        """Require nonempty finite toy inputs before evaluating a formula."""
-        if not values or not all(math.isfinite(value) for value in values):
-            message = "expected nonempty finite toy values"
-            raise ValueError(message)
-        return values
-
-    def mean(values: tuple[float, ...]) -> float:
-        """Compute the arithmetic mean with accurate summation."""
-        checked = finite_values(values)
-        return math.fsum(checked) / len(checked)
-
-    def linear_quantile(values: tuple[float, ...], q: float) -> float:
-        """Interpolate sorted neighbors at h=(n-1)q, including endpoints."""
-        ordered = sorted(finite_values(values))
-        if not math.isfinite(q) or not 0.0 <= q <= 1.0:
-            message = "quantile probability must be finite and in [0, 1]"
-            raise ValueError(message)
-        position = (len(ordered) - 1) * q
-        left = math.floor(position)
-        right = math.ceil(position)
-        fraction = position - left
-        return ordered[left] + fraction * (ordered[right] - ordered[left])
-
-    def sample_variance(values: tuple[float, ...]) -> float:
-        """Use Bessel's n-1 denominator, not population variance's n."""
-        center = mean(values)
-        if len(values) <= 1:
-            message = "sample variance requires at least two values"
-            raise ValueError(message)
-        return math.fsum((value - center) ** 2 for value in values) / (len(values) - 1)
-
-    def slope(seconds: tuple[float, ...], values: tuple[float, ...]) -> float:
-        """Fit centered least squares in value units per elapsed second."""
-        time_center = mean(seconds)
-        value_center = mean(values)
-        if len(seconds) != len(values):
-            message = "slope requires equal-length times and values"
-            raise ValueError(message)
-        denominator = math.fsum((second - time_center) ** 2 for second in seconds)
-        if denominator == 0.0:
-            message = "slope requires distinct times"
-            raise ValueError(message)
-        numerator = math.fsum(
-            (second - time_center) * (value - value_center)
-            for second, value in zip(seconds, values, strict=True)
-        )
-        return numerator / denominator
-
-    def resample_means(
-        values: tuple[float, ...], seed: int, count: int
-    ) -> tuple[float, ...]:
-        """Draw n values with replacement per replicate using educational RNG."""
-        checked = finite_values(values)
-        if count < 1 or seed < 0:
-            message = "resampling requires positive count and nonnegative seed"
-            raise ValueError(message)
-        generator = random.Random(seed)
-        return tuple(
-            mean(tuple(generator.choice(checked) for _ in checked))
-            for _ in range(count)
-        )
-
-    def orient(values: tuple[float, ...], *, lower_is_worse: bool) -> tuple[float, ...]:
-        """Make larger oriented values worse for either metric direction."""
-        checked = finite_values(values)
-        return tuple(-value if lower_is_worse else value for value in checked)
+    from examples._mechanics import (
+        linear_quantile,
+        mean,
+        orient,
+        resample_means,
+        sample_variance,
+        slope,
+    )
+    from examples._probability import PlotSeries, plot_svg
 
 
 @app.cell(hide_code=True)
@@ -184,6 +126,57 @@ def _() -> None:
         )
     )
     _ = sys.stdout.write(f"{_message}\n")
+
+
+@app.cell(hide_code=True)
+def _() -> tuple[marimo.ui.slider, marimo.ui.checkbox]:
+    quantile_q = marimo.ui.slider(
+        0.0, 1.0, step=0.05, value=0.9, label="Linear quantile q", show_value=True
+    )
+    lower_direction = marimo.ui.checkbox(
+        value=True, label="Lower throughput is worse (negate before sorting)"
+    )
+    marimo.output.replace(marimo.vstack([quantile_q, lower_direction]))
+    return quantile_q, lower_direction
+
+
+@app.cell(hide_code=True)
+def _(quantile_q: marimo.ui.slider, lower_direction: marimo.ui.checkbox) -> None:
+    _ordered = tuple(
+        sorted(orient((30.0, 25.0, 35.0), lower_is_worse=lower_direction.value))
+    )
+    _q = quantile_q.value
+    _quantile = linear_quantile(_ordered, _q)
+    _position = (len(_ordered) - 1) * _q
+    _chart = plot_svg(
+        (
+            "Oriented order statistics",
+            "Sorted index h (zero based)",
+            "Oriented throughput (requests/s)",
+        ),
+        (
+            PlotSeries(
+                "solid: sorted oriented values",
+                tuple((float(i), value) for i, value in enumerate(_ordered)),
+            ),
+            PlotSeries(
+                "dot: selected interpolated quantile", ((_position, _quantile),)
+            ),
+        ),
+    )
+    md(f"""
+### Interpolation and orientation laboratory
+Sorted oriented values: `{_ordered}` requests/s. h=(n-1)q={_position:.3f};
+neighbors {_ordered[math.floor(_position)]:.3f} and
+{_ordered[math.ceil(_position)]:.3f}; interpolated q={_q:.2f} value:
+**{_quantile:.3f} requests/s**. Negation reverses the order: an upper
+oriented quantile is the negative of a lower original quantile, not the
+negative of the original upper quantile. This is arithmetic, not a verdict.
+""")
+    marimo.output.append(marimo.Html(_chart))
+    _ = sys.stdout.write(
+        f"Interactive mechanics: q={_q:.2f}; lower_is_worse={lower_direction.value}\n"
+    )
 
 
 @app.cell(hide_code=True)

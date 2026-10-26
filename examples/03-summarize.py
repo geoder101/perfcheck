@@ -50,6 +50,10 @@ def _() -> None:
     This script has its own temporary workspace, policy fixture, and loopback
     matrix fixture. It teaches CLI outcomes and evidence identity fields without
     promising that the internal artifact schema is stable.
+
+    The latency policy chooses the mean in seconds, zero warmup/cooldown,
+    at least 20 retained points, 80% coverage and a 300-second analysis window.
+    Eligibility checks data usability, not IID sampling or representativeness.
         """)
 
 
@@ -158,6 +162,9 @@ def _() -> None:
 
     Summarization is not just formatting: it accepts verified raw evidence and
     rejects a tampered artifact with the documented input-error outcome.
+    A scalar summarizes one run; 41 observations within that run do not become
+    41 independent cohort runs. Next compare uses run-level scalars, and the
+    capstone audits the same chain for each selected scenario.
         """)
 
 

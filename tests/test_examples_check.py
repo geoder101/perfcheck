@@ -61,6 +61,7 @@ def test_validate_repository_course_rejects_a_noncanonical_lesson_tuple(
 
 def test_run_examples_check_returns_nonzero_for_invalid_path(
     tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     # Given: a temporary notebook with invalid Python syntax.
     invalid_path = tmp_path / "invalid-notebook.py"
@@ -88,6 +89,8 @@ if __name__ == "__main__":
 
     # Then: Marimo reports the invalid notebook with a nonzero process result.
     assert return_code != 0
+    captured = capsys.readouterr()
+    assert invalid_path.name in captured.err
 
 
 def test_validate_repository_course_rejects_a_missing_lesson_command(
@@ -127,6 +130,7 @@ def test_validate_repository_course_rejects_a_missing_lesson_command(
 
 def test_main_exits_for_examples_test_failure_after_marimo_validation(
     monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     # Given: successful course validation and a failing focused pytest child.
     calls: list[tuple[tuple[str, ...], Path, float]] = []
@@ -142,7 +146,9 @@ def test_main_exits_for_examples_test_failure_after_marimo_validation(
         arguments: Sequence[str], *, cwd: Path, timeout_seconds: float = 0.0
     ) -> CompletedProcess[str]:
         calls.append((tuple(arguments), cwd, timeout_seconds))
-        return CompletedProcess(arguments, 7, stdout="", stderr="")
+        return CompletedProcess(
+            arguments, 7, stdout="FAILED mathematical oracle\n", stderr="child error\n"
+        )
 
     monkeypatch.setattr(examples_check, "validate_repository_course", validate_course)
     monkeypatch.setattr(examples_check, "run_examples_check", validate_notebooks)
@@ -152,8 +158,11 @@ def test_main_exits_for_examples_test_failure_after_marimo_validation(
     with pytest.raises(SystemExit) as error:
         examples_check.main()
 
-    # Then: it runs both optional modules through the managed Python and fails.
+    # Then: it runs all focused modules with the existing budget and shows errors.
     assert error.value.code == 7
+    captured = capsys.readouterr()
+    assert "FAILED mathematical oracle" in captured.err
+    assert "child error" in captured.err
     assert calls == [
         (
             (
@@ -167,6 +176,11 @@ def test_main_exits_for_examples_test_failure_after_marimo_validation(
                 str(_ROOT / "tests/test_examples_check.py"),
                 str(_ROOT / "tests/test_examples_mechanics.py"),
                 str(_ROOT / "tests/test_examples_comparative.py"),
+                str(_ROOT / "tests/test_examples_probability.py"),
+                str(_ROOT / "tests/test_examples_design.py"),
+                str(_ROOT / "tests/test_examples_inference.py"),
+                str(_ROOT / "tests/test_examples_power.py"),
+                str(_ROOT / "tests/test_examples_multiple_testing.py"),
             ),
             _ROOT,
             60.0,

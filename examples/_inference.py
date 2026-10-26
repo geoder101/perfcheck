@@ -3,8 +3,15 @@
 import math
 from dataclasses import dataclass
 from statistics import NormalDist
+from typing import Final
 
 import numpy as np
+
+type FloatVector = np.ndarray[tuple[int], np.dtype[np.float64]]
+MAX_REPETITIONS: Final = 512
+MAX_ENABLED: Final = 20
+MAX_SAMPLE_SIZE: Final = 500
+MAX_SIGMA: Final = 100
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,7 +26,7 @@ class BootstrapExperiment:
     threshold: float = 3.0
 
     def __post_init__(self) -> None:
-        if not 1 <= self.enabled <= 20 or self.seed < 0:
+        if not 1 <= self.enabled <= MAX_ENABLED or self.seed < 0:
             message = "enabled must be 1..20; seed must be nonnegative"
             raise ValueError(message)
         if not self.current or not self.baseline:
@@ -45,8 +52,8 @@ class BootstrapDistribution:
 def bootstrap_experiment(inputs: BootstrapExperiment) -> BootstrapDistribution:
     """Use float64 PCG64 interleaved current-then-baseline draws and linear tails."""
     orientation = 1.0 if inputs.higher_is_worse else -1.0
-    current = orientation * np.asarray(inputs.current, dtype=np.float64)
-    baseline = orientation * np.asarray(inputs.baseline, dtype=np.float64)
+    current: FloatVector = orientation * np.asarray(inputs.current, dtype=np.float64)
+    baseline: FloatVector = orientation * np.asarray(inputs.baseline, dtype=np.float64)
     rng = np.random.Generator(np.random.PCG64(inputs.seed))
     draws = tuple(
         float(np.mean(current[rng.integers(0, len(current), size=len(current))]))
@@ -54,8 +61,12 @@ def bootstrap_experiment(inputs: BootstrapExperiment) -> BootstrapDistribution:
         for _ in range(max(1000, 2000 * inputs.enabled))
     )
     alpha = 0.05 / inputs.enabled
-    lower = float(np.quantile(np.asarray(draws, dtype=np.float64), alpha, method="linear"))
-    reference = float(current[0] - np.quantile(baseline, 1 - alpha, method="linear"))
+    lower = float(
+        np.quantile(np.asarray(draws, dtype=np.float64), alpha, method="linear")
+    )
+    reference = orientation * inputs.current[0] - float(
+        np.quantile(baseline, 1 - alpha, method="linear")
+    )
     return BootstrapDistribution(
         draws=draws,
         effect=float(np.mean(current) - np.mean(baseline)),
@@ -77,10 +88,10 @@ class CoverageExperiment:
     seed: int = 42
 
     def __post_init__(self) -> None:
-        if not 1 <= self.repetitions <= 512:
+        if not 1 <= self.repetitions <= MAX_REPETITIONS:
             message = "repetitions must be 1..512"
             raise ValueError(message)
-        if not 1 <= self.n <= 500 or not 0 < self.sigma <= 100:
+        if not 1 <= self.n <= MAX_SAMPLE_SIZE or not 0 < self.sigma <= MAX_SIGMA:
             message = "n must be 1..500; sigma must be positive and at most 100"
             raise ValueError(message)
         if not 0 < self.confidence < 1 or self.seed < 0:
@@ -111,9 +122,11 @@ def coverage_experiment(inputs: CoverageExperiment) -> CoverageResult:
     se = inputs.sigma / math.sqrt(inputs.n)
     radius = NormalDist().inv_cdf((1 + inputs.confidence) / 2) * se
     rng = np.random.Generator(np.random.PCG64(inputs.seed))
-    means = rng.normal(100.0, se, size=inputs.repetitions)
+    means: FloatVector = rng.normal(100.0, se, size=inputs.repetitions)
     intervals = tuple(
-        ConfidenceInterval(float(m - radius), float(m + radius), abs(m - 100) <= radius)
+        ConfidenceInterval(
+            float(m - radius), float(m + radius), bool(abs(m - 100) <= radius)
+        )
         for m in means
     )
     coverage = sum(row.contains for row in intervals) / inputs.repetitions

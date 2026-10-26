@@ -22,12 +22,21 @@ class _Page(HTMLParser):
         super().__init__(convert_charrefs=True)
         self.links: list[str] = []
         self.text: list[str] = []
+        self.math_images: list[tuple[str, str]] = []
+        self.scripts: list[str] = []
         self.feed(source)
 
     @override
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag == "a":
             self.links.extend(value for key, value in attrs if key == "href" and value)
+        attributes = dict(attrs)
+        if tag == "img" and "math" in (attributes.get("class") or "").split():
+            self.math_images.append(
+                (attributes.get("src") or "", attributes.get("alt") or "")
+            )
+        if tag == "script" and (src := attributes.get("src")):
+            self.scripts.append(src)
 
     @override
     def handle_data(self, data: str) -> None:
@@ -74,3 +83,32 @@ def test_rendered_landing_page_exposes_project_workflow_and_four_paths(
         f"{section}/index.html" in page.links
         for section in ("tutorials", "how-to", "reference", "explanation")
     )
+
+
+@pytest.mark.parametrize(
+    "document",
+    ["probability-and-distributions", "inference-and-power", "multiple-testing"],
+)
+def test_equations_when_built_use_local_svg_without_remote_scripts(
+    document: str, built_docs: Path
+) -> None:
+    # Given: a fresh mathematical chapter, including inline and display equations.
+    html = built_docs / "_build/html"
+    path = html / "explanation" / f"{document}.html"
+    # When: its rendered equation images and script requirements are parsed.
+    page = _Page(path.read_text(encoding="utf-8"))
+    # Then: equations have real local SVG glyphs and TeX alternatives, not a CDN.
+    assert page.math_images
+    assert all(not urlsplit(script).scheme for script in page.scripts)
+    for source, alternative in page.math_images:
+        assert source
+        assert alternative
+        assert not urlsplit(source).scheme
+        image = (path.parent / source).resolve()
+        assert image.is_relative_to(html.resolve())
+        assert image.suffix == ".svg"
+        svg = image.read_text(encoding="utf-8")
+        assert "<svg" in svg
+        assert "<path" in svg
+    assert "\\[" not in "".join(page.text)
+    assert "\\(" not in "".join(page.text)

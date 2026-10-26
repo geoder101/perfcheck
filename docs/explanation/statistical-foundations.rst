@@ -23,7 +23,7 @@ Use this reading path as a small book, not a list of formulas to memorize:
 
 The mathematical sections are optional on a first reading. Keep the worked
 examples and assumptions even if you skip a derivation. The existing
-`lesson 06 <../../examples/06-statistical-foundations.py>`_ is a runnable
+:download:`lesson 06 <../../examples/06-statistical-foundations.py>` is a runnable
 companion; :doc:`../reference/glossary` is the shared terminology reference.
 
 From observations to evidence
@@ -65,7 +65,7 @@ histogram shows its observed run values, not the full sampling distribution
 of the mean across repeated experiments.
 
 Description, inference, and causation
-------------------------------------
+-----------------------------------------
 
 Descriptive statistics summarize the observations at hand. Inference connects
 them to unknown quantities under a sampling model. A causal claim goes
@@ -127,8 +127,9 @@ For a random variable :math:`X`, its cumulative distribution function (CDF) is
 
    F_X(x) = \Pr(X \leq x).
 
-A quantile at probability :math:`p` is a value at which the CDF reaches or
-exceeds :math:`p`; a percentile is the same idea expressed on a 0--100 scale.
+A population quantile at probability :math:`0<p<1` is the smallest threshold
+where the CDF reaches or exceeds :math:`p`; a percentile expresses the same
+position on a 0--100 scale.
 Quantiles summarize position in a distribution, but their estimate depends on
 the finite sample and the selected numerical convention.
 

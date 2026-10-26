@@ -4,7 +4,9 @@ import pytest
 from examples import _power as power
 
 
-@pytest.mark.parametrize("value,expected", [(0.0, 0.5), (-2.0, 0.0227501319481792)])
+@pytest.mark.parametrize(
+    ("value", "expected"), [(0.0, 0.5), (-2.0, 0.0227501319481792)]
+)
 def test_normal_cdf_when_known_oracle(value: float, expected: float) -> None:
     # Given: standard normal oracle points.
     # When: the lower-tail probability is evaluated.

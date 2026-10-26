@@ -21,25 +21,35 @@ _SECTION_LABELS: Final = (
     "Explanation",
 )
 _THEORY_PAGE_STEMS: Final = (
+    "learning-paths",
     "statistical-foundations",
+    "probability-and-distributions",
+    "experimental-design",
     "measurement-and-summaries",
     "eligibility-and-comparability",
+    "inference-and-power",
+    "multiple-testing",
     "uncertainty-and-comparison",
     "decisions-and-limitations",
     "plain-python-mechanics",
     "comparative-methods",
 )
 _THEORY_DOCUMENTS: Final = (
+    "explanation/learning-paths",
     "explanation/statistical-foundations",
+    "explanation/probability-and-distributions",
+    "explanation/experimental-design",
     "explanation/measurement-and-summaries",
     "explanation/eligibility-and-comparability",
+    "explanation/inference-and-power",
+    "explanation/multiple-testing",
     "explanation/uncertainty-and-comparison",
     "explanation/decisions-and-limitations",
     "explanation/plain-python-mechanics",
     "explanation/comparative-methods",
 )
 _SECTION_PAGES: Final = (
-    ("tutorials", ("first-comparison",)),
+    ("tutorials", ("first-comparison", "performance-verification-case-study")),
     (
         "how-to",
         (

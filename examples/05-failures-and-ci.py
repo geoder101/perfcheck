@@ -17,6 +17,7 @@ with app.setup:
 
     from examples._capstone import CapstoneReceipt, Scenario, run_capstone
     from examples._capstone_evidence import CapstoneReport
+    from examples._capstone_view import render_capstone_evidence
     from examples._markdown import md
     from examples._support import parse_summary_evidence
 
@@ -84,7 +85,7 @@ def _() -> None:
 
 @app.cell
 def _(scenario_selector: mo.ui.dropdown) -> tuple[CapstoneReceipt]:
-    receipt = run_capstone(Scenario(scenario_selector.value))
+    receipt = run_capstone(Scenario(scenario_selector.selected_key))
     return (receipt,)
 
 
@@ -135,7 +136,7 @@ def _(receipt: CapstoneReceipt) -> None:
         )
     )
     _ = sys.stdout.write(f"{message}\n")
-    mo.output.replace(mo.vstack([mo.md(message), mo.md(receipt.report_markdown)]))
+    mo.output.replace(render_capstone_evidence(receipt))
 
 
 @app.cell(hide_code=True)
@@ -157,8 +158,7 @@ def _() -> None:
 @app.cell
 def _() -> None:
     _ = sys.stdout.write(
-        "Takeaway: CI owns policy for a captured nonzero child status; "
-        "synthetic reproducibility is not scientific validation.\n"
+        "Takeaway: preserve CLI status; synthetic reproducibility is not validation.\n"
     )
 
 

@@ -1,19 +1,22 @@
 from __future__ import annotations
 
+from html import escape
+from itertools import pairwise
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
+from examples import _capstone_view
 from examples._capstone import Scenario, run_capstone
 from examples._support import (
     mock_prometheus_endpoint,
     perfcheck_executable,
     run_local_command,
 )
+
 from perfcheck.report_schemas import Report
 from perfcheck.run_models import RunArtifact
 from perfcheck.summary_models import SummaryArtifact
-
 from tests.examples_check import run_standalone_notebook
 
 if TYPE_CHECKING:
@@ -24,15 +27,44 @@ _FIXTURE = _ROOT / "examples/fixtures/prometheus-matrix.json"
 _PASS_POLICY = _ROOT / "tests/fixtures/policy-pass.json"
 
 
-@pytest.fixture(scope="module", params=tuple(Scenario))
-def capstone(request: pytest.FixtureRequest) -> CapstoneReceipt:
-    return run_capstone(Scenario(request.param))
+@pytest.fixture(scope="module")
+def capstones() -> tuple[CapstoneReceipt, ...]:
+    return tuple(run_capstone(scenario) for scenario in Scenario)
 
 
+@pytest.mark.parametrize("scenario", tuple(Scenario))
+def test_capstone_view_keeps_full_reports_in_accessible_containers(
+    capstones: tuple[CapstoneReceipt, ...], scenario: Scenario
+) -> None:
+    # Given: the actual selected workflow receipt, including the complete report.
+    receipt = next(item for item in capstones if item.scenario is scenario)
+
+    # When: its notebook evidence is rendered without changing the receipt.
+    rendered = _capstone_view.render_capstone_evidence(receipt).text
+
+    # Then: summaries wrap and full reports remain keyboard-accessible in bounds.
+    assert 'aria-label="Capstone decision summary"' in rendered
+    assert 'aria-label="Full JSON report"' in rendered
+    assert 'aria-label="Full Markdown report"' in rendered
+    assert rendered.count('tabindex="0"') == 2
+    assert "overflow-x: auto" in rendered
+    assert ".capstone-evidence table" in rendered
+    assert "display: table" in rendered
+    assert "overflow-wrap: anywhere" in rendered
+    assert "min-width: 0" in rendered
+    assert escape(receipt.report_json.decode()) in rendered
+    assert "<table>" in rendered
+    assert receipt.scenario.value in rendered
+    assert f"Compare exit status: {receipt.comparison_status}" in rendered
+    assert f"Overwrite exit status: {receipt.overwrite_status}" in rendered
+
+
+@pytest.mark.parametrize("scenario", tuple(Scenario))
 def test_selected_capstone_has_real_decision_and_cleaned_workspace(
-    capstone: CapstoneReceipt,
+    capstones: tuple[CapstoneReceipt, ...], scenario: Scenario
 ) -> None:
     # Given: one selected scenario, executed through the actual console script.
+    capstone = next(receipt for receipt in capstones if receipt.scenario is scenario)
     expected = {
         Scenario.PASS: (0, "pass", 4, 0.0),
         Scenario.REGRESSION: (1, "fail", 4, 10.0),
@@ -50,7 +82,9 @@ def test_selected_capstone_has_real_decision_and_cleaned_workspace(
     assert metric.effect == effect
     assert metric.direction == "higher_is_worse"
     assert (metric.statistic, metric.unit, metric.practical_threshold) == (
-        "mean", "seconds", 0.0
+        "mean",
+        "seconds",
+        0.0,
     )
     assert (metric.baseline.count, metric.current.count) == (2, count - 2)
     assert metric.sample_size_warning
@@ -63,7 +97,7 @@ def test_selected_capstone_has_real_decision_and_cleaned_workspace(
     assert capstone.overwrite_context == "error: invalid command input"
     assert not capstone.workspace.exists()
     assert metric.metric_id in capstone.report_markdown
-    assert status.upper() in capstone.report_markdown
+    assert f"Suite status: {status}" in capstone.report_markdown
     if count == 3:
         assert metric.method == "baseline_reference"
         assert metric.reference_anomaly is True
@@ -82,10 +116,12 @@ def test_selected_capstone_has_real_decision_and_cleaned_workspace(
         assert metric.options.effective_resamples == 2000
 
 
+@pytest.mark.parametrize("scenario", tuple(Scenario))
 def test_capstone_sources_are_unique_eligible_and_comparable(
-    capstone: CapstoneReceipt,
+    capstones: tuple[CapstoneReceipt, ...], scenario: Scenario
 ) -> None:
     # Given: real collected raw artifacts and canonical CLI summaries.
+    capstone = next(receipt for receipt in capstones if receipt.scenario is scenario)
     runs = tuple(RunArtifact.model_validate_json(p) for p in capstone.raw_artifacts)
     summaries = tuple(
         SummaryArtifact.model_validate_json(p) for p in capstone.summary_artifacts
@@ -99,7 +135,7 @@ def test_capstone_sources_are_unique_eligible_and_comparable(
     assert len({run.run_id for run in runs}) == len(runs)
     assert len({run.content_sha256 for run in runs}) == len(runs)
     assert len({run.policy_sha256 for run in runs}) == 1
-    for previous, following in zip(runs, runs[1:], strict=False):
+    for previous, following in pairwise(runs):
         assert previous.source_interval.end < following.source_interval.start
     for run, summary in zip(runs, summaries, strict=True):
         assert summary.source_run_id == run.run_id

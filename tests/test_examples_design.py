@@ -3,16 +3,16 @@ from pathlib import Path
 from statistics import variance
 
 import pytest
-
 from examples import _design as design
+
 from tests.examples_check import run_standalone_notebook
 
 
 def test_schedule_contrast_when_time_is_confounded_or_balanced() -> None:
     # Given: Y = 100 + 2*time + 3*treatment with eight scheduled runs.
     # When: the same model is evaluated under two assignment schedules.
-    confounded = design.schedule_experiment(False)
-    balanced = design.schedule_experiment(True)
+    confounded = design.schedule_experiment(balanced=False)
+    balanced = design.schedule_experiment(balanced=True)
     # Then: balanced time removes the eight-unit drift contribution.
     assert confounded.difference == 11.0
     assert balanced.difference == 3.0
@@ -64,3 +64,13 @@ def test_design_lesson_when_run_as_a_script() -> None:
     assert result.returncode == 0, result.stderr
     assert "Rejected evidence: eligible=false, reason=gap_too_large" in result.stdout
     assert "confounded_difference=11; balanced_difference=3" in result.stdout
+
+
+@pytest.mark.parametrize("runs", [0, 1, 41])
+def test_cluster_plot_rejects_request_when_run_count_is_outside_budget(
+    runs: int,
+) -> None:
+    # Given: an unsupported count passed directly to the plotting wrapper.
+    # When/Then: its work shares the simulation's independent-run budget.
+    with pytest.raises(ValueError, match="budget"):
+        _ = design.cluster_plot(runs)

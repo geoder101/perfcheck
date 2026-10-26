@@ -12,12 +12,19 @@ with app.setup:
     from datetime import UTC, datetime, timedelta
     from pathlib import Path
 
-    import numpy as np
+    import marimo
 
     repository_root = Path(__file__).resolve().parents[1]
     sys.path.insert(0, str(repository_root))
 
+    from examples._design import (
+        cluster_experiment,
+        cluster_plot,
+        schedule_experiment,
+        schedule_plot,
+    )
     from examples._markdown import md
+    from examples._mechanics import summary_labels as toy_summary_labels
 
 
 @app.cell(hide_code=True)
@@ -119,43 +126,11 @@ def _(
     retained_samples: tuple[tuple[datetime, float], ...],
     retained_values: tuple[float, ...],
 ) -> tuple[tuple[str, ...]]:
-    values: np.ndarray[tuple[int], np.dtype[np.float64]] = np.array(
-        retained_values, dtype=np.float64
-    )
-    mean = math.fsum(retained_values) / len(retained_values)
-    p50 = float(np.quantile(values, 0.50, method="linear"))
-    p90 = float(np.quantile(values, 0.90, method="linear"))
-    p95 = float(np.quantile(values, 0.95, method="linear"))
-    p99 = float(np.quantile(values, 0.99, method="linear"))
-    sample_standard_deviation = math.sqrt(
-        math.fsum((value - mean) ** 2 for value in retained_values)
-        / (len(retained_values) - 1)
-    )
     seconds = tuple(
         (timestamp - analysis_start).total_seconds()
         for timestamp, _ in retained_samples
     )
-    mean_seconds = math.fsum(seconds) / len(seconds)
-    slope_numerator = math.fsum(
-        (second - mean_seconds) * (value - mean)
-        for second, value in zip(seconds, retained_values, strict=True)
-    )
-    slope_denominator = math.fsum((second - mean_seconds) ** 2 for second in seconds)
-    slope = slope_numerator / slope_denominator
-    summary_labels = (
-        f"mean={mean:.2f}",
-        f"p50={p50:.2f}",
-        f"p90={p90:.2f}",
-        f"p95={p95:.2f}",
-        f"p99={p99:.2f}",
-        f"min={min(retained_values):.2f}",
-        f"max={max(retained_values):.2f}",
-        f"std_sample={sample_standard_deviation:.5f}",
-        f"first={retained_values[0]:.2f}",
-        f"last={retained_values[-1]:.2f}",
-        f"delta={retained_values[-1] - retained_values[0]:.2f}",
-        f"slope_per_second={slope:.5f}",
-    )
+    summary_labels = toy_summary_labels(retained_values, seconds)
     return (summary_labels,)
 
 
@@ -229,9 +204,8 @@ def _() -> None:
     md(r"""
 ## Evidence
 
-The receipt below is fixed: it labels every summary family, records the
-timestamp-trimmed analysis window, and states both the eligible evidence and
-the precise rejection rationale.
+The fixed receipt labels each summary family, the timestamp-trimmed window,
+eligibility evidence, and the precise rejection rationale.
         """)
 
 
@@ -255,6 +229,62 @@ def _(
         )
     )
     _ = sys.stdout.write(f"{message}\n")
+
+
+@app.cell(hide_code=True)
+def _() -> tuple[marimo.ui.slider, marimo.ui.slider, marimo.ui.checkbox]:
+    readings_per_run = marimo.ui.slider(
+        1, 64, value=16, label="Readings per run", show_value=True
+    )
+    independent_runs = marimo.ui.slider(
+        2, 40, value=20, label="Independent runs", show_value=True
+    )
+    balanced_schedule = marimo.ui.checkbox(
+        value=False, label="Balance treatment and control across time"
+    )
+    marimo.output.replace(
+        marimo.vstack([readings_per_run, independent_runs, balanced_schedule])
+    )
+    return readings_per_run, independent_runs, balanced_schedule
+
+
+@app.cell(hide_code=True)
+def _(readings_per_run: marimo.ui.slider, independent_runs: marimo.ui.slider) -> None:
+    _m, _r = int(readings_per_run.value), int(independent_runs.value)
+    _experiment = cluster_experiment(_m, _r)
+    _chart = cluster_plot(_r)
+    md(f"""
+### Correlated readings vs independent runs
+Model: Y=100+run effect+reading noise (ms); independent run effects have
+SD 8 ms, independent reading noise SD 2 ms. Readings within a run share its
+effect (correlation 64/68). Seed 701; {_r} runs x {_m} readings/run.
+Naive estimated SE=s(readings)/√({_r * _m})={_experiment.naive_se:.3f} ms;
+run-level estimated SE=s(run means)/√{_r}={_experiment.run_se:.3f} ms.
+Model SE=√((64+4/m)/r)={_experiment.model_se:.3f} ms.
+The chart shows model expectations, not a monotonic promise about a finite
+sample estimate. More readings reduce within-run noise, not shared run effects.
+Perfcheck compares **eligible per-run statistics**, not a pool of scrape points.
+Independence must come from the design; eligibility alone cannot establish it.
+""")
+    marimo.output.append(marimo.Html(_chart))
+
+
+@app.cell(hide_code=True)
+def _(balanced_schedule: marimo.ui.checkbox) -> None:
+    _schedule = schedule_experiment(balanced_schedule.value)
+    _chart = schedule_plot(_schedule)
+    md(f"""
+### Design before computation
+Treatment assignment by slot: `{_schedule.treatment}`. Raw treatment-minus-control
+mean difference: **{_schedule.difference:.0f} ms**. All controls then all treated
+confounds time with treatment: 3 ms treatment + 8 ms time = 11 ms.
+The balanced schedule gives both arms mean time 3.5 and recovers 3 ms.
+This noiseless example is not a causal guarantee: randomize or block real runs.
+The explanation above works offline. Companion source (open in your checkout):
+<code>docs/explanation/<wbr>experimental-design.rst</code>
+""")
+    marimo.output.append(marimo.Html(_chart))
+    _ = sys.stdout.write("Evidence: confounded_difference=11; balanced_difference=3\n")
 
 
 @app.cell(hide_code=True)

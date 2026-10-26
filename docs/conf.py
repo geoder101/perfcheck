@@ -15,7 +15,9 @@ if TYPE_CHECKING:
 
 project = "perfcheck"
 needs_sphinx = "9.1"
-extensions = ["autoapi.extension"]
+extensions = ["autoapi.extension", "sphinx.ext.imgmath"]
+imgmath_image_format = "svg"
+imgmath_use_preview = True
 nitpicky = True
 exclude_patterns = ["_build", "_templates"]
 

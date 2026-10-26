@@ -21,6 +21,13 @@ Start with the [Project documentation](docs/index.rst) for a workflow overview
 and four Diataxis paths: Tutorials, How-to guides, Reference, and Explanation.
 The [Marimo curriculum index](examples/README.md) offers ten executable lessons
 in order, from the CLI workflow to statistical mechanics and comparative methods.
+Choose a beginner, practitioner, or deep-dive route in
+[Learning paths](docs/explanation/learning-paths.rst). The routes connect the
+probability, experimental-design, inference/power, and multiple-testing chapters
+to interactive labs 06–10 and the lesson 05 CLI capstone. The
+[performance verification case study](docs/tutorials/performance-verification-case-study.rst)
+walks through actual artifacts and CI outcomes; teaching methods don't add
+production decision engines.
 
 The Furo documentation site is optional; it is not needed to run the CLI.
 Build it or preview it locally from the repository root:
@@ -34,6 +41,10 @@ just docs-preview 8765   # optional port; stop with Ctrl-C
 These commands use the optional docs dependency group and build into
 `docs/_build/html`. Reference includes source-parsed AutoAPI documentation of
 internal Python modules, not a supported public Python API.
+Equation rendering uses Sphinx's built-in `imgmath`: documentation builders need
+LaTeX (including AMS and preview packages) and `dvisvgm` on `PATH`. The generated
+SVG equations are local assets; readers do not need TeX, JavaScript, or a CDN
+connection to view them.
 
 ## Commands
 

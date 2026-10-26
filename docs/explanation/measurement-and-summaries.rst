@@ -15,7 +15,7 @@ naive left-to-right sum, reducing rounding error when magnitudes differ. It
 does not make finite-precision arithmetic exact or rescue a non-finite input.
 
 Choose the question before the statistic
----------------------------------------
+---------------------------------------------
 
 A summary deliberately discards information. A mean describes average level;
 a tail quantile describes a high position; an endpoint difference describes
@@ -105,7 +105,7 @@ Extremes and spread
    :math:`\sqrt{8/(3-1)}=2`.
 
 Why divide by n minus one? (optional mathematics)
-------------------------------------------------
+------------------------------------------------------
 
 Estimating the center from the same sample pulls the squared deviations
 downward. Once :math:`\bar{x}` is fixed, the deviations must sum to zero,
@@ -129,7 +129,7 @@ as a descriptive statistic; it doesn't certify the sampling assumptions
 needed for that unbiasedness interpretation.
 
 Standard deviation isn't standard error
---------------------------------------
+--------------------------------------------
 
 Standard deviation describes spread among observations. Standard error (SE)
 is the standard deviation of an estimator's sampling distribution. For an
@@ -246,7 +246,7 @@ eligibility evidence, so downstream comparison can distinguish a valid value
 from missing evidence.
 
 From one summary to a cohort
----------------------------
+---------------------------------
 
 Suppose two runs have retained values ``(1, 1, 1, 9)`` and ``(5, 5, 5, 5)``.
 Their linear P95 values are 7.8 and 5, so the mean of the per-run P95 values
@@ -256,7 +256,7 @@ the weighting. Perfcheck compares the run-level scalars and doesn't pool
 the raw points to make a cohort quantile.
 
 Work through the arithmetic and gate evidence in
-`lesson 07 <../../examples/07-summary-and-eligibility.py>`_, then follow
+:download:`lesson 07 <../../examples/07-summary-and-eligibility.py>`, then follow
 :doc:`eligibility-and-comparability` into :doc:`inference-and-power`.
 The descriptive formulas explain what a value means. Whether a difference
 is precise or practically meaningful is a further question.

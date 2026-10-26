@@ -32,7 +32,7 @@ reasonable target for a small family of release gates, but not the only possible
 error criterion for a large exploratory screen.
 
 Bonferroni from the union bound
-------------------------------
+------------------------------------
 
 Let :math:`I_0` index the true nulls among :math:`m` predeclared tests.
 Reject test :math:`i` when :math:`P_i\leq\alpha/m`. Then
@@ -52,7 +52,7 @@ An adjusted p-value is a procedure-specific threshold summary, not the posterior
 probability that the hypothesis is true.
 
 Holm: stop at the first failure
-------------------------------
+------------------------------------
 
 Holm orders the observed values :math:`p_{(1)}\leq\cdots\leq p_{(m)}` and
 compares them successively with :math:`\alpha/(m-i+1)`. Reject while each
@@ -115,7 +115,7 @@ event by alpha. This argument works for any configuration of true and false
 nulls, provided each true-null p-value is valid.
 
 False discovery rate answers a different question
-------------------------------------------------
+------------------------------------------------------
 
 Let :math:`R` be the total number of rejections. The realized false discovery
 proportion and its expectation are
@@ -177,7 +177,7 @@ a comparison passes is also selection, even if every individual comparison is
 reproducible. See :doc:`experimental-design` for run allocation and stopping.
 
 What perfcheck actually allocates
---------------------------------
+--------------------------------------
 
 Perfcheck fixes nominal alpha at 0.05 and uses :math:`0.05/m` for every enabled
 policy metric, including metrics that later become ``INCONCLUSIVE``. Disabled

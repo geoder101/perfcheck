@@ -7,6 +7,7 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 import pytest
+from examples import _mechanics
 
 from tests.examples_check import run_standalone_notebook
 
@@ -30,15 +31,21 @@ class Mechanics(Protocol):
 
 @pytest.fixture
 def mechanics() -> Mechanics:
+    return _mechanics
+
+
+def test_notebook_reexports_mechanics_when_imported() -> None:
+    # Given: the optional notebook runtime and its existing import-by-file contract.
     if importlib.util.find_spec("marimo") is None:
         pytest.skip("mechanics helpers require the optional examples group")
     spec = importlib.util.spec_from_file_location("plain_python_mechanics", _LESSON)
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
+    # When: the notebook setup executes without evaluating its cells.
     spec.loader.exec_module(module)
+    # Then: existing consumers still find the same six formula helpers.
     assert isinstance(module, Mechanics)
-    return module
 
 
 def test_plain_formulas_match_numpy_when_given_finite_toy_values(
@@ -203,3 +210,44 @@ def test_resampling_rejects_invalid_request_when_seed_or_count_is_invalid(
     # Then: it is rejected rather than producing an empty or misleading receipt.
     with pytest.raises(ValueError, match="positive count and nonnegative seed"):
         _ = mechanics.resample_means((4.0, 6.0), seed, count)
+
+
+@pytest.mark.parametrize("lower_is_worse", [False, True])
+def test_orientation_before_quantile_when_tail_is_asymmetric(
+    mechanics: Mechanics, lower_is_worse: bool
+) -> None:
+    # Given: a skewed cohort and an upper-tail quantile.
+    baseline = (10.0, 12.0, 40.0)
+    # When: orientation is applied before interpolation.
+    oriented = mechanics.orient(baseline, lower_is_worse=lower_is_worse)
+    tail = mechanics.linear_quantile(oriented, 0.9)
+    # Then: negation reverses order, not merely the sign of the old upper tail.
+    expected = -10.4 if lower_is_worse else 34.4
+    assert tail == pytest.approx(expected)
+
+
+def test_reactive_mechanics_when_notebook_runs_with_default_controls() -> None:
+    # Given: the canonical mechanics lesson.
+    # When: the actual Marimo app evaluates its controls.
+    result = run_standalone_notebook(_LESSON)
+    # Then: interactive evidence accompanies the unchanged fixed receipt.
+    assert result.returncode == 0, result.stderr
+    assert "Interactive mechanics: q=0.90; lower_is_worse=True" in result.stdout
+
+
+@pytest.mark.parametrize(("size", "count"), [(1, 2001), (65, 1)])
+def test_resampling_rejects_work_when_upper_budget_is_exceeded(
+    size: int, count: int
+) -> None:
+    # Given: a request exceeding either the cohort-size or replicate-count budget.
+    # When/Then: the pure helper refuses before allocating draws.
+    with pytest.raises(ValueError, match="budget"):
+        _ = _mechanics.resample_means((1.0,) * size, 42, count)
+
+
+def test_resampling_when_upper_work_budget_is_reached() -> None:
+    # Given: the largest allowed cohort and replicate count.
+    # When: the bounded educational resampler draws from a constant cohort.
+    result = _mechanics.resample_means((1.0,) * 64, 42, 2000)
+    # Then: exactly 2000 finite means return after at most 128000 choices.
+    assert result == (1.0,) * 2000

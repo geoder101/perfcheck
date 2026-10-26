@@ -9,7 +9,7 @@ perfcheck commands. The product's actual decision is in
 :doc:`uncertainty-and-comparison` and :doc:`decisions-and-limitations`.
 
 From a question to a decision
-----------------------------
+----------------------------------
 
 A test needs more than a formula for a statistic. It needs a question, a null
 model, a direction of departure, and a rule chosen before inspecting the result.
@@ -30,7 +30,7 @@ Consider a coin tossed independently ten times:
 
       p=\Pr_{1/2}(K\geq8)
        =\frac{\binom{10}{8}+\binom{10}{9}+\binom{10}{10}}{2^{10}}
-       =\frac{45+10+1}{1024}=0.0546875.
+       =\frac{45+10+1}{1024}=\frac{56}{1024}=0.0546875.
 
 7. **Criterion:** with a predeclared :math:`\alpha=0.05`, reject when
    :math:`p\leq\alpha`. Here we don't reject.
@@ -50,7 +50,7 @@ fairness. The discreteness also means that a nominal 5% rule need not reject
 exactly 5% of fair-coin experiments.
 
 A continuous flagship: a known-sigma mean
-----------------------------------------
+----------------------------------------------
 
 Now ask whether a population mean has fallen below 100 measurement units.
 Suppose :math:`X_1,\ldots,X_{25}` are independent normal observations with
@@ -74,7 +74,7 @@ such as a one-sample t procedure for independent normal observations. A large
 number of correlated scrapes isn't a substitute for 25 independent runs.
 
 Why valid continuous p-values are uniform
-----------------------------------------
+----------------------------------------------
 
 Let :math:`T` have continuous null CDF :math:`F_0`. For a lower-tail test,
 the p-value is :math:`P=F_0(T)`. Imagine marking a threshold at the null's
@@ -113,7 +113,7 @@ automatically a calibrated p-value. Mid-p conventions, which allocate half the
 observed mass, can be useful approximations but aren't generally super-uniform.
 
 Confidence intervals describe a procedure
-----------------------------------------
+----------------------------------------------
 
 For the normal model with known sigma, the pivot gives
 
@@ -146,7 +146,7 @@ prove equivalence. Equivalence needs a predeclared acceptable margin and a
 procedure designed to exclude effects outside it.
 
 Deriving power, rather than reading it from a p-value
-----------------------------------------------------
+----------------------------------------------------------
 
 Type I error is rejection under a true null, bounded by :math:`\alpha` for a
 valid level-:math:`\alpha` test. Type II error :math:`\beta(\mu_1)` is failure
@@ -168,6 +168,10 @@ where :math:`\delta>0` is a real decrease, and let
 
 At :math:`\alpha=0.05`, :math:`\sigma=10`, :math:`n=25`, a true decrease of
 four units gives power :math:`\Phi(-1.644854+2)\approx0.638760`.
+Here the effect in measurement units is :math:`\delta=4`, the population-SD
+standardized effect is :math:`d=\delta/\sigma=0.4`, and the shift in the
+test statistic's mean is :math:`d\sqrt n=2` SE units. Standardizing an effect
+doesn't decide whether it is operationally important.
 The observed mean 96 gave a small p-value, but the design's power for a true
 mean 96 is only about 64%. Those are different probabilities over different
 questions. Plugging an observed effect into a post-hoc power calculation doesn't

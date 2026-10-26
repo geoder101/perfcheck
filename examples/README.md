@@ -4,6 +4,22 @@ These developer learning materials teach the supported `perfcheck` CLI workflow.
 The CLI remains the only supported public surface. Lessons are self-contained and
 write any artifacts only to temporary workspaces.
 
+## Choose a learning route
+
+The [learning paths](../docs/explanation/learning-paths.rst) reuse these ten
+lessons and the existing chapters rather than introducing another course:
+
+- **Beginner:** CLI lessons 01–04, probability lab 06, summaries lab 07, then
+  lesson 05 to interpret verdicts and input errors.
+- **Practitioner:** experimental design and lab 07, the
+  [performance verification case study](../docs/tutorials/performance-verification-case-study.rst)
+  with capstone 05, then lab 08 and the inference and multiple-testing chapters.
+- **Deep dive:** probability/design labs 06–07, inference lab 08, mechanics
+  lab 09, and power/multiplicity lab 10 with their linked explanations.
+
+Numeric order remains the complete course. The routes select an emphasis;
+alternative statistical teaching models do not determine perfcheck PASS/FAIL.
+
 ## Setup
 
 From the repository root, install the optional lesson tools once:
@@ -64,6 +80,10 @@ use its explicit Python command from the repository root.
 ### 05. [05-failures-and-ci.py](05-failures-and-ci.py), handle failures in CI
 
 - **Goal:** inspect a safe nonzero CLI result and its CI meaning.
+- **Interactive control:** choose `pass`, `regression`, or `advisory-reference`
+  in the CLI scenario selector. Only that scenario runs, using fresh temporary
+  artifacts and the real collect, summarize, and compare commands; script mode
+  uses `pass`. Inspect the report and the separately handled overwrite error.
 - **Prerequisite:** complete 04.
 - **CLI commands exercised:** `perfcheck compare`.
 - **Duration:** 5 minutes.
@@ -74,6 +94,10 @@ use its explicit Python command from the repository root.
 ### 06. [06-statistical-foundations.py](06-statistical-foundations.py), statistical foundations
 
 - **Goal:** distinguish populations, samples, realizations, and sampling distributions.
+- **Interactive controls:** vary fair flips, observed heads, repeated experiments,
+  IID sample size, and the standard-normal interval. Compare point mass with an
+  upper tail, density with area/CDF, and individual spread with mean spread.
+- **Explanation:** [Probability and distributions](../docs/explanation/probability-and-distributions.rst).
 - **Prerequisite:** complete 05.
 - **CLI command explained:** the collect-to-compare evidence flow.
 - **Duration:** 5 minutes.
@@ -84,6 +108,10 @@ use its explicit Python command from the repository root.
 ### 07. [07-summary-and-eligibility.py](07-summary-and-eligibility.py), summaries and eligibility
 
 - **Goal:** calculate fixed per-run summaries and inspect eligibility evidence.
+- **Interactive controls:** vary readings per run and independent runs, then
+  balance treatment/control across time. Contrast naive and run-level uncertainty
+  and confounded versus balanced schedules; eligibility alone doesn't establish IID.
+- **Explanation:** [Experimental design](../docs/explanation/experimental-design.rst).
 - **Prerequisite:** complete 06.
 - **CLI command explained:** `perfcheck summarize`.
 - **Duration:** 5 minutes.
@@ -94,6 +122,10 @@ use its explicit Python command from the repository root.
 ### 08. [08-bootstrap-and-decisions.py](08-bootstrap-and-decisions.py), bootstrap decisions
 
 - **Goal:** inspect oriented bootstrap evidence, advisory references, and limits.
+- **Interactive controls:** change direction, current shift, practical threshold,
+  enabled-metric count, and PCG64 seed. Separately vary known-sigma CI sample size,
+  sigma, confidence, and repetitions to inspect achieved coverage, not a posterior.
+- **Explanation:** [Inference and power](../docs/explanation/inference-and-power.rst).
 - **Prerequisite:** complete 07.
 - **CLI command explained:** `perfcheck compare`.
 - **Duration:** 5 minutes.
@@ -104,6 +136,9 @@ use its explicit Python command from the repository root.
 ### 09. [09-plain-python-mechanics.py](09-plain-python-mechanics.py), plain-Python mechanics
 
 - **Goal:** expose mean, linear quantiles, sample spread, slope, and seeded resampling.
+- **Interactive controls:** move the linear-quantile slider and toggle the
+  lower-throughput-is-worse checkbox; compare negating before sorting with
+  negating a raw quantile afterward. The Python RNG remains teaching-only.
 - **Prerequisite:** complete 08.
 - **CLI commands explained:** `perfcheck summarize` and `perfcheck compare`; no CLI invocation.
 - **Boundary:** educational `random.Random` draws are not production NumPy PCG64 evidence.
@@ -116,6 +151,11 @@ use its explicit Python command from the repository root.
 ### 10. [10-comparative-methods.py](10-comparative-methods.py), comparative methods
 
 - **Goal:** contrast Welch/t, seeded permutation, tied ranks, and a simple posterior.
+- **Interactive controls:** change null repetitions/seed; power effect, sample
+  size, known sigma, and alpha; then family size, true-null count, alpha,
+  repetitions/seed, and none/Bonferroni/Holm/BH adjustment. Inspect FWER and FDP
+  separately, with simulation uncertainty rather than a guarantee for one family.
+- **Multiplicity explanation:** [Multiple testing](../docs/explanation/multiple-testing.rst).
 - **Prerequisite:** complete 09.
 - **CLI command explained:** `perfcheck compare`; no CLI invocation or new policy.
 - **Boundary:** each method does not determine perfcheck PASS/FAIL.

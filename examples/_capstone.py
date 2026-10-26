@@ -25,13 +25,13 @@ if TYPE_CHECKING:
     from pathlib import Path
     from subprocess import CompletedProcess
 
-_PASS_LABEL: Final = "pass"
+_SUCCESS_LABEL: Final = "pass"
 
 
 class Scenario(StrEnum):
     """Exactly one workflow selected by the learner."""
 
-    PASS = _PASS_LABEL
+    PASS = _SUCCESS_LABEL
     REGRESSION = "regression"
     ADVISORY_REFERENCE = "advisory-reference"
 
@@ -59,18 +59,21 @@ def run_capstone(scenario: Scenario = Scenario.PASS) -> CapstoneReceipt:
     match scenario:
         case Scenario.PASS:
             policy_name, run_count = "policy-pass.json", 4
+            reference = False
         case Scenario.REGRESSION:
             policy_name, run_count = "policy-fail.json", 4
+            reference = False
         case Scenario.ADVISORY_REFERENCE:
             policy_name, run_count = "policy-inconclusive.json", 3
-        case unreachable:
-            assert_never(unreachable)
+            reference = True
+        case _:
+            assert_never(scenario)
     context = replace(
         context, policy_path=context.repository_root / "tests/fixtures" / policy_name
     )
     with example_workspace() as workspace:
         fixture_path = context.fixture_path
-        if run_count == 3:
+        if reference:
             fixture = PrometheusFixture.model_validate_json(fixture_path.read_bytes())
             reference_fixture = PrometheusFixture(
                 sample_count=fixture.sample_count,
@@ -111,7 +114,7 @@ def run_capstone(scenario: Scenario = Scenario.PASS) -> CapstoneReceipt:
                 resamples=1000,
             ),
         )
-        if run_count == 3:
+        if reference:
             # The shared builder is unchanged; reference forbids these two overrides.
             compare_command = compare_command[:-4]
         comparison: CompletedProcess[str] = run_local_command(
