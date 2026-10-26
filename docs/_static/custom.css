@@ -3,6 +3,14 @@
   --color-brand-content: #1d4ed8;
 }
 
+img.workflow-diagram {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+  margin-inline: auto;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --color-brand-primary: #93c5fd;

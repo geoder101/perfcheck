@@ -4,6 +4,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Final, override
 from urllib.parse import unquote, urlsplit
+from xml.etree import ElementTree as ET
 
 import pytest
 
@@ -23,6 +24,7 @@ class _Page(HTMLParser):
         self.links: list[str] = []
         self.text: list[str] = []
         self.math_images: list[tuple[str, str]] = []
+        self.images: list[tuple[str, str]] = []
         self.scripts: list[str] = []
         self.feed(source)
 
@@ -31,6 +33,10 @@ class _Page(HTMLParser):
         if tag == "a":
             self.links.extend(value for key, value in attrs if key == "href" and value)
         attributes = dict(attrs)
+        if tag == "img":
+            self.images.append(
+                (attributes.get("src") or "", attributes.get("alt") or "")
+            )
         if tag == "img" and "math" in (attributes.get("class") or "").split():
             self.math_images.append(
                 (attributes.get("src") or "", attributes.get("alt") or "")
@@ -83,6 +89,87 @@ def test_rendered_landing_page_exposes_project_workflow_and_four_paths(
         f"{section}/index.html" in page.links
         for section in ("tutorials", "how-to", "reference", "explanation")
     )
+    assert all(
+        destination in page.links
+        for destination in (
+            "explanation/learning-paths.html",
+            "tutorials/first-comparison.html",
+            "tutorials/performance-verification-case-study.html",
+        )
+    )
+
+
+def test_landing_page_explains_evidence_actors_and_decisions(built_docs: Path) -> None:
+    # Given: the rendered introduction, not its source markup or diagram labels.
+    page = _Page((built_docs / "_build/html/index.html").read_text(encoding="utf-8"))
+    # When: readers access the textual workflow equivalent.
+    text = " ".join(" ".join(page.text).split()).lower()
+    # Then: purpose, actors, evidence transformations and outcomes are discoverable.
+    assert all(
+        concept in text
+        for concept in (
+            "repeated measurements",
+            "inspectable",
+            "investigation",
+            "benchmark operator",
+            "prometheus",
+            "timestamped",
+            "configured suite",
+            "portable raw",
+            "eligibility",
+            "per-run scalar",
+            "baseline and current",
+            "comparable",
+            "policy configuration",
+            "json",
+            "markdown",
+            "pass",
+            "fail",
+            "inconclusive",
+            "engineer",
+            "ci",
+        )
+    )
+    assert "raw-run inputs" in text
+    assert "both cohorts" in text
+    assert "documentation and lessons keep" not in text
+
+
+def test_landing_workflow_image_is_accessible_and_self_contained(
+    built_docs: Path,
+) -> None:
+    # Given: the built page and its locally published assets.
+    html = built_docs / "_build/html"
+    page = _Page((html / "index.html").read_text(encoding="utf-8"))
+    # When: its workflow illustration is resolved like an ordinary image.
+    illustrations = [(src, alt) for src, alt in page.images if "workflow" in src]
+    # Then: meaningful alt text accompanies a real SVG without remote resources.
+    assert len(illustrations) == 1
+    source, alternative = illustrations[0]
+    assert all(word in alternative.lower() for word in ("workflow", "policy", "report"))
+    assert not urlsplit(source).scheme
+    assert not urlsplit(source).netloc
+    image = (html / unquote(source)).resolve()
+    assert image.is_relative_to(html.resolve())
+    assert image.suffix == ".svg"
+    svg = image.read_text(encoding="utf-8")
+    root = ET.fromstring(svg)  # noqa: S314 - trusted, repository-owned SVG.
+    namespace = {"svg": "http://www.w3.org/2000/svg"}
+    assert root.findtext("svg:title", namespaces=namespace)
+    assert root.findtext("svg:desc", namespaces=namespace)
+    assert root.get("aria-labelledby")
+    assert all(
+        label in " ".join(root.itertext()).lower()
+        for label in ("collect", "summarize", "compare", "prometheus", "policy")
+    )
+    assert not root.findall(".//svg:script", namespace)
+    assert not root.findall(".//svg:foreignObject", namespace)
+    for element in root.iter():
+        for name, value in element.attrib.items():
+            if name.endswith("href") or name == "src":
+                assert value.startswith("#")
+    assert "url(" not in svg.replace("url(#", "")
+    assert "@import" not in svg
 
 
 @pytest.mark.parametrize(

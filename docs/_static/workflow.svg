@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="688" viewBox="0 0 320 688" role="img" aria-labelledby="title description">
+  <title id="title">perfcheck evidence workflow</title>
+  <desc id="description">A benchmark operator or CI starts collection. Prometheus supplies observations and policy configuration supplies rules for all stages. For both baseline and current cohorts, collect writes raw runs and summarize writes summaries. Compare accepts summaries or raw runs and produces JSON and Markdown verdict reports for an engineer or CI.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 Z" fill="#1d4ed8"/>
+    </marker>
+  </defs>
+  <style>
+    svg { --ink: #1f2937; --paper: #ffffff; --brand: #1d4ed8; --tint: #eff6ff; }
+    text { fill: var(--ink); font: 16px system-ui, sans-serif; text-anchor: middle; }
+    .stage { fill: var(--tint); stroke: var(--brand); }
+    .heading { font-weight: 700; fill: var(--brand); }
+    .flow { fill: none; stroke: var(--brand); stroke-width: 1.5; marker-end: url(#arrow); }
+    .small { font-size: 14px; }
+  </style>
+  <rect width="320" height="688" rx="8" fill="var(--paper)"/>
+  <text x="160" y="28">Benchmark operator / CI</text>
+  <path class="flow" d="M160 38 V62"/>
+  <rect class="stage" x="24" y="68" width="272" height="64" rx="4"/>
+  <text x="160" y="94">Prometheus: observations</text>
+  <text x="160" y="118">Policy: rules for all stages</text>
+  <path class="flow" d="M160 132 V160"/>
+  <rect class="stage" x="40" y="166" width="240" height="52" rx="4"/>
+  <text class="heading" x="160" y="189">perfcheck collect</text>
+  <text class="small" x="160" y="208">For each run in both cohorts</text>
+  <path class="flow" d="M160 218 V244"/>
+  <text x="160" y="267">Portable raw runs</text>
+  <path class="flow" d="M160 278 V306"/>
+  <rect class="stage" x="40" y="312" width="240" height="52" rx="4"/>
+  <text class="heading" x="160" y="335">perfcheck summarize</text>
+  <text class="small" x="160" y="354">Verify / eligibility / scalar</text>
+  <path class="flow" d="M160 364 V390"/>
+  <text x="160" y="413">Baseline + current summaries</text>
+  <path class="flow" d="M160 424 V452"/>
+  <path class="flow" stroke-dasharray="4 3" d="M244 261 H304 V478 H282"/>
+  <text class="small" x="292" y="380" transform="rotate(-90 292 380)">or raw inputs</text>
+  <rect class="stage" x="40" y="458" width="240" height="52" rx="4"/>
+  <text class="heading" x="160" y="481">perfcheck compare</text>
+  <text class="small" x="160" y="500">Comparable evidence + policy</text>
+  <path class="flow" d="M160 510 V538"/>
+  <text x="160" y="561">JSON / Markdown reports</text>
+  <text class="small" x="160" y="585">PASS / FAIL / INCONCLUSIVE</text>
+  <path class="flow" d="M160 598 V626"/>
+  <text x="160" y="651">Engineer / CI</text>
+  <text class="small" x="160" y="675">Investigate / gate</text>
+</svg>
