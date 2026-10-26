@@ -63,6 +63,22 @@ Location and tails
 
       (1-g)y_k + gy_{\min(k+1, n-1)}.
 
+   Read the symbols as a recipe:
+
+   * :math:`y_i` is the observation at zero-based position :math:`i` after
+     sorting by value, not timestamp; :math:`n` is the retained observation count.
+   * :math:`p` is the quantile probability between 0 and 1, so P90 uses 0.90,
+     not 90. The fractional zero-based rank :math:`h=(n-1)p` locates it between
+     the first position, 0, and the last position, :math:`n-1`.
+   * :math:`k=\lfloor h\rfloor` rounds that rank down to the lower neighbor's
+     index. The fractional part :math:`g=h-k` is the weight on the upper
+     neighbor; :math:`1-g` is the weight on the lower neighbor.
+
+   Thus :math:`(1-g)y_k` is the lower neighbor's contribution and
+   :math:`g y_{\min(k+1,n-1)}` is the upper neighbor's contribution. Their
+   weights sum to one. The minimum in the upper index keeps it within the
+   observed array at the final position; it doesn't select the smaller value.
+
    A tail quantile describes a position in this run's retained values, not a
    service-level guarantee. Sparse samples, a short window, or a workload that
    misses rare events can make P90, P95, and especially P99 misleading.
@@ -71,6 +87,15 @@ Location and tails
    :math:`h=1.5` and is :math:`5`; P90 has :math:`h=2.7` and is
    :math:`0.3(6)+0.7(8)=7.4`. The same linear rule gives P95 = 7.7 and
    P99 = 7.94.
+
+   For P50 in that example, :math:`n=4`, :math:`p=0.5`, :math:`h=1.5`,
+   :math:`k=1`, and :math:`g=0.5`. The neighbors are :math:`y_1=4` and
+   :math:`y_2=6`, so the contributions are :math:`0.5(4)=2` and
+   :math:`0.5(6)=3`, totaling 5. At :math:`p=0`, the rule returns :math:`y_0=2`;
+   at :math:`p=1`, it returns :math:`y_3=8`, with :math:`g=0` in both cases.
+   An integer rank likewise returns that observation without blending. For a
+   single retained observation, both neighbors are the same value for every
+   probability.
 
    A finite-sample interpolated P95 needn't have exactly 95% of observed values
    below it. In this four-point example, only three of four values are below
@@ -202,9 +227,17 @@ Ordered and trend summaries
    beginning of the analyzed window, not necessarily a cold-start value because
    warmup trimming may have removed earlier observations.
 
+   Use it to check the starting memory footprint or queue depth after a fixed
+   warmup. One unusual endpoint can dominate it, so align window boundaries
+   across runs rather than treating it as a typical level.
+
 ``last``
    The value :math:`x_n` at the latest retained timestamp. It represents the
    end of the analyzed window, not a forecast or a guarantee of steady state.
+
+   Use it to inspect memory remaining after a fixed-duration workload or the
+   queue backlog at shutdown. A transient final scrape can dominate the result;
+   a low last value doesn't show that the rest of the run was healthy.
 
 ``delta``
    The endpoint difference :math:`x_n - x_1`. It reports net change across the
@@ -213,6 +246,12 @@ Ordered and trend summaries
 
    Worked example: for values 2 at 0 seconds and 8 at 10 seconds, first = 2,
    last = 8, and delta = :math:`8-2=6`.
+
+   For a memory gauge, delta can describe net accumulation during a fixed
+   workload. Its unit is the original metric unit, such as bytes, not bytes per
+   second: a 6-byte increase over 10 seconds and over 100 seconds has the same
+   delta. Both endpoints are influential, and different window durations can
+   make comparisons answer different questions.
 
 ``slope``
    Ordinary least-squares slope of value on elapsed seconds. With
@@ -233,6 +272,24 @@ Ordered and trend summaries
    Worked example: for :math:`(u, x)=((0, 2), (10, 7))`, the centered-product
    sum is :math:`25` and the centered-time-square sum is :math:`50`; therefore
    slope = :math:`25/50=0.5` metric units per second.
+
+   Use slope to describe sustained memory growth in bytes/second or queue-depth
+   drift in items/second. Here :math:`u_i` is elapsed time, :math:`x_i` is the
+   corresponding value, and the bars are their arithmetic means. Each centered
+   time-value product contributes to the numerator; the denominator measures
+   the spread of observation times. Unlike delta, slope uses every retained
+   point and accounts for elapsed seconds, though points still receive equal
+   weight rather than time-duration weights.
+
+   Curvature, bursts, recovery, or a sawtooth pattern can make a single straight
+   line misleading. Outliers, including endpoints far from the mean time, can
+   strongly influence the fit. Inspect the series before calling growth
+   sustained, and don't extrapolate a short-window slope into a leak forecast.
+
+Choose these summaries and window boundaries before examining which comparison
+looks favorable. Selecting a rising segment after seeing the data changes the
+question. Neither an endpoint change nor a fitted slope proves that a deployment
+caused it; workload changes and shared infrastructure can produce either.
 
 Calculation boundary and failures
 ---------------------------------

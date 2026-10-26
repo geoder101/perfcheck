@@ -31,7 +31,13 @@ For either direction, the observed effect is then
 .. math::
 
    \widehat{\Delta} = \overline{z}_{\mathrm{current}}
-   - \overline{z}_{\mathrm{baseline}}.
+    - \overline{z}_{\mathrm{baseline}}.
+
+Here :math:`x` is one selected per-run scalar, such as a run's P95, and
+:math:`z` is that scalar after applying the policy direction. Each bar means
+the arithmetic mean across eligible runs in the named cohort, with equal weight
+per run. The hat on :math:`\widehat{\Delta}` marks an observed estimate, not a
+known population difference.
 
 A positive effect therefore always means the current cohort is worse in the
 policy's direction. Ordinary latency is **higher-is-worse**: baseline 80 ms and
@@ -88,6 +94,22 @@ oriented values as appear in each original cohort. It calculates
 for replicate :math:`b`. The resulting finite collection of mean differences
 is an empirical bootstrap distribution.
 
+The asterisk means "computed from a resample", not multiplication or a
+significance marker. The index :math:`b=1,\ldots,B_{\mathrm{effective}}`
+identifies one repetition. Each starred bar is the mean of the values drawn
+for that cohort in that repetition. The two cohorts are resampled independently,
+not paired or pooled; their original sizes can differ.
+
+For a small arithmetic illustration, take already-oriented current values
+``(4, 6)`` and baseline values ``(1, 3)``. The observed means are 5 and 2,
+so :math:`\widehat{\Delta}=3`. One possible replicate draws current ``(6, 6)``
+and baseline ``(1, 3)``, giving :math:`\Delta^{*(b)}=6-2=4`. Another could
+draw ``(4, 6)`` and ``(3, 3)``, giving :math:`5-3=2`. Replacement permits
+repeated values and omitted observations. Repeating this process builds a
+distribution of possible resampled effects, not extra independent measured
+runs. These two illustrative draws aren't a sufficient production cohort or
+resampling budget, nor are they a claimed seed-specific sequence.
+
 Sampling uses NumPy's ``PCG64`` generator. The default seed is 42 and the
 default requested resample count is 10,000, so the same ordered inputs and
 options reproduce the same draws. The effective count is
@@ -100,6 +122,13 @@ options reproduce the same draws. The effective count is
 where :math:`m` is the enabled metric count. The report retains the seed,
 requested count, and effective count because they are part of the numerical
 provenance. It uses float64 arithmetic for these calculations.
+
+Here :math:`B_{\mathrm{requested}}` is the requested number of complete
+replicates, not the number of runs drawn within a replicate;
+:math:`B_{\mathrm{effective}}` is how many replicates are actually computed.
+For :math:`m=3` enabled metrics and a request for 1000 replicates, the floor
+raises the count to :math:`2000(3)=6000` for each metric. A request for 10,000
+instead stays at 10,000.
 
 Each metric starts a fresh generator with the selected seed. Within each
 replicate, production draws the current cohort first and the baseline second.
@@ -141,12 +170,30 @@ decision bound is the empirical quantile at
 .. math::
 
    L_{\mathrm{decision}} = Q_{\alpha_{\mathrm{effective}}}
-   (\Delta^{*(1)}, \ldots, \Delta^{*(B_{\mathrm{effective}})}).
+    (\Delta^{*(1)}, \ldots, \Delta^{*(B_{\mathrm{effective}})}).
+
+The operator :math:`Q_a` means "sort these replicate effects and take their
+linear quantile at probability :math:`a`", using the interpolation recipe in
+:doc:`measurement-and-summaries`. The input count here is the replicate count,
+not the count of observations within a run. The probability
+:math:`\alpha_{\mathrm{effective}}=0.05/m` picks a lower-tail position;
+:math:`m` counts enabled policy metrics. Smaller alpha moves that position
+toward the smallest sampled effects, making a strict threshold breach harder.
+The resulting :math:`L_{\mathrm{decision}}` is in oriented metric units, not
+probability units.
 
 It also records diagnostic lower and upper bounds at 0.025 and 0.975. Those
 diagnostics help readers see the spread of the sampled effects, while the
 decision uses only :math:`L_{\mathrm{decision}}`. A quantile's value depends on
 the finite draws and the chosen interpolation convention.
+
+For a concrete strict-bound example, let the practical threshold be
+:math:`T=5` ms. A decision bound of 6 ms yields ``FAIL``; a bound of exactly
+5 ms yields ``PASS``, as does 4 ms, even if the observed effect is 10 ms.
+Here :math:`T` is the predeclared acceptable worsening margin in the scalar's
+units, not a quantile probability. The 0.025/0.975 diagnostic bounds don't
+replace this decision bound. See the fixture-backed examples in
+:doc:`decisions-and-limitations` for both metric directions.
 
 These percentile-bootstrap bounds are not p-values. They are also not a claim
 that normality, IID sampling, or a particular confidence-interval coverage
@@ -155,6 +202,50 @@ an interval-producing procedure with an interpretation tied to its sampling
 assumptions and repeated use. perfcheck records deterministic percentile
 bootstrap evidence and a policy rule instead of exposing a general confidence
 interval procedure.
+
+Production method and hypotheses
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Production uses a **two-independent-cohort percentile bootstrap of the
+difference in means of oriented per-run scalars**, followed by a strict
+lower-bound threshold rule. Even if the scalar is a run's P99, the between-run
+target is a mean of those scalars. This isn't a t-test, Welch test, F-test,
+Mann--Whitney test, permutation test, Bayesian analysis, or p-value engine.
+
+Under a sampling model with stable cohort populations and finite expectations,
+write the scientific contrast as
+
+.. math::
+
+   \Delta=\operatorname{E}[Z_{\mathrm{current}}]
+          -\operatorname{E}[Z_{\mathrm{baseline}}],
+   \qquad H_0:\Delta\leq T,
+   \qquad H_1:\Delta>T.
+
+The capital :math:`Z` denotes a random oriented per-run scalar from the named
+population; :math:`\operatorname{E}` is its population expectation. Unlike
+:math:`\widehat{\Delta}`, :math:`\Delta` isn't calculated directly from the
+observed cohorts. The null includes improvements and worsening no greater than
+the practical margin. The alternative asks about worsening beyond that margin,
+not merely any nonzero difference. This is a useful one-sided policy question
+under justified sampling assumptions, not a claim that perfcheck implements a
+null-generated, calibrated hypothesis test.
+
+There is no null-centering of the cohorts at zero or at :math:`T`, and no
+classical p-value is computed. Resamples come from the observed cohorts, so
+their effects cluster near the observed contrast rather than a fitted null.
+Nominal percentile-bootstrap validity is approximate, not exact; neither the
+alpha allocation nor writing hypotheses establishes coverage or test-size
+calibration. ``PASS`` means the bound didn't strictly exceed :math:`T`, not
+acceptance of :math:`H_0`, proof of safety, or equivalence. A failure is the
+configured policy breach, not proof of causality.
+
+For comparison, :doc:`comparative-methods` and lesson 10 actually compute a
+Welch statistic and approximate degrees of freedom without a Welch p-value,
+exact and seeded Monte Carlo permutation tails, tied-rank scores without a
+rank-test p-value, and a Beta posterior for cutoff-exceedance indicators.
+Its normal-tail, calibration, power and multiplicity laboratories are also
+educational models. None changes the production method or its verdicts.
 
 Where the approximation can fail
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -223,6 +314,11 @@ It marks ``reference_anomaly`` when
 threshold. That flag is advisory evidence only. A baseline-reference metric
 remains ``INCONCLUSIVE`` even when it records an anomaly, and it does not make
 the suite fail.
+
+This is a comparison with an observed baseline reference, not a verdict on
+:math:`H_0` or :math:`H_1` about population mean differences above. A single
+current value and an empirical baseline quantile don't supply that population
+hypothesis decision.
 
 An empirical upper baseline quantile isn't automatically a prediction bound
 for a future run. Its tail uncertainty, baseline size and possible drift still

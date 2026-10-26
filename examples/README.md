@@ -28,6 +28,11 @@ From the repository root, install the optional lesson tools once:
 uv sync --group examples
 ```
 
+Once dependencies are installed, lessons use repository content, inline charts,
+and local controls without required external HTTP fetches or hosted chart services.
+CLI exercises use loopback fixtures; optional external citations are links to
+follow, not embedded resources. Dependency installation may require network access.
+
 ## Lessons
 
 Each lesson takes about five minutes. Start at 01, then continue in numeric
