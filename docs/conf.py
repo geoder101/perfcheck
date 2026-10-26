@@ -72,7 +72,7 @@ def _resolve_reference(
     """Resolve only known dependencies and source-parsed bootstrap re-exports."""
     if node.get("refdomain") != "py":
         return None
-    target = node["reftarget"]
+    target = f"{node['reftarget']}"
     if target in _EXTERNAL_REFERENCES:
         return nodes.reference(
             "", "", content, refuri=_EXTERNAL_REFERENCES[target], internal=False
@@ -82,7 +82,7 @@ def _resolve_reference(
         entry = env.domains.python_domain.objects.get(canonical)
         if entry:
             return make_refnode(
-                app.builder, node["refdoc"], entry.docname, entry.node_id, content
+                app.builder, f"{node['refdoc']}", entry.docname, entry.node_id, content
             )
     return None
 
@@ -107,11 +107,14 @@ def setup(app: Sphinx) -> None:
     api_index = Path(app.srcdir) / "reference" / "api" / "index.rst"
     api_index.parent.mkdir(parents=True, exist_ok=True)
     _ = api_index.write_text(
-        "Internal API reference\n"
-        "======================\n\n"
-        ".. toctree::\n"
-        "   :maxdepth: 2\n\n"
-        "   perfcheck/index\n",
+        """Internal API reference
+======================
+
+.. toctree::
+   :maxdepth: 2
+
+   perfcheck/index
+""",
         encoding="utf-8",
     )
 

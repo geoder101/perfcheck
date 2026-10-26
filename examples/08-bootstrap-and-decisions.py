@@ -57,16 +57,19 @@ def _() -> None:
 
 
 @app.cell
-def _() -> tuple[mo.ui.switch, mo.ui.slider, mo.ui.slider, mo.ui.slider, mo.ui.number]:
+def _() -> tuple[mo.ui.switch, mo.ui.slider, mo.ui.slider, mo.ui.slider, mo.ui.slider]:
     direction = mo.ui.switch(value=False, label="Higher is worse (off: lower is worse)")
     shift = lab_slider((-15, 20, 1), 0, "Current shift (units/s)")
     threshold = lab_slider((0, 20, 0.25), 3, "Practical threshold (units/s)")
     enabled = lab_slider((1, 20, 1), 2, "Enabled metrics m")
-    bootstrap_seed = mo.ui.number(
-        0, 20260850, value=20260808, step=1, label="PCG64 seed", full_width=True
-    )
+    bootstrap_seed = lab_slider((0, 20260850, 1), 20260808, "PCG64 seed")
     mo.output.replace(mo.vstack([direction, shift, threshold, enabled, bootstrap_seed]))
     return direction, shift, threshold, enabled, bootstrap_seed
+
+
+@app.cell
+def _(bootstrap_seed: mo.ui.slider) -> None:
+    md(f"Exact PCG64 seed: **{int(bootstrap_seed.value)}**")
 
 
 @app.cell
@@ -75,7 +78,7 @@ def _(
     shift: mo.ui.slider,
     threshold: mo.ui.slider,
     enabled: mo.ui.slider,
-    bootstrap_seed: mo.ui.number,
+    bootstrap_seed: mo.ui.slider,
 ) -> None:
     _inputs = BootstrapExperiment(
         current=tuple(x + float(shift.value) for x in (90.0, 89.0, 91.0, 90.0)),
