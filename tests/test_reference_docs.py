@@ -111,7 +111,14 @@ def test_reference_contract_covers_source_manifest_and_navigation(
 
     # Then: all source modules are covered without curated exclusions or owners.
     assert '"sphinx-autoapi==3.8.1",' in pyproject
-    assert 'extensions = ["autoapi.extension", "sphinx.ext.imgmath"]' in conf
+    assert all(
+        f'"{extension}"' in conf
+        for extension in (
+            "autoapi.extension",
+            "sphinx.ext.imgmath",
+            "sphinxcontrib.mermaid",
+        )
+    )
     assert 'autoapi_dirs = ["../src"]' in conf
     assert 'autoapi_root = "reference/api"' in conf
     assert "autoapi_keep_files = True" in conf

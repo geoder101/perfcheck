@@ -28,7 +28,9 @@ def _read(relative_path: Path) -> str:
 def _assert_furo_configuration(conf: str, pyproject: str) -> None:
     required_conf = (
         'needs_sphinx = "9.1"',
-        'extensions = ["autoapi.extension", "sphinx.ext.imgmath"]',
+        '"autoapi.extension"',
+        '"sphinx.ext.imgmath"',
+        '"sphinxcontrib.mermaid"',
         'imgmath_image_format = "svg"',
         "imgmath_use_preview = True",
         "nitpicky = True",
@@ -46,6 +48,7 @@ def _assert_furo_configuration(conf: str, pyproject: str) -> None:
         "furo==2025.12.19",
         "sphinx==9.1.1",
         "sphinx-autoapi==3.8.1",
+        "sphinxcontrib-mermaid==2.1.1",
     )
     n999_paths = tuple(
         re.findall(

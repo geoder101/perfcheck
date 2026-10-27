@@ -63,6 +63,12 @@ switch ($action) {
         }
         $native = @('run', '--rm', '--init', '--pull=never', '--http-proxy=false', '--workdir', '/workspace',
                     '--volume', "${state}:/container-state:U")
+        if (Test-Path Env:PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX) {
+            if ($env:PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX -cne '1') {
+                Stop-Adapter 'PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX must be 1 when requested'
+            }
+            $native += @('--env', 'PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX=1')
+        }
         if ($linux) {
             $native += @('--userns=keep-id', '--volume', "${source}:/workspace:z")
         } else {

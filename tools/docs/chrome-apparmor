@@ -1,0 +1,6 @@
+abi <abi/4.0>,
+include <tunables/global>
+
+profile perfcheck-chrome /home/runner/.cache/puppeteer/chrome/linux-156.0.8078.47/chrome-linux64/chrome flags=(unconfined) {
+  userns,
+}

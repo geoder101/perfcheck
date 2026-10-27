@@ -94,3 +94,51 @@ def test_pages_html_reports_invalid_encoding(tmp_path: Path) -> None:
     # Then: the invalid artifact fails with contextual validation evidence.
     with pytest.raises(pages_authorization.PagesValidationError):
         pages_authorization.validate_html(tmp_path)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "missing.svg",
+        "../escape.svg",
+        "/root.svg",
+        "https://example.com/a.svg",
+        "//example.com/a.svg",
+        "",
+    ],
+)
+def test_pages_html_rejects_invalid_object_resources(
+    target: str, tmp_path: Path
+) -> None:
+    # Given: an SVG object that is missing, escaping, or externally hosted.
+    _ = (tmp_path / "index.html").write_text(
+        f'<object data="{target}" type="image/svg+xml"></object>'
+    )
+    # When/Then: resource validation fails before publication.
+    with pytest.raises(pages_authorization.PagesValidationError):
+        pages_authorization.validate_html(tmp_path)
+
+
+def test_pages_html_accepts_local_svg_object(tmp_path: Path) -> None:
+    # Given: build-time Mermaid output and an ordinary external navigation link.
+    _ = (tmp_path / "diagram.svg").write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg"/>'
+    )
+    _ = (tmp_path / "index.html").write_text(
+        '<object data="diagram.svg"></object><a href="https://example.com">Link</a>'
+    )
+    # When: the artifact is validated.
+    pages_authorization.validate_html(tmp_path)
+    # Then: local diagrams and external navigation remain supported.
+
+
+@pytest.mark.parametrize("base", ["https://example.com/", "//example.com/", "../"])
+def test_pages_html_rejects_base_url_overrides(base: str, tmp_path: Path) -> None:
+    # Given: a real local SVG whose browser URL would be changed by HTML base.
+    _ = (tmp_path / "diagram.svg").write_text("<svg/>")
+    _ = (tmp_path / "index.html").write_text(
+        f'<base href="{base}"><object data="diagram.svg"></object>'
+    )
+    # When/Then: a generated site cannot redirect validated resources elsewhere.
+    with pytest.raises(pages_authorization.PagesValidationError):
+        pages_authorization.validate_html(tmp_path)

@@ -6,6 +6,32 @@ import pytest
 _README_PATH = Path(__file__).parents[1] / "README.md"
 
 
+def test_docs_tools_provisions_only_when_explicitly_requested() -> None:
+    # Given: the canonical contributor command manifest.
+    source = (_README_PATH.parent / "justfile").read_text(encoding="utf-8")
+    # When: the explicit provisioning recipe is inspected.
+    recipe = source.split("\ndocs-tools:\n", 1)[1].split("\n\n", 1)[0]
+    # Then: locked dependencies precede a deliberate browser installation.
+    cli = "tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js"
+    assert recipe.splitlines() == [
+        "  npm ci --prefix tools/docs --ignore-scripts",
+        f"  node {cli} browsers install chrome",
+    ]
+    assert "docs-tools" not in source.split("\ncheck:", 1)[1].splitlines()[0]
+
+
+def test_docs_check_cleans_renderer_cache_before_strict_build() -> None:
+    # Given: a renderer configuration can change without changing diagram source.
+    source = (_README_PATH.parent / "justfile").read_text(encoding="utf-8")
+    # When: the documentation recipe is inspected.
+    recipe = source.split("\ndocs-check:\n", 1)[1].split("\n\n", 1)[0]
+    # Then: Sphinx make-clean runs before the existing strict make-html command.
+    assert recipe.splitlines() == [
+        "  uv run --group docs sphinx-build -M clean docs docs/_build",
+        "  uv run --group docs sphinx-build -M html docs docs/_build -E -a -W",
+    ]
+
+
 def test_readme_does_not_claim_commands_are_future_work() -> None:
     # Given: the project README distributed with the package.
     readme = " ".join(_README_PATH.read_text(encoding="utf-8").lower().split())

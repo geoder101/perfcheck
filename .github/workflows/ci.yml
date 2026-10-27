@@ -28,6 +28,53 @@ jobs:
         with:
           just-version: "1.58.0"
       - run: uv sync --locked --group dev --group docs --group examples
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24.18.0"
+          package-manager-cache: false
+      - name: Provision locked Mermaid and Chrome
+        run: |
+          npm ci --prefix tools/docs --ignore-scripts
+          node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
+      - name: Provision Linux TeX and browser prerequisites
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra dvisvgm fonts-liberation fonts-dejavu-core libgtk-3-0t64 libnss3 libasound2t64 libgbm1
+          sudo install -m 644 tools/docs/chrome-apparmor /etc/apparmor.d/perfcheck-chrome
+          sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome
+          latex --version
+          dvisvgm --version
+      - name: Provision macOS TeX
+        if: runner.os == 'macOS'
+        run: |
+          brew install --cask basictex
+          echo /Library/TeX/texbin >> "$GITHUB_PATH"
+          sudo /Library/TeX/texbin/tlmgr update --self
+          sudo /Library/TeX/texbin/tlmgr install amsmath amsfonts preview dvisvgm dvipng cm-super
+          /Library/TeX/texbin/latex --version
+          /Library/TeX/texbin/dvisvgm --version
+      - name: Provision Windows TeX
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install miktex --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $bin = 'C:\Program Files\MiKTeX\miktex\bin\x64'
+          $env:PATH = "$bin;$env:PATH"
+          $bin >> $env:GITHUB_PATH
+          miktex --admin packages update-package-database
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          miktex --admin packages install amsmath amsfonts preview miktex-dvisvgm-bin-x64-2.9 cm-super
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          initexmf --admin --update-fndb
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          miktex --admin links install --force
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          latex --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dvisvgm --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: just check
 
   coverage:
@@ -47,6 +94,22 @@ jobs:
         with:
           just-version: "1.58.0"
       - run: uv sync --locked --group dev --group docs --group examples
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24.18.0"
+          package-manager-cache: false
+      - name: Provision locked Mermaid and Chrome
+        run: |
+          npm ci --prefix tools/docs --ignore-scripts
+          node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
+      - name: Provision Linux TeX and browser prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra dvisvgm fonts-liberation fonts-dejavu-core libgtk-3-0t64 libnss3 libasound2t64 libgbm1
+          sudo install -m 644 tools/docs/chrome-apparmor /etc/apparmor.d/perfcheck-chrome
+          sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome
+          latex --version
+          dvisvgm --version
       - name: Start coverage invocation
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}

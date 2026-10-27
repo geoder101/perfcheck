@@ -3,10 +3,15 @@
   --color-brand-content: #1d4ed8;
 }
 
-img.workflow-diagram {
+.workflow-diagram {
+  --workflow-width: 24rem;
+  color-scheme: light;
+}
+
+.workflow-diagram object[type="image/svg+xml"] {
   display: block;
   width: 100%;
-  max-width: 22rem;
+  max-width: var(--workflow-width);
   height: auto;
   margin-inline: auto;
 }

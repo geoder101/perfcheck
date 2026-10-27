@@ -1,6 +1,7 @@
 """Sphinx configuration for the perfcheck documentation."""
 
 import re
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -15,9 +16,38 @@ if TYPE_CHECKING:
 
 project = "perfcheck"
 needs_sphinx = "9.1"
-extensions = ["autoapi.extension", "sphinx.ext.imgmath"]
+extensions = [
+    "autoapi.extension",
+    "sphinx.ext.imgmath",
+    "sphinxcontrib.mermaid",
+]
 imgmath_image_format = "svg"
 imgmath_use_preview = True
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+mermaid_cmd = [sys.executable, str(_PROJECT_ROOT / "tools/mermaid.py")]
+mermaid_cmd_shell = False
+mermaid_output_format = "svg"
+mermaid_params = ["--no-font-embed"]
+mermaid_d3_zoom = False
+mermaid_fullscreen = False
+mermaid_config = {
+    "theme": "base",
+    "htmlLabels": False,
+    "fontFamily": "system-ui, sans-serif",
+    "themeVariables": {
+        "fontFamily": "system-ui, sans-serif",
+        "fontSize": "16px",
+        "background": "#ffffff",
+        "primaryColor": "#eff6ff",
+        "primaryTextColor": "#1f2937",
+        "primaryBorderColor": "#1d4ed8",
+        "secondaryColor": "#ffffff",
+        "tertiaryColor": "#eff6ff",
+        "lineColor": "#1d4ed8",
+        "edgeLabelBackground": "#ffffff",
+    },
+    "flowchart": {"htmlLabels": False, "rankSpacing": 24, "padding": 12},
+}
 nitpicky = True
 exclude_patterns = ["_build", "_templates"]
 
@@ -103,6 +133,13 @@ def autoapi_prepare_jinja_env(env: Environment) -> None:
 
 def setup(app: Sphinx) -> None:
     """Register the generated API landing page before Sphinx reads sources."""
+    # Mermaid 2.1.1 supports argv lists and booleans but registers string defaults.
+    for name, default, types in (
+        ("mermaid_cmd", "mmdc", (str, list)),
+        ("mermaid_cmd_shell", "False", (str, bool)),
+    ):
+        del app.config.values[name]
+        app.add_config_value(name, default, "html", types=types)
     _ = app.connect("missing-reference", _resolve_reference)
     api_index = Path(app.srcdir) / "reference" / "api" / "index.rst"
     api_index.parent.mkdir(parents=True, exist_ok=True)

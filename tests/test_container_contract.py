@@ -26,7 +26,11 @@ def test_toolchain_uses_verified_versioned_images(
     # Given: a toolchain built independently of the working checkout.
     # When: its base and external binary sources are selected.
     bases = [value for key, value in instructions if key == "FROM"]
-    copies = [shlex.split(value) for key, value in instructions if key == "COPY"]
+    copies = [
+        shlex.split(value)
+        for key, value in instructions
+        if key == "COPY" and "--from=" in value
+    ]
     # Then: both official multi-platform image inputs are immutable and versioned.
     python_digest = "82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
     uv_digest = "8b940d3a9d65bed080436972241af2e21c84b5e8c9193f7014ed71479ee795ff"
@@ -82,6 +86,13 @@ def test_environment_keeps_locked_state_outside_checkout(
         "UV_PYTHON_DOWNLOADS": "never",
         "UV_LOCKED": "true",
         "PATH": "/container-state/venv/bin:${PATH}",
+        "PERFCHECK_DOCS_CONTAINER": "1",
+        "PERFCHECK_MERMAID_CLI": (
+            "/opt/perfcheck-docs/node_modules/@mermaid-js/mermaid-cli/src/cli.js"
+        ),
+        "PUPPETEER_SKIP_DOWNLOAD": "true",
+        "XDG_CONFIG_HOME": "/container-state/config",
+        "XDG_CACHE_HOME": "/container-state/cache",
     }
 
 
@@ -106,6 +117,10 @@ def test_image_contains_documentation_and_development_os_tools(
         "texlive-latex-recommended",
         "texlive-latex-extra",
         "dvisvgm",
+        "chromium",
+        "chromium-sandbox",
+        "fonts-liberation",
+        "fonts-dejavu-core",
     } == set(tokens[7:-4])
     assert tokens[:7] == [
         "apt-get",
@@ -142,7 +157,7 @@ curl --fail --show-error --silent --location --retry 3
 """
     # When: the architecture-specific installer is inspected.
     installers = [
-        value for key, value in instructions if key == "RUN" and "sha256sum" in value
+        value for key, value in instructions if key == "RUN" and "just.tar.gz" in value
     ]
     # Then: only the pinned official archive is extracted, after checksum success.
     assert [shlex.split(installer) for installer in installers] == [
@@ -159,7 +174,7 @@ def test_image_build_does_not_install_project_or_define_services(
     runs = [value for key, value in instructions if key == "RUN"]
     # Then: no checkout ADD, dependency sync, service or implicit volume is baked in.
     assert not keywords & {"ADD", "EXPOSE", "HEALTHCHECK", "VOLUME"}
-    assert len(runs) == 2
+    assert not any("uv sync" in run for run in runs)
 
 
 def test_build_context_is_a_strict_input_allowlist() -> None:
@@ -171,4 +186,52 @@ def test_build_context_is_a_strict_input_allowlist() -> None:
         if line.strip() and not line.lstrip().startswith("#")
     ]
     # Then: arbitrary files (including future credentials) remain excluded by default.
-    assert rules == ["**", "!Containerfile", "!.containerignore"]
+    assert rules == [
+        "**",
+        "!Containerfile",
+        "!.containerignore",
+        "!tools/",
+        "tools/**",
+        "!tools/docs/",
+        "tools/docs/**",
+        "!tools/docs/package.json",
+        "!tools/docs/package-lock.json",
+        "!tools/docs/puppeteer.json",
+        "!tools/docs/puppeteer-container.json",
+        "!tools/docs/puppeteer-container-nosandbox.json",
+    ]
+
+
+def test_image_installs_locked_js_outside_checkout(
+    instructions: tuple[tuple[str, str], ...],
+) -> None:
+    # Given: JS dependencies must survive the runtime workspace mount.
+    runs = [value for key, value in instructions if key == "RUN"]
+    # When/Then: only locked manifests are installed without lifecycle scripts.
+    assert any(
+        "npm ci --ignore-scripts --prefix /opt/perfcheck-docs" in run for run in runs
+    )
+    assert ("USER", "perfcheck") in instructions
+    assert any("/container-state" in run and "chown" in run for run in runs)
+    assert any("chromium --version" in run and "/etc/os-release" in run for run in runs)
+
+
+def test_node_archives_are_verified_before_extraction(
+    instructions: tuple[tuple[str, str], ...],
+) -> None:
+    # Given: independently verified official Node 24.18.0 archive hashes.
+    (installer,) = [
+        value for key, value in instructions if key == "RUN" and "node.tar.gz" in value
+    ]
+    # When/Then: both supported architectures check the archive before unpacking.
+    assert (
+        "783130984963db7ba9cbd01089eaf2c2efb055c7c1693c943174b967b3050cb8" in installer
+    )
+    assert (
+        "6b4484c2190274175df9aa8f28e2d758a819cb1c1fe6ab481e2f95b463ab8508" in installer
+    )
+    assert (
+        "https://nodejs.org/dist/v24.18.0/node-v24.18.0-linux-${target}.tar.gz"
+        in installer
+    )
+    assert installer.index("sha256sum --check --strict") < installer.index("tar -xzf")

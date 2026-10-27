@@ -59,12 +59,13 @@ def test_ci_pins_and_artifact_allowlist_match_official_release_receipts() -> Non
         "astral-sh/setup-uv": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
         "extractions/setup-just": "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
         "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+        "actions/setup-node": "249970729cb0ef3589644e2896645e5dc5ba9c38",
     }
     # When: action references and the upload input block are extracted.
     actions = list(re.finditer(r"uses: ([^@\s]+)@([^\s]+)", workflow))
     upload = workflow.split("      - name: Retain coverage evidence\n")[1]
     # Then: hidden data is explicitly selected without exposing the workspace.
-    assert len(actions) == 7
+    assert len(actions) == 9
     assert all(expected[action[1]] == action[2] for action in actions)
     assert "include-hidden-files: true" in upload
     assert "retention-days: 7" in upload
@@ -77,3 +78,48 @@ def test_ci_pins_and_artifact_allowlist_match_official_release_receipts() -> Non
         "coverage/evidence/provenance.json",
         "coverage/evidence/start.json",
     ]
+
+
+def test_render_toolchain_is_provisioned_before_checks() -> None:
+    # Given: ordinary three-OS checks and the separate Linux coverage job.
+    ordinary, coverage = (
+        (_ROOT / ".github/workflows/ci.yml").read_text().split("\n  coverage:\n")
+    )
+    pages = (
+        (_ROOT / ".github/workflows/pages.yml").read_text().split("\n  deploy:\n")[0]
+    )
+    # When/Then: provision the exact local tools and regular Chrome before use.
+    for job, gate in (
+        (ordinary, "run: just check"),
+        (coverage, "run: just coverage-check"),
+        (pages, "just docs-check"),
+    ):
+        assert 'node-version: "24.18.0"' in job
+        assert job.index("npm ci --prefix tools/docs --ignore-scripts") < job.index(
+            gate
+        )
+        browser_cli = "node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js"
+        assert job.index(f"{browser_cli} browsers install chrome") < job.index(gate)
+        assert "texlive-latex-extra" in job
+        assert "dvisvgm" in job
+        assert "--no-sandbox" not in job
+        assert "apparmor_parser" in job
+        assert "sysctl" not in job
+    assert "brew install --cask basictex" in ordinary
+    assert "tlmgr install" in ordinary
+    assert "preview" in ordinary
+    assert "choco install miktex" in ordinary
+    assert pages.index("Verify checkout") < pages.index("actions/setup-node@")
+
+
+def test_windows_installs_real_miktex_converter_and_command_links() -> None:
+    # Given: Windows MiKTeX uses its platform-specific binary package ID.
+    workflow = (_ROOT / ".github/workflows/ci.yml").read_text()
+    windows = workflow.split("- name: Provision Windows TeX")[1].split(
+        "- run: just check"
+    )[0]
+    # When/Then: install the binary, expose dvisvgm, and verify command discovery.
+    assert "miktex-dvisvgm-bin-x64-2.9" in windows
+    assert "miktex --admin links install --force" in windows
+    assert "latex --version" in windows
+    assert "dvisvgm --version" in windows

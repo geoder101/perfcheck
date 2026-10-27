@@ -149,6 +149,7 @@ def test_pages_action_pins_match_verified_official_releases() -> None:
         ("actions/checkout", "3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),
         ("astral-sh/setup-uv", "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e", "v10.3.2"),
         ("extractions/setup-just", "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3", "v4"),
+        ("actions/setup-node", "249970729cb0ef3589644e2896645e5dc5ba9c38", "v6.5.0"),
         (
             "actions/upload-pages-artifact",
             "fc324d3547104276b827a68afc52ff2a11cc49c9",

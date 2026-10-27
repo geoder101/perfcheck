@@ -54,8 +54,14 @@ build:
 lock-check:
   uv lock --check
 
-# Build the documentation from fresh sources and fail on warnings.
+# Provision native documentation rendering tools explicitly (requires Node and npm).
+docs-tools:
+  npm ci --prefix tools/docs --ignore-scripts
+  node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
+
+# Build the documentation without cached renderer assets and fail on warnings.
 docs-check:
+  uv run --group docs sphinx-build -M clean docs docs/_build
   uv run --group docs sphinx-build -M html docs docs/_build -E -a -W
 
 # Preview already-built documentation locally, optionally choosing a port.

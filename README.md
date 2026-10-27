@@ -33,6 +33,7 @@ The Furo documentation site is optional; it is not needed to run the CLI.
 Build it or preview it locally from the repository root:
 
 ```bash
+just docs-tools         # explicit native provisioning; requires Node 24.18.0 and npm
 just docs-check
 just docs-preview        # fresh build, then serve at http://localhost:8000
 just docs-preview 8765   # optional port; stop with Ctrl-C
@@ -41,10 +42,29 @@ just docs-preview 8765   # optional port; stop with Ctrl-C
 These commands use the optional docs dependency group and build into
 `docs/_build/html`. Reference includes source-parsed AutoAPI documentation of
 internal Python modules, not a supported public Python API.
+`docs-check` cleans Sphinx's build output before its strict build, so SVGs cannot
+be reused across renderer configuration changes. Builds never install JS tools
+or browsers implicitly.
+
+Diagrams use the docs-only `sphinxcontrib-mermaid==2.1.1` extension with
+`mermaid_output_format = "svg"` and `mermaid_cmd_shell = False`: Sphinx invokes
+the shell-free Python launcher in `tools/mermaid.py` to render at build time.
+`just docs-tools` runs `npm ci --prefix tools/docs --ignore-scripts`, then explicitly
+installs Puppeteer's Chrome. The lockfile fixes Mermaid CLI 12.0.0 and Puppeteer
+25.16.0; native builders need Node 24.18.0, npm, and Chrome's platform libraries.
+Alternatively, an existing compatible POSIX `mmdc` on `PATH` (including a
+Bun-installed global command) is used when local tools are absent. It is not
+installed or changed by the build. Windows uses Node and the direct JS entry
+point, never a `.cmd` shim. An explicit `PERFCHECK_MERMAID_CLI` can select an
+existing absolute JS entry point instead of the local installation.
+
 Equation rendering uses Sphinx's built-in `imgmath`: documentation builders need
 LaTeX (including AMS and preview packages) and `dvisvgm` on `PATH`. The generated
-SVG equations are local assets; readers do not need TeX, JavaScript, or a CDN
-connection to view them.
+diagrams and equations are local SVG assets (diagrams embedded via `object`);
+readers need no JavaScript, Node, Chrome, TeX, or CDN connection to view them.
+The locked npm tree currently reports two low-severity audit findings for
+Mermaid CLI and its KaTeX dependency (GHSA-238p-pmpm-9mq7). These are build tooling,
+not application dependencies; no automatic `npm audit fix` is applied.
 
 ## Commands
 
@@ -67,6 +87,11 @@ uv run perfcheck compare --help
 ## Quality checks
 
 Run the same local checks before contributing documentation or code:
+
+For native builds, run `just docs-tools` once on first setup or when updating the
+locked documentation tooling, before `just check` (see the prerequisites above).
+The container image is already provisioned; do not run `docs-tools` there or
+download an unused Chrome.
 
 ```bash
 just sync
@@ -100,7 +125,20 @@ Podman build and run disable automatic proxy-environment forwarding with
 `--http-proxy=false`; proxy-dependent contributors must configure networking
 deliberately rather than rely on inherited host proxy variables.
 The image pins Python 3.14.7 and uv 0.12.9 by image digest and verifies Just 1.58.0
-release checksums (amd64/arm64); Debian apt packages aren't fully locked.
+release checksums (amd64/arm64). It also includes checksum-verified Node 24.18.0,
+the locked Mermaid CLI, and system Chromium. Do not run `docs-tools` inside the
+container: the image already owns the JS tools and browser, and downloading
+Puppeteer's Chrome there would leave an unused browser. No external host JS or
+browser runtime is needed. Debian apt browser and font packages aren't fully
+locked, so these are not bit-identical reproducible images.
+
+Browser sandboxing is enabled by default, including in the container; failures
+do not trigger an automatic no-sandbox fallback. If a trusted container build
+environment cannot support Chromium's sandbox, explicitly set
+`PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX=1` on the host before invoking the Podman
+adapter. This container-only opt-in disables the browser sandbox: containers
+share the host kernel, so use it only for trusted documentation and dependencies,
+not as an isolation guarantee for untrusted content.
 
 On native Linux, use rootless Podman. The writable checkout mount uses
 `--userns=keep-id` and SELinux shared relabeling (`:z`), not recursive checkout
@@ -161,6 +199,7 @@ semantics still apply to `test`, `cli`, and other recipes.
 Validation so far: focused image-contract/fake-Podman tests passed, along with
 host format, lint, and type checks. No Podman engine was available, so real image
 builds, container execution, and Windows behavior remain unverified.
+Native macOS/Windows rendering and hosted CI likewise remain pending real runs.
 
 ### Coverage evidence
 

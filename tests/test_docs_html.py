@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Final, override
@@ -7,6 +8,8 @@ from urllib.parse import unquote, urlsplit
 from xml.etree import ElementTree as ET
 
 import pytest
+
+from tests.docs_build import assert_local_svg_urls
 
 _DOCS: Final = Path(__file__).parents[1] / "docs"
 _AUTHORED_PAGES: Final = tuple(
@@ -25,6 +28,7 @@ class _Page(HTMLParser):
         self.text: list[str] = []
         self.math_images: list[tuple[str, str]] = []
         self.images: list[tuple[str, str]] = []
+        self.objects: list[tuple[str, str]] = []
         self.scripts: list[str] = []
         self.feed(source)
 
@@ -33,6 +37,10 @@ class _Page(HTMLParser):
         if tag == "a":
             self.links.extend(value for key, value in attrs if key == "href" and value)
         attributes = dict(attrs)
+        if tag == "object":
+            self.objects.append(
+                (attributes.get("data") or "", attributes.get("type") or "")
+            )
         if tag == "img":
             self.images.append(
                 (attributes.get("src") or "", attributes.get("alt") or "")
@@ -135,18 +143,28 @@ def test_landing_page_explains_evidence_actors_and_decisions(built_docs: Path) -
     assert "documentation and lessons keep" not in text
 
 
-def test_landing_workflow_image_is_accessible_and_self_contained(
+def test_landing_workflow_object_is_accessible_and_self_contained(
     built_docs: Path,
 ) -> None:
     # Given: the built page and its locally published assets.
     html = built_docs / "_build/html"
     page = _Page((html / "index.html").read_text(encoding="utf-8"))
-    # When: its workflow illustration is resolved like an ordinary image.
-    illustrations = [(src, alt) for src, alt in page.images if "workflow" in src]
-    # Then: meaningful alt text accompanies a real SVG without remote resources.
+    # When: the extension's generated object is resolved like a browser resource.
+    illustrations = [(src, kind) for src, kind in page.objects if "mermaid-" in src]
+    # Then: accessible fallback text accompanies an in-tree SVG, not client JS.
     assert len(illustrations) == 1
-    source, alternative = illustrations[0]
-    assert all(word in alternative.lower() for word in ("workflow", "policy", "report"))
+    source, kind = illustrations[0]
+    assert kind == "image/svg+xml"
+    content = (html / "index.html").read_text(encoding="utf-8")
+    fallback = re.search(r"<object\b[^>]*>(.*?)</object>", content, re.DOTALL)
+    assert fallback
+    assert all(
+        word in fallback.group(1).lower() for word in ("workflow", "policy", "report")
+    )
+    assert 'class="mermaid"' not in content
+    assert "mermaid.esm" not in content
+    assert "cdn.jsdelivr.net" not in content
+    assert not any("mermaid" in script or "d3" in script for script in page.scripts)
     assert not urlsplit(source).scheme
     assert not urlsplit(source).netloc
     image = (html / unquote(source)).resolve()
@@ -160,7 +178,25 @@ def test_landing_workflow_image_is_accessible_and_self_contained(
     assert root.get("aria-labelledby")
     assert all(
         label in " ".join(root.itertext()).lower()
-        for label in ("collect", "summarize", "compare", "prometheus", "policy")
+        for label in (
+            "collect",
+            "summarize",
+            "compare",
+            "prometheus",
+            "policy",
+            "baseline",
+            "current",
+            "raw",
+            "eligibility",
+            "scalar",
+            "json",
+            "markdown",
+            "pass",
+            "fail",
+            "inconclusive",
+            "engineer",
+            "ci",
+        )
     )
     assert not root.findall(".//svg:script", namespace)
     assert not root.findall(".//svg:foreignObject", namespace)
@@ -168,7 +204,7 @@ def test_landing_workflow_image_is_accessible_and_self_contained(
         for name, value in element.attrib.items():
             if name.endswith("href") or name == "src":
                 assert value.startswith("#")
-    assert "url(" not in svg.replace("url(#", "")
+    assert_local_svg_urls(svg)
     assert "@import" not in svg
 
 

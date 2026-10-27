@@ -209,6 +209,31 @@ def test_exit_and_streams(host: Host) -> None:
     assert "child stderr\n" in result.stderr
 
 
+@pytest.mark.parametrize("value", ["0", "true", "", "1;--privileged"])
+def test_invalid_browser_override_rejected(host: Host, value: str) -> None:
+    # Given: only the exact explicit boolean opt-in is supported.
+    host.env["PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX"] = value
+    # When: the adapter is invoked.
+    result = host.run("run", "docs-check")
+    # Then: invalid values never reach the engine.
+    assert result.returncode != 0
+    assert not (host.cwd / "argv").exists()
+
+
+def test_browser_override_explicit_forwarding(host: Host) -> None:
+    # Given: an explicit container sandbox opt-in and unrelated host JS settings.
+    host.env.update(
+        PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX="1", PERFCHECK_MERMAID_CLI="/host/cli.js"
+    )
+    # When: docs are requested.
+    result = host.run("run", "docs-check")
+    # Then: only the validated opt-in crosses the environment boundary.
+    assert result.returncode == 0, result.stderr
+    argv = host.argv()
+    assert argv[argv.index("--env") + 1] == "PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX=1"
+    assert not any("/host/cli.js" in arg for arg in argv)
+
+
 def test_missing_podman(host: Host) -> None:
     # Given: no executable at the engine boundary.
     binary = Path(host.env["PATH"].split(":")[0])

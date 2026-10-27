@@ -24,12 +24,17 @@ class _Links(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.targets: list[str] = []
+        self.targets: list[tuple[str, bool]] = []
+        self.base_override: bool = False
 
     @override
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag == "base" and any(key == "href" for key, _ in attrs):
+            self.base_override = True
         self.targets.extend(
-            value for key, value in attrs if key in {"href", "src"} and value
+            (value or "", tag == "object" and key == "data")
+            for key, value in attrs
+            if key in {"href", "src"} or (tag == "object" and key == "data")
         )
 
 
@@ -37,8 +42,27 @@ def _raise_scan_error(error: OSError) -> Never:
     raise error
 
 
+def _validate_targets(path: Path, root: Path, links: _Links) -> None:
+    if links.base_override:
+        raise PagesValidationError(path, "HTML base URL overrides are unsupported")
+    for target, local_resource in links.targets:
+        parsed = urlsplit(target)
+        if parsed.scheme or parsed.netloc or not parsed.path:
+            if local_resource:
+                raise PagesValidationError(path, f"invalid object resource: {target}")
+            continue
+        relative = unquote(parsed.path)
+        destination = (path.parent / relative).resolve()
+        if (
+            relative.startswith("/")
+            or not destination.is_relative_to(root)
+            or not destination.is_file()
+        ):
+            raise PagesValidationError(path, f"invalid local link: {target}")
+
+
 def validate_html(root: Path) -> None:
-    """Check staged paths and HTML href/src destinations, not general HTML validity."""
+    """Check staged paths and HTML resource destinations, not general HTML validity."""
     if root.is_symlink():
         raise PagesValidationError(root, "HTML root must not be a symlink")
     resolved_root = root.resolve()
@@ -57,18 +81,7 @@ def validate_html(root: Path) -> None:
                 continue
             links = _Links()
             links.feed(path.read_text(encoding="utf-8"))
-            for target in links.targets:
-                parsed = urlsplit(target)
-                if parsed.scheme or parsed.netloc or not parsed.path:
-                    continue
-                relative = unquote(parsed.path)
-                destination = (path.parent / relative).resolve()
-                if (
-                    relative.startswith("/")
-                    or not destination.is_relative_to(resolved_root)
-                    or not destination.is_file()
-                ):
-                    raise PagesValidationError(path, f"invalid local link: {target}")
+            _validate_targets(path, resolved_root, links)
     except (OSError, ValueError) as error:
         raise PagesValidationError(root, str(error)) from error
 

@@ -43,12 +43,19 @@ if [ -z "$state" ]; then
     digest=$(printf '%.12s' "$digest")
     state=perfcheck-dev-$digest-py314-v1
 fi
+if [ "${PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX+x}" = x ]; then
+    [ "$PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX" = 1 ] ||
+        fail 'PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX must be 1 when requested'
+fi
 case "$state" in ''|*[!a-zA-Z0-9_.-]*|[!a-zA-Z0-9]*) fail 'State must be a named volume' ;; esac
 
 if [ -n "$port" ]; then
     set -- --publish "127.0.0.1:$port:8000" "$image" "$@"
 else
     set -- "$image" "$@"
+fi
+if [ "${PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX+x}" = x ]; then
+    set -- --env PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX=1 "$@"
 fi
 if [ "$platform" = Linux ]; then
     set -- --userns=keep-id --volume "$source:/workspace:z" "$@"
