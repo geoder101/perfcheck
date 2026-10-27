@@ -16,6 +16,28 @@
   margin-inline: auto;
 }
 
+section.homepage > h1 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+img.welcome-banner {
+  display: block;
+  width: 100%;
+  max-width: 600px;
+  height: auto;
+  margin-inline: auto;
+  color-scheme: light;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --color-brand-primary: #93c5fd;

@@ -1,13 +1,53 @@
-perfcheck documentation
-=======================
+.. rst-class:: homepage
 
-Repeated measurements vary. ``perfcheck`` turns them into reproducible,
-inspectable performance-regression evidence, so you can compare baseline and
-current runs consistently under one policy. Keep the observations behind a
-decision, investigate changes, and use the same evidence in engineering
-investigation and CI gates, rather than relying on a single timing or a bare
-statistical-test result. It is an evidence workflow, not a monitoring dashboard.
-Its supported public surface is the ``perfcheck`` command-line interface.
+perfcheck
+=========
+
+.. image:: _static/perfcheck-readme-banner-1200x400.png
+   :alt:
+   :width: 1200
+   :height: 400
+   :class: welcome-banner
+
+**Welcome to perfcheck!**
+
+Keeping software fast is part of taking care of the people who use it. As a
+project grows and changes, performance testing helps us understand whether it is
+still as responsive and efficient as we expect.
+
+But understanding a performance change takes more than comparing two numbers.
+The same workload can produce different measurements from one run to the next.
+When a new version appears slower, is the difference a regression—or simply the
+variation we should expect?
+
+**perfcheck helps you investigate that question.** It provides a command-line
+workflow for collecting performance measurements, preserving the observations
+behind them, and comparing baseline and current runs under a consistent set of
+rules. You get reports you can inspect and share, whether you are exploring a
+change locally or checking it in CI.
+
+Whether you are new to performance testing or bringing an existing benchmark
+into CI, these guides and runnable examples will help you get started.
+
+Where to start
+--------------
+
+Start with :doc:`explanation/learning-paths` to choose a beginner,
+practitioner, or deep-dive route through the existing guides and executable labs.
+For a quick first run, use :doc:`tutorials/first-comparison`; for a complete
+artifact-to-CI walkthrough, use :doc:`tutorials/performance-verification-case-study`.
+The statistical teaching models explain assumptions without adding CLI methods.
+
+Choose the documentation path that fits your goal.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Documentation paths
+
+   tutorials/index
+   how-to/index
+   reference/index
+   explanation/index
 
 From observations to a decision
 -------------------------------
@@ -56,22 +96,8 @@ measured, inspect which runs qualify, and understand why a comparison reached
 its outcome. An inconclusive result calls for investigation or more suitable
 evidence, not an assumption that performance is unchanged.
 
-Where to start
---------------
+Scope
+-----
 
-Welcome! Start with :doc:`explanation/learning-paths` to choose a beginner,
-practitioner, or deep-dive route through the existing guides and executable labs.
-For a quick first run, use :doc:`tutorials/first-comparison`; for a complete
-artifact-to-CI walkthrough, use :doc:`tutorials/performance-verification-case-study`.
-The statistical teaching models explain assumptions without adding CLI methods.
-
-Choose the documentation path that fits your goal.
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Documentation paths
-
-   tutorials/index
-   how-to/index
-   reference/index
-   explanation/index
+``perfcheck`` is an evidence workflow, not a monitoring dashboard.
+Its supported public surface is the ``perfcheck`` command-line interface.
