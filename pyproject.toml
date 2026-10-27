@@ -50,6 +50,12 @@ pythonPlatform = "All"
 include = ["src", "tests", "examples", "tools"]
 exclude = ["**/__pycache__", "**/.venv", "build", "dist"]
 
+[tool.esbonio.sphinx]
+pythonCommand = ["uv", "run", "--group", "docs", "python"]
+buildArguments = ["-M", "html", "docs", "${defaultBuildDir}"]
+# Run just docs-check to refresh AutoAPI sources; editor builds only read them.
+configOverrides = { autoapi_generate_api_docs = false }
+
 [tool.ruff]
 target-version = "py314"
 line-length = 88

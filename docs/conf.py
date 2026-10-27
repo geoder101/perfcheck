@@ -141,10 +141,14 @@ def setup(app: Sphinx) -> None:
         del app.config.values[name]
         app.add_config_value(name, default, "html", types=types)
     _ = app.connect("missing-reference", _resolve_reference)
-    api_index = Path(app.srcdir) / "reference" / "api" / "index.rst"
-    api_index.parent.mkdir(parents=True, exist_ok=True)
-    _ = api_index.write_text(
-        """Internal API reference
+    if (
+        "autoapi.extension" not in app.extensions
+        or app.config["autoapi_generate_api_docs"] is True
+    ):
+        api_index = Path(app.srcdir) / "reference" / "api" / "index.rst"
+        api_index.parent.mkdir(parents=True, exist_ok=True)
+        _ = api_index.write_text(
+            """Internal API reference
 ======================
 
 .. toctree::
@@ -152,8 +156,8 @@ def setup(app: Sphinx) -> None:
 
    perfcheck/index
 """,
-        encoding="utf-8",
-    )
+            encoding="utf-8",
+        )
 
 
 html_theme = "furo"

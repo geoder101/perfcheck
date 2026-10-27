@@ -106,16 +106,17 @@ def _doc_references(source: str) -> tuple[str, ...]:
     return tuple(references)
 
 
-def test_root_navigation_previews_workflow_before_four_diataxis_sections() -> None:
+def test_root_navigation_exposes_workflow_and_four_diataxis_sections() -> None:
     # Given: the source for the Furo documentation landing page.
     index = _read(Path("docs/index.rst"))
 
-    # When: a first-time visitor reaches the workflow preview and section links.
-    workflow_preview, _, _ = index.partition(".. toctree::")
+    # When: a first-time visitor reaches the workflow section and section links.
+    _, _, workflow_section = index.partition("From observations to a decision\n")
+    workflow_section, _, _ = workflow_section.partition("\nScope\n")
 
-    # Then: the preview precedes the four canonical Diataxis destinations.
+    # Then: the workflow names each command and navigation has four destinations.
     assert all(
-        f"``{command}``" in workflow_preview
+        f"``{command}``" in workflow_section
         for command in ("collect", "summarize", "compare")
     )
     assert _toctree_entries(index) == _SECTION_DOCUMENTS

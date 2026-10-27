@@ -85,13 +85,18 @@ def test_rendered_landing_page_exposes_project_workflow_and_four_paths(
     built_docs: Path,
 ) -> None:
     # Given: the built landing page visitors actually receive.
-    page = _Page((built_docs / "_build/html/index.html").read_text(encoding="utf-8"))
+    source = (built_docs / "_build/html/index.html").read_text(encoding="utf-8")
+    page = _Page(source)
 
     # When: its rendered text and anchor targets are collected.
     text = " ".join(" ".join(page.text).split())
 
     # Then: the project-first workflow and all four Diataxis sections survive build.
-    assert "perfcheck documentation" in text
+    assert re.search(
+        r"<h1\b[^>]*>\s*perfcheck\s*(?:<a\b[^>]*>.*?</a>\s*)?</h1>",
+        source,
+        re.DOTALL,
+    )
     assert all(command in text for command in ("collect", "summarize", "compare"))
     assert all(
         f"{section}/index.html" in page.links
@@ -113,31 +118,30 @@ def test_landing_page_explains_evidence_actors_and_decisions(built_docs: Path) -
     # When: readers access the textual workflow equivalent.
     text = " ".join(" ".join(page.text).split()).lower()
     # Then: purpose, actors, evidence transformations and outcomes are discoverable.
-    assert all(
-        concept in text
-        for concept in (
-            "repeated measurements",
-            "inspectable",
-            "investigation",
-            "benchmark operator",
-            "prometheus",
-            "timestamped",
-            "configured suite",
-            "portable raw",
-            "eligibility",
-            "per-run scalar",
-            "baseline and current",
-            "comparable",
-            "policy configuration",
-            "json",
-            "markdown",
-            "pass",
-            "fail",
-            "inconclusive",
-            "engineer",
-            "ci",
-        )
-    )
+    for concept in (
+        "different measurements from one run to the next",
+        "variation",
+        "inspectable",
+        "investigation",
+        "benchmark operator",
+        "prometheus",
+        "timestamped",
+        "configured suite",
+        "portable raw",
+        "eligibility",
+        "per-run scalar",
+        "baseline and current",
+        "comparable",
+        "policy configuration",
+        "json",
+        "markdown",
+        "pass",
+        "fail",
+        "inconclusive",
+        "engineer",
+        "ci",
+    ):
+        assert concept in text, f"Missing landing-page concept: {concept}"
     assert "raw-run inputs" in text
     assert "both cohorts" in text
     assert "documentation and lessons keep" not in text
