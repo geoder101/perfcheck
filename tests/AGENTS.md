@@ -2,10 +2,11 @@
 
 ## Scope
 
-`tests/` contains ordinary behavioral, CLI, artifact, policy, and regression
-coverage. Keep each test beside the behavior or module it exercises, using a
+See [README.md](README.md) for the descriptive suite and fixture inventory.
+
+Keep each test beside the behavior or module it exercises, using a
 descriptive `test_<behavior>.py` module name rather than grouping unrelated
-features.
+features. Keep ordinary tests fast, isolated, and focused on one behavior.
 
 `tests/e2e/` owns package and distribution workflow checks. Put installation,
 built-wheel, console-script, and other full workflow coverage there, not in
@@ -41,9 +42,3 @@ report, or Prometheus matrix when possible instead of adding fixture plumbing.
   metadata. Preserve that behavior because redaction tests depend on it.
 - Keep fixture data focused on one policy outcome or transport scenario. Put
   scenario-specific values in the test when they don't belong in shared data.
-
-## Boundaries
-
-Don't turn this directory into an alternate packaging test suite. Route
-package and distribution workflows to `tests/e2e/`, and keep ordinary tests
-fast, isolated, and focused on one behavior.

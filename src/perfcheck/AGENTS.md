@@ -1,10 +1,11 @@
 # perfcheck Package Guide
 
+See the [source guide](../README.md) for workflow and module navigation.
+
 ## Package Boundaries
 
 - Keep `cli.py` at the command boundary. Put command orchestration and file
-  preflight in `cli_services.py`; changes to public options, messages, or exit
-  behavior require command-level tests.
+  preflight in `cli_services.py`.
 - Keep artifact shapes in `artifact_models.py`, `summary_models.py`, and related
   `*_models.py` modules. Keep parsing and cross-artifact checks in
   `artifact_validation.py` and `storage.py`.
@@ -43,12 +44,10 @@
 
 ## Targeted Tests
 
-- Add artifact and integrity coverage alongside changes in `tests/test_artifacts.py`,
-  `tests/test_storage.py`, or the matching validation test.
-- Add transport, endpoint, and redaction coverage with the Prometheus tests,
+- Add artifact and integrity coverage in the matching artifact, storage, or
+  validation tests; add transport, endpoint, and redaction coverage in Prometheus tests,
   including `tests/test_prometheus_query_range.py`.
 - Add policy, bootstrap, regression, summary, or report coverage in the test
-  module named for the changed behavior, such as `tests/test_summarize.py`,
-  `tests/test_summary_regressions.py`, and `tests/test_reports.py`.
-- For public CLI semantics, command parsing, output-path handling, or exit
-  behavior, add or update the corresponding CLI command test.
+  module named for the changed behavior.
+- For public CLI semantics, parsing, options, messages, output-path handling,
+  or exit behavior, add or update the corresponding CLI command test.

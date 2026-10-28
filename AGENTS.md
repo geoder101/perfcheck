@@ -1,148 +1,87 @@
 # perfcheck Repository Guide
 
-## Purpose
-
 `perfcheck` produces reproducible performance-regression evidence for CI.
-The supported workflow collects a portable raw run, summarizes verified raw
-evidence, then compares current and baseline evidence under one policy.
+Keep the public surface CLI-only; internal Python APIs and artifact schemas are
+unstable and may change during cleanup. Keep changes within the CLI contract
+unless [README's public scope](README.md#scope) changes in the same work.
 
-The public surface is the `perfcheck` CLI only. Internal Python APIs and
-artifact schemas are unstable and may change during cleanup. See `README.md`
-for the supported command workflow and scope.
+## README Index
 
-## Structure
+- [Root README](README.md): installation, CLI workflow, scope, and evidence interpretation.
+- [Source](src/README.md): module map and artifact flow.
+- [Tests](tests/README.md): behavior coverage, fixtures, and test selection.
+- [Tools](tools/README.md): repository helpers and evidence handling.
+- [Docs](docs/README.md): Diataxis navigation, generated API, and rendering setup.
+- [Workflows](.github/workflows/README.md): CI, evidence retention, and Pages.
+- [Examples](examples/README.md): ordered executable lessons and lesson setup.
 
-```text
-src/perfcheck/   CLI, domain models, collection, evaluation, persistence, reports
-tests/           behavioral, CLI, artifact, policy, and regression coverage
-docs/            project-first Diataxis documentation and generated internal API
-examples/        ten ordered executable Marimo lessons and local fixtures
-pyproject.toml   package metadata and enforced tool configuration
-justfile         canonical developer commands
-README.md        installation, CLI workflow, and public-surface statement
-```
+## Change Boundaries
 
-## Where to Look
-
-- CLI entry point and command boundary: `src/perfcheck/cli.py`.
-  The console script maps `perfcheck` to `perfcheck.cli:app`.
-- Shared strict Pydantic base and semantic model types: `src/perfcheck/model_types.py`.
-  `StrictModel` is the base for validated public models.
-- Suite policy models and policy identity logic: `src/perfcheck/policy_models.py`
-  and `src/perfcheck/policy.py`.
-- Prometheus collection orchestration: `src/perfcheck/collection_service.py`.
-  It collects policy metrics into one raw run, retaining partial failures.
-- Persisted evidence and integrity verification: `src/perfcheck/storage.py`.
-  Artifacts use canonical JSON and content hashes.
-- Regression decision facade: `src/perfcheck/regression.py`.
-  It applies policy to validated cohorts.
-- Report assembly and renderers: `src/perfcheck/report_assembly.py` and the
-  report modules. The CLI writes JSON and Markdown reports.
-- Tests: start with the test named for the behavior or module being changed.
-  `pyproject.toml` declares `tests` as the pytest test path.
-- Documentation entry point: `docs/index.rst`. Diataxis sources live in
-  `docs/tutorials/`, `docs/how-to/`, `docs/reference/`, and `docs/explanation/`.
-  The runnable curriculum is indexed in `examples/README.md`, lessons 01–10.
-- Internal API reference: `docs/conf.py` configures source-parsed AutoAPI over
-  all of `src`; it does not import application modules. Reference owns the
-  generated API navigation; private/special members are excluded. Generated
-  API RST and built HTML are ignored outputs, not hand-maintained sources or
-  promises of Python API compatibility.
-
-## Artifact Flow
-
-1. `collect` writes a raw run artifact from suite metrics.
-2. `summarize` writes a canonical summary from a verified raw run.
-3. `compare` accepts summaries or raw-run inputs, evaluates policy, and writes
-   JSON plus Markdown reports.
-
-Read CLI help before changing command behavior:
-
-```bash
-just cli --help
-just cli collect --help
-just cli summarize --help
-just cli compare --help
-```
-
-## Environment and Build
-
-- Python: `>=3.14,<3.15`.
-- Package and environment manager: `uv`.
-- Build backend: `uv_build`.
-- Sync development dependencies: `just sync`.
-- Ordinary sync uses locked dev/docs/examples groups, excluding optional mutmut;
-  rerun it after mutation work to restore the ordinary environment.
-- Build distributions: `just build`.
-- Optional documentation: `just docs-check` builds fresh Furo HTML with warnings
-  treated as errors using the docs dependency group. `just docs-preview [port]`
-  runs that build before serving `docs/_build/html` (default port 8000); stop
-  with Ctrl-C and clean up preview processes after QA.
-- Optional Podman forwarding: see README's "Optional Podman environment" for
-  `just -f podman.just build`, `run sync`, `run check`, source/state overrides,
-  and platform/validation limits. The original `justfile` remains authoritative;
-  don't duplicate its recipes in `podman.just`. Keep container state separate
-  from host `.venv`, serialize sync/mutation state operations, and preserve evidence
-  before cleanup. Container checks don't establish native Windows compatibility.
-  Never run concurrent host/container writers to the same `docs/_build/`, `dist/`,
-  `coverage/`, or `mutation/`; distinct state volumes don't isolate these outputs.
-  Windows launch uses process-scoped ExecutionPolicy Bypass, not machine/user
-  changes; organization Group Policy can still block it. Build/run disable proxy
-  environment forwarding (`--http-proxy=false`); configure proxy networking
-  deliberately when needed.
-
-## Quality Gates
-
-`pyproject.toml` enforces the following:
-
-- Ruff targets Python 3.14, uses 88-character lines, and selects `ALL` rules.
-- BasedPyright runs with `typeCheckingMode = "all"` over `src` and `tests`.
-- Pytest uses strict config and markers, with all warnings treated as errors.
-
-Use `just` commands, not hand-assembled substitutes:
-
-```bash
-just test
-just format-check
-just lint
-just typecheck
-just lock-check
-just build
-just examples-check
-just docs-check
-just check
-```
-
-`just check` is the standard complete gate: lock verification, format check,
-lint, type checking, tests, executable examples, documentation, and build.
-It and `just test` remain coverage-free and mutation-free. Opt-in commands:
-
-- `just coverage [pytest args]`: exploratory statement/branch reports, no default floor.
-- `just coverage-check`: zero-argument fresh full-suite 99% combined coverage gate.
-- `just mutation`: optional Unix-only aggregation pilot; installs its dedicated
-  group, uses one worker/600-second child budget, and refuses nonempty `mutation/`.
-  Archive retained evidence outside the checkout before rerunning; then `just sync`.
-
-README owns evidence interpretation and the one-time GitHub Pages owner checklist.
-Hosted CI/platform/deployment results remain pending until a real repository run;
-Pages is docs-only, including internal AutoAPI, never coverage/mutation evidence.
-
-## Root Rules
-
+- Before changing command behavior, read all four: `just cli --help`,
+  `just cli collect --help`, `just cli summarize --help`, and `just cli compare --help`.
+- Start with the test named for the behavior or module being changed.
 - Keep credentials out of persisted artifacts, labels, metadata, queries, logs,
   and diagnostics. Review `src/perfcheck/errors.py` and collection logging
   before changing boundary data.
 - Don't add undocumented external integrations. The documented scope excludes
   dashboards, databases, DSLs, HTML, and other external integrations.
-- Don't overwrite an output path unless the command accepts and receives
+- Don't overwrite an output path unless the command accepts AND receives
   `--force`. CLI preflight reports existing paths as an input error.
 - Preserve canonical serialization and content-hash verification when touching
-  policies or artifacts. See `src/perfcheck/storage.py`.
-- Keep changes within the CLI contract unless the README's public scope changes
-  in the same work.
+  policies or artifacts; see `src/perfcheck/storage.py`.
+
+## Commands and Quality Gates
+
+- Use canonical [justfile](justfile) recipes, not hand-assembled substitutes;
+  don't duplicate them in `podman.just`. Use `just build` for distributions.
+- Follow [setup](README.md#install) and [configuration](pyproject.toml):
+  Python `>=3.14,<3.15`, `uv` package/environment management, `uv_build` backend.
+- Use `just sync` for locked dev/docs/examples groups without optional mutmut;
+  rerun it after mutation work to restore the ordinary environment.
+- Keep Ruff's Python 3.14 target, 88-character lines, and `ALL` rules;
+  BasedPyright's `typeCheckingMode = "all"` over `src` and `tests`; and pytest's
+  `tests` discovery, strict config/markers, and warnings-as-errors expectations.
+- Use `just check` as the standard complete gate: lock verification, format
+  check, lint, type checking, tests, executable examples, documentation, and build.
+  Keep ordinary `just test` and `just check` coverage-free and mutation-free.
+- Opt into `just coverage [pytest args]` for exploratory statement/branch
+  reports with no default floor; `just coverage-check` is a zero-argument,
+  fresh full-suite 99% combined statement/branch coverage gate.
+- Keep `just mutation` an optional Unix-only aggregation pilot: dedicated
+  dependency group, one worker, 600-second child budget; refuse nonempty `mutation/`.
+  Archive retained evidence outside the checkout before rerunning; then `just sync`.
+
+## Documentation and Hosted Evidence
+
+- Use `just docs-check` for fresh Furo HTML with warnings treated as errors,
+  using the docs dependency group. `just docs-preview [port]` runs that build
+  before serving `docs/_build/html` (default 8000); stop with Ctrl-C and clean up
+  preview processes after QA. Follow the linked README for rendering prerequisites.
+- Keep AutoAPI source-parsed over all `src` without importing application modules;
+  exclude private/special members. Reference owns generated API navigation.
+  Treat generated API RST and built HTML as ignored outputs, not hand-maintained
+  sources or promises of Python API compatibility.
+- Follow [README evidence guidance](README.md#quality-checks) and its
+  [one-time owner checklist](README.md#one-time-github-hosting-setup-owner).
+  Leave hosted CI/platform/deployment results pending until real repository runs.
+  Keep Pages docs-only, including internal AutoAPI, never coverage/mutation evidence.
+
+## Optional Podman Safety
+
+- Follow [Podman setup and overrides](README.md#optional-podman-environment);
+  the original `justfile` remains authoritative.
+- Keep container state separate from host `.venv`; serialize sync/mutation state
+  operations and preserve evidence before cleanup.
+- Never run concurrent host/container writers to the same `docs/_build/`, `dist/`,
+  `coverage/`, or `mutation/`; distinct state volumes don't isolate these outputs.
+- Don't claim native Windows compatibility from container checks.
+- Keep Windows launch ExecutionPolicy Bypass process-scoped, not machine/user
+  policy changes; organization Group Policy can still block execution.
+- Keep build/run proxy-environment forwarding disabled (`--http-proxy=false`);
+  configure proxy networking deliberately when needed.
 
 ## Guide Inheritance
 
-This file defines repository-wide guidance. Child `AGENTS.md` files add local
-rules for their directory and take precedence when more specific. Don't repeat
-this root guide in child files; document only the local details needed there.
+Apply this guide repository-wide. Child `AGENTS.md` files add local rules and
+take precedence when more specific. Don't repeat root guidance in child files;
+document only the local details needed there.

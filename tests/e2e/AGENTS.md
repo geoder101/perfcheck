@@ -2,17 +2,14 @@
 
 ## Scope
 
-This directory proves distribution isolation checks and complete CLI workflows.
-The supported public surface is the `perfcheck` CLI.
-Add coverage here only when a change affects wheel installation, the generated
-console command, or an end-to-end `collect` through `compare` outcome.
+Add coverage here only for wheel installation, the generated console command,
+or a complete `collect` through `compare` outcome. See the
+[E2E overview](../README.md#distribution-and-complete-cli-e2e).
 
-Keep unit, CLI boundary, artifact, policy, and fixture-detail coverage outside
-this directory. Do not use E2E tests for internal implementation changes.
+Keep unit, CLI boundary, artifact, policy, fixture-detail, and internal
+implementation coverage outside this directory.
 
 ## Fresh Wheel Isolation
-
-`test_fresh_wheel.py` verifies the built distribution, not the checkout.
 
 - Build a wheel into a temporary artifact directory.
 - Create a clean virtual environment and install that wheel into it.
@@ -30,10 +27,10 @@ installation, or an active project virtual environment.
 
 ## Workflow Scenario Matrix
 
-`test_v1_workflow.py` defines a typed Python scenario matrix for pass, fail,
-and inconclusive verdicts. It uses the shared `tests/e2e/support.py` helpers,
-which start the local Prometheus fixture through `sys.executable` and locate
-the generated console command.
+`test_v1_workflow.py` uses the active environment, not a fresh-wheel install,
+and defines a typed Python scenario matrix for pass, fail, and inconclusive.
+Shared `tests/e2e/support.py` helpers start the local Prometheus fixture through
+`sys.executable` and resolve the generated console command.
 
 - Invoke that command with argument vectors, never through a shell.
 - For every scenario, execute `collect`, then `summarize`, then `compare` with
