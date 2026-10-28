@@ -93,31 +93,34 @@ if __name__ == "__main__":
     assert invalid_path.name in captured.err
 
 
-def test_validate_repository_course_rejects_a_missing_lesson_command(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+@pytest.mark.parametrize(
+    "missing_recipe", [None, "notebook-edit", "notebook-run", "notebook-script"]
+)
+def test_validate_repository_course_checks_each_lesson_command(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, missing_recipe: str | None
 ) -> None:
-    # Given: an otherwise complete temporary course without one consumer command.
+    # Given: a complete temporary course, optionally missing one lesson command.
     lessons = tuple(tmp_path / path.name for path in examples_check.EXAMPLE_NOTEBOOKS)
     for lesson in lessons:
         _ = lesson.write_text("import marimo\n", encoding="utf-8")
     lines: list[str] = []
     for lesson in lessons:
+        lines.append(f"[{lesson.name}]({lesson.name})")
         lines.extend(
-            (
-                f"[{lesson.name}]({lesson.name})",
-                f"uv run --group examples marimo edit examples/{lesson.name}",
-                f"uv --directory . run --group examples python examples/{lesson.name}",
-            )
+            f"just {recipe} examples/{lesson.name}"
+            for recipe in ("notebook-edit", "notebook-run", "notebook-script")
+            if lesson != lessons[-1] or recipe != missing_recipe
         )
-        if lesson != lessons[-1]:
-            lines.append(f"uv run --group examples marimo run examples/{lesson.name}")
     _ = (tmp_path / "README.md").write_text("\n".join(lines), encoding="utf-8")
     monkeypatch.setattr(examples_check, "_EXAMPLES_DIRECTORY", tmp_path)
     monkeypatch.setattr(examples_check, "EXAMPLE_NOTEBOOKS", lessons)
 
     # When: the examples checker validates the public course index.
 
-    # Then: it identifies the omitted command for the final canonical lesson.
+    # Then: complete commands pass; an omission identifies the final lesson.
+    if missing_recipe is None:
+        examples_check.validate_repository_course()
+        return
     with pytest.raises(
         AssertionError,
         match=(

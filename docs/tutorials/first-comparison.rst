@@ -10,11 +10,17 @@ pointing at a live Prometheus service or choosing persistent output paths.
 Prerequisite
 ------------
 
-From the repository root, install the optional lesson tools:
+Native setup requires Just, uv, and Python 3.14; see the
+project's root ``README.md`` for full prerequisites.
+Run setup and the lesson commands from the repository root:
 
 .. code-block:: console
 
-   $ uv sync --group examples
+   $ just sync
+
+This installs the locked dev/docs/examples groups, not just the minimal lesson
+dependencies. The :download:`curriculum index <../../examples/README.md>` explains
+the authoring, interactive viewing, and noninteractive script recipes.
 
 Steps
 -----
@@ -32,7 +38,7 @@ Steps
 
    .. code-block:: console
 
-      $ uv run --group examples marimo run examples/01-overview.py
+      $ just notebook-run examples/01-overview.py
 
 #. Continue through lesson 05. The lessons exercise the CLI, but they do not
    replace it. The supported public surface remains the ``perfcheck`` command.

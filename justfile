@@ -26,6 +26,36 @@ coverage-check:
 examples-check:
   uv run --group examples python -m tests.examples_check
 
+# Run one notebook as a Marimo app.
+[unix]
+notebook-run $notebook:
+  uv run --group examples marimo run "$notebook"
+
+# Run one notebook as a Marimo app.
+[windows]
+notebook-run $notebook:
+  uv run --group examples marimo run "$env:notebook"; exit $LASTEXITCODE
+
+# Edit one notebook in Marimo.
+[unix]
+notebook-edit $notebook:
+  uv run --group examples marimo edit "$notebook"
+
+# Edit one notebook in Marimo.
+[windows]
+notebook-edit $notebook:
+  uv run --group examples marimo edit "$env:notebook"; exit $LASTEXITCODE
+
+# Execute one notebook as a Python script.
+[unix]
+notebook-script $notebook:
+  uv --directory . run --group examples python "$notebook"
+
+# Execute one notebook as a Python script.
+[windows]
+notebook-script $notebook:
+  uv --directory . run --group examples python "$env:notebook"; exit $LASTEXITCODE
+
 # Run the perfcheck CLI, optionally forwarding CLI arguments.
 cli *args:
   uv run perfcheck {{args}}

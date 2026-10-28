@@ -4,18 +4,30 @@
 
 ## Install
 
-This project requires Python 3.14. Install the application and development tools
-with [uv](https://docs.astral.sh/uv/):
+For a native checkout, install Python 3.14,
+[Just](https://just.systems/man/en/chapter_4.html), and
+[uv](https://docs.astral.sh/uv/). Just is the project's task runner; uv is the
+underlying Python package and environment manager. Run these commands from the
+repository root to set up the contributor environment:
 
 ```bash
-uv sync --group dev
+just sync
 ```
+
+This installs the application and locked dev/docs/examples groups, excluding
+optional mutation tooling. It is the contributor setup, not a minimal CLI install.
+The installed `perfcheck` CLI does not require Just.
 
 Run the CLI through the managed environment:
 
 ```bash
-uv run perfcheck --help
+just cli --help
 ```
+
+Use Just recipes for covered tasks. If Just isn't available, inspect `justfile`
+for the underlying commands rather than maintaining a separate manual checklist.
+Use direct commands only for tooling without a recipe or when necessary to
+preserve quoted argument boundaries or the application's exit status.
 
 Start with the [Project documentation](docs/index.rst) for a workflow overview
 and four Diataxis paths: Tutorials, How-to guides, Reference, and Explanation.
@@ -73,9 +85,9 @@ run, and compares current and baseline evidence under one policy. Use the live
 help for each command's required paths and options:
 
 ```bash
-uv run perfcheck collect --help
-uv run perfcheck summarize --help
-uv run perfcheck compare --help
+just cli collect --help
+just cli summarize --help
+just cli compare --help
 ```
 
 - `collect` writes one raw run artifact from all metrics in a suite.

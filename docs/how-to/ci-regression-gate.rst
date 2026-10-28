@@ -14,10 +14,19 @@ Have a policy, current and baseline evidence, and two report destinations that
 your CI job may write. Keep secrets out of command arguments and persisted
 paths.
 
+For source-checkout use, run from the checkout root after ``just sync``.
+For an installed application, use ``perfcheck`` directly instead of
+``uv run perfcheck``.
+
 Steps
 -----
 
 #. Run ``compare`` with repeated cohort flags and persist both reports:
+
+   Unlike ordinary how-to commands, this guide uses ``uv run perfcheck`` directly
+   because CI classifies exact application exit statuses. The configured Windows
+   ``powershell.exe -Command`` recipe shell can normalize native nonzero statuses,
+   so ``just cli`` is not a portable exact-status interface.
 
    .. code-block:: console
 
@@ -34,6 +43,10 @@ Expected observable
 invalid command input, such as an existing output without ``--force``. A
 collection job can return exit status ``4`` after writing a raw run with an
 enabled metric collection failure.
+
+These application outcomes (``0`` through ``4``) are distinct from launcher or
+recipe failures. If the application cannot start, inspect the launcher diagnostic;
+that failure is not a statistical verdict.
 
 Related material
 ----------------

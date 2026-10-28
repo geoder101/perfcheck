@@ -23,6 +23,7 @@ _AUTOAPI_OPTIONS: Final = [
 ]
 _SOURCE_EXCLUSION_REASONS: Final = (
     "AGENTS.md is repository guidance, not a Python module",
+    "src/README.md is the source guide, not a Python module",
     "__pycache__ bytecode is generated, not source",
 )
 
@@ -136,10 +137,13 @@ def test_reference_contract_covers_source_manifest_and_navigation(
     excluded_paths = _excluded_source_paths()
     assert _SOURCE_EXCLUSION_REASONS == (
         "AGENTS.md is repository guidance, not a Python module",
+        "src/README.md is the source guide, not a Python module",
         "__pycache__ bytecode is generated, not source",
     )
     assert all(
-        path.name == "AGENTS.md" or "__pycache__" in path.parts
+        path == Path("README.md")
+        or path.name == "AGENTS.md"
+        or "__pycache__" in path.parts
         for path in excluded_paths
     )
     assert _toctree_entries(reference_index) == (

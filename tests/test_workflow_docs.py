@@ -170,7 +170,7 @@ def test_compare_guide_shows_json_stdout_capture_with_a_markdown_report() -> Non
 
     # Then: one example captures JSON stdout while requesting a Markdown file.
     assert (
-        "uv run perfcheck compare --policy policy.json "
+        "just cli compare --policy policy.json "
         "--current summaries/current-1.json --baseline summaries/baseline-1.json "
         "--report-md reports/comparison.md --json > reports/comparison.json"
     ) in commands

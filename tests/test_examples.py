@@ -135,14 +135,14 @@ def test_documentation_scope_preserves_cli_only_setup_and_explicit_commands() ->
         command
         for notebook in EXAMPLE_NOTEBOOKS
         for command in (
-            f"uv run --group examples marimo edit examples/{notebook.name}",
-            f"uv run --group examples marimo run examples/{notebook.name}",
-            f"uv --directory . run --group examples python examples/{notebook.name}",
+            f"just notebook-edit examples/{notebook.name}",
+            f"just notebook-run examples/{notebook.name}",
+            f"just notebook-script examples/{notebook.name}",
         )
     )
 
     # Then: a contributor can set up, author, consume, or script every lesson.
-    assert "uv sync --group examples" in index
+    assert "just sync" in index
     assert all(command in index for command in required_commands)
 
 

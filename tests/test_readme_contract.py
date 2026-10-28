@@ -50,10 +50,11 @@ def test_readme_documents_supported_workflow_and_scope() -> None:
 
     # Then: the README lists only current commands, quality checks, and scope.
     required_claims = (
-        "perfcheck collect --help",
-        "perfcheck summarize --help",
-        "perfcheck compare --help",
-        "uv sync --group dev",
+        "just cli --help",
+        "just cli collect --help",
+        "just cli summarize --help",
+        "just cli compare --help",
+        "just sync",
         "just check",
         "Internal implementation may change or be removed",
     )
@@ -111,30 +112,32 @@ def test_readme_link_contract_rejects_a_missing_target(tmp_path: Path) -> None:
         _ = _assert_local_links(source, tmp_path)
 
 
-def test_governance_maps_optional_documentation_without_a_public_python_api(
-    built_docs: Path,
-) -> None:
+def test_governance_maps_optional_documentation_without_a_public_python_api() -> None:
     # Given: contributor guidance alongside the current build recipes.
     root = _README_PATH.parent
     guidance = (root / "AGENTS.md").read_text(encoding="utf-8")
+    docs_guide = (root / "docs/README.md").read_text(encoding="utf-8")
 
     # When: contributors follow its documentation source map.
     paths = tuple(
         match.group(1)
-        for match in re.finditer(r"`(docs/[^`]+|examples/README.md)`", guidance)
+        for match in re.finditer(r"\[[^\]]+\]\(([^)]+/README\.md)\)", guidance)
     )
 
-    # Then: all four Diataxis paths exist and generated API pages stay internal.
-    assert paths
-    assert all((built_docs.parent / path).exists() for path in paths)
-    assert all(
-        f"docs/{section}/" in paths
-        for section in ("tutorials", "how-to", "reference", "explanation")
-    )
-    assert "source-parsed" in guidance
-    assert "does not import" in guidance
+    # Then: root guidance delegates to real guides; Docs owns the site map.
+    assert {"docs/README.md", "examples/README.md"} <= set(paths)
+    assert all((root / path).is_file() for path in paths)
+    for section in ("tutorials", "how-to", "reference", "explanation"):
+        assert f"]({section}/index.rst)" in docs_guide
+        assert (root / "docs" / section / "index.rst").is_file()
+    assert "source-parsed AutoAPI" in docs_guide
+    assert "without importing application modules" in docs_guide
+    assert "Reference index owns its site navigation" in docs_guide
+    assert "not a supported public Python API" in docs_guide
+    assert "CLI-only" in guidance
     assert "just docs-preview [port]" in guidance
-    assert "CLI only" in guidance
+    assert "before serving `docs/_build/html` (default 8000)" in guidance
+    assert "optional docs dependency group" in docs_guide
 
 
 @pytest.mark.parametrize("command", ["sync", "coverage", "coverage-check", "mutation"])

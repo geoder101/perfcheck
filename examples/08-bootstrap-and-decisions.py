@@ -5,7 +5,6 @@ import marimo
 __generated_with = "0.24.2"
 app = marimo.App(width="medium")
 
-
 with app.setup:
     import math
     import sys
@@ -28,7 +27,7 @@ with app.setup:
 
 
 @app.cell(hide_code=True)
-def _() -> None:
+def _():
     md(r"""
     # Bootstrap evidence and decisions
 
@@ -54,32 +53,17 @@ def _() -> None:
     the practical threshold: equality passes. The controls below recompute
     the actual distribution; the later known-sigma experiment is separate.
     """)
+    return
 
 
 @app.cell
-def _() -> tuple[mo.ui.switch, mo.ui.slider, mo.ui.slider, mo.ui.slider, mo.ui.slider]:
-    direction = mo.ui.switch(value=False, label="Higher is worse (off: lower is worse)")
-    shift = lab_slider((-15, 20, 1), 0, "Current shift (units/s)")
-    threshold = lab_slider((0, 20, 0.25), 3, "Practical threshold (units/s)")
-    enabled = lab_slider((1, 20, 1), 2, "Enabled metrics m")
-    bootstrap_seed = lab_slider((0, 20260850, 1), 20260808, "PCG64 seed")
-    mo.output.replace(mo.vstack([direction, shift, threshold, enabled, bootstrap_seed]))
-    return direction, shift, threshold, enabled, bootstrap_seed
-
-
-@app.cell
-def _(bootstrap_seed: mo.ui.slider) -> None:
+def _(bootstrap_seed):
     md(f"Exact PCG64 seed: **{int(bootstrap_seed.value)}**")
+    return
 
 
-@app.cell
-def _(
-    direction: mo.ui.switch,
-    shift: mo.ui.slider,
-    threshold: mo.ui.slider,
-    enabled: mo.ui.slider,
-    bootstrap_seed: mo.ui.slider,
-) -> None:
+@app.cell(hide_code=True)
+def _(bootstrap_seed, direction, enabled, shift, threshold):
     _inputs = BootstrapExperiment(
         current=tuple(x + float(shift.value) for x in (90.0, 89.0, 91.0, 90.0)),
         higher_is_worse=direction.value,
@@ -153,10 +137,22 @@ def _(
             ]
         )
     )
+    return
 
 
 @app.cell(hide_code=True)
-def _() -> None:
+def _():
+    direction = mo.ui.switch(value=False, label="Higher is worse (off: lower is worse)")
+    shift = lab_slider((-15, 20, 1), 0, "Current shift (units/s)")
+    threshold = lab_slider((0, 20, 0.25), 3, "Practical threshold (units/s)")
+    enabled = lab_slider((1, 20, 1), 2, "Enabled metrics m")
+    bootstrap_seed = lab_slider((0, 20260850, 1), 20260808, "PCG64 seed")
+    mo.output.replace(mo.vstack([direction, shift, threshold, enabled, bootstrap_seed]))
+    return bootstrap_seed, direction, enabled, shift, threshold
+
+
+@app.cell(hide_code=True)
+def _():
     md(r"""
     ## A different question — repeated confidence intervals
 
@@ -167,25 +163,21 @@ def _() -> None:
     The fixed mean is either contained or missed by each realized interval.
     **This is not percentile-bootstrap coverage or perfcheck validation.**
     """)
+    return
 
 
 @app.cell
-def _() -> tuple[mo.ui.slider, mo.ui.slider, mo.ui.slider, mo.ui.slider]:
+def _():
     ci_n = lab_slider((2, 100, 1), 25, "CI sample size n")
     ci_sigma = lab_slider((1, 30, 1), 10, "Known sigma (ms)")
     ci_confidence = lab_slider((0.80, 0.99, 0.01), 0.95, "Nominal confidence")
     ci_repetitions = lab_slider((32, 512, 32), 128, "CI repetitions")
     mo.output.replace(mo.vstack([ci_n, ci_sigma, ci_confidence, ci_repetitions]))
-    return ci_n, ci_sigma, ci_confidence, ci_repetitions
+    return ci_confidence, ci_n, ci_repetitions, ci_sigma
 
 
-@app.cell
-def _(
-    ci_n: mo.ui.slider,
-    ci_sigma: mo.ui.slider,
-    ci_confidence: mo.ui.slider,
-    ci_repetitions: mo.ui.slider,
-) -> None:
+@app.cell(hide_code=True)
+def _(ci_confidence, ci_n, ci_repetitions, ci_sigma):
     _inputs = CoverageExperiment(
         n=int(ci_n.value),
         sigma=float(ci_sigma.value),
@@ -217,10 +209,11 @@ def _(
             ]
         )
     )
+    return
 
 
 @app.cell(hide_code=True)
-def _() -> None:
+def _():
     md("""
     ## Takeaway
 
@@ -233,7 +226,8 @@ def _() -> None:
         "a perfcheck PASS or FAIL.\n"
     )
     _ = sys.stdout.write(_takeaway)
+    return
 
 
 if __name__ == "__main__":
-    _app_run_result = app.run()
+    app.run()

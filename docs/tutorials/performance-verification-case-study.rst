@@ -7,8 +7,10 @@ Goal and question
 Is current **mean latency in seconds** worse than baseline under a policy chosen
 before examining outcomes? This case study follows timestamped observations into
 verified per-run summaries and an actual JSON/Markdown decision report. It needs
-only this checkout, Python 3.14 and ``uv``; no remote Prometheus or load generator
-is required. The supported interface is the public ``perfcheck`` CLI, not the
+only this checkout, Just, Python 3.14 and ``uv``; see the
+project's root ``README.md`` for full native prerequisites.
+No remote Prometheus or load generator is required.
+The supported interface is the public ``perfcheck`` CLI, not the
 educational Python helpers or internal artifact schemas.
 
 Inputs and experimental plan
@@ -49,8 +51,12 @@ From the repository root:
 
 .. code-block:: console
 
-   $ uv sync --group examples
-   $ uv run --group examples marimo run examples/05-failures-and-ci.py
+   $ just sync
+   $ just notebook-run examples/05-failures-and-ci.py
+
+Setup installs the locked dev/docs/examples groups, not just minimal lesson
+dependencies. The :download:`curriculum index <../../examples/README.md>` explains
+the authoring, interactive viewing, and noninteractive script recipes.
 
 The native Marimo selector offers ``pass`` (default), ``regression`` and
 ``advisory-reference``. Only the selected scenario executes. Each selection
@@ -61,15 +67,20 @@ The script form runs the default pass scenario without a browser:
 
 .. code-block:: console
 
-   $ uv run --group examples python examples/05-failures-and-ci.py
+   $ just notebook-script examples/05-failures-and-ci.py
 
 Inspect the CLI steps yourself
 ------------------------------------------------------------
 
 The following POSIX-shell commands reproduce the pass workflow with files you
 can inspect. Unlike the notebook, these outputs remain until you remove the
-temporary directory. Run from the repository root. First, in terminal A, start
-the synthetic service and wait for its printed loopback endpoint:
+temporary directory. They call ``uv run perfcheck`` directly because the current
+``just cli`` recipe forwards ``{{args}}`` as shell text, losing caller quoting.
+This sequence needs quoted paths that may contain spaces and the application's
+exit status rather than Just's recipe-failure status.
+Run from the repository root. First, in terminal A, start
+the synthetic service and wait for its printed loopback endpoint. This standalone
+fixture-server operation has no Just recipe:
 
 .. code-block:: console
 

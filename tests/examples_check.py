@@ -59,9 +59,9 @@ def validate_repository_course() -> None:
         )
     for notebook in EXAMPLE_NOTEBOOKS:
         commands = (
-            f"uv run --group examples marimo edit examples/{notebook.name}",
-            f"uv run --group examples marimo run examples/{notebook.name}",
-            f"uv --directory . run --group examples python examples/{notebook.name}",
+            f"just notebook-edit examples/{notebook.name}",
+            f"just notebook-run examples/{notebook.name}",
+            f"just notebook-script examples/{notebook.name}",
         )
         assert all(command in index for command in commands), (
             "curriculum index must include author, consumer, and script commands "

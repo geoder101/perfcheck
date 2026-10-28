@@ -51,9 +51,14 @@ Deep dive: examine models and calculations
 Running the labs
 ----------------
 
-From the repository root, install ``uv sync --group examples``. Open the
-selected lesson with ``uv run --group examples marimo run examples/`` followed
-by its filename. Script execution uses the same default controls without a
-browser. Download the :download:`curriculum index <../../examples/README.md>`
+Native setup requires Just, uv, and Python 3.14; the
+project's root ``README.md`` owns the full prerequisites.
+Run ``just sync`` from the repository root to install the locked
+dev/docs/examples groups, a broader environment than examples-only setup.
+Run lesson commands from that same root. Open the
+selected lesson with ``just notebook-run examples/`` followed by its filename
+as the single required path argument. Use ``just notebook-edit`` with that path
+to author it, or ``just notebook-script`` with that path to run the same default
+controls without a browser. Download the :download:`curriculum index <../../examples/README.md>`
 for all ten filenames and explicit author, consumer, and script commands.
 Start there for control descriptions; the routes above don't add lessons.

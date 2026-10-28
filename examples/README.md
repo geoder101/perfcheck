@@ -22,11 +22,24 @@ alternative statistical teaching models do not determine perfcheck PASS/FAIL.
 
 ## Setup
 
-From the repository root, install the optional lesson tools once:
+Native setup requires Just, uv, and Python 3.14. See the
+[root installation guide](../README.md) for full prerequisites.
+Run setup and all lesson commands from the repository root:
 
 ```bash
-uv sync --group examples
+just sync
 ```
+
+`just sync` installs the locked dev/docs/examples groups, a broader environment
+than the minimal examples-only dependencies.
+
+`notebook-edit` authors a lesson, `notebook-run` views it, and `notebook-script` runs it noninteractively.
+Each Just recipe takes one required notebook path. Authoring uses
+`uv run --group examples marimo edit` internally; script execution uses
+`uv --directory . run --group examples python` internally.
+Direct `uv` commands remain in the tutorials for standalone fixture-server
+operations, which have no recipe. Quoted CLI workflows also stay direct to
+preserve argument boundaries and the application's exit status.
 
 Once dependencies are installed, lessons use repository content, inline charts,
 and local controls without required external HTTP fetches or hosted chart services.
@@ -36,9 +49,8 @@ follow, not embedded resources. Dependency installation may require network acce
 ## Lessons
 
 Each lesson takes about five minutes. Start at 01, then continue in numeric
-order. To author a lesson, open its explicit path with `marimo edit`. To consume
-it interactively, use `marimo run`. To run the same lesson noninteractively,
-use its explicit Python command from the repository root.
+order. Use each lesson's explicit author, consumer, or script command below
+from the repository root.
 
 ### 01. [01-overview.py](01-overview.py), workflow overview
 
@@ -47,9 +59,9 @@ use its explicit Python command from the repository root.
 - **CLI commands exercised:** `perfcheck collect`, `perfcheck summarize`, and
   `perfcheck compare`.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/01-overview.py`
-- **Consumer:** `uv run --group examples marimo run examples/01-overview.py`
-- **Script:** `uv --directory . run --group examples python examples/01-overview.py`
+- **Author:** `just notebook-edit examples/01-overview.py`
+- **Consumer:** `just notebook-run examples/01-overview.py`
+- **Script:** `just notebook-script examples/01-overview.py`
 
 ### 02. [02-collect.py](02-collect.py), collect a raw run
 
@@ -57,9 +69,9 @@ use its explicit Python command from the repository root.
 - **Prerequisite:** complete 01.
 - **CLI commands exercised:** `perfcheck collect`.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/02-collect.py`
-- **Consumer:** `uv run --group examples marimo run examples/02-collect.py`
-- **Script:** `uv --directory . run --group examples python examples/02-collect.py`
+- **Author:** `just notebook-edit examples/02-collect.py`
+- **Consumer:** `just notebook-run examples/02-collect.py`
+- **Script:** `just notebook-script examples/02-collect.py`
 
 ### 03. [03-summarize.py](03-summarize.py), verify and summarize evidence
 
@@ -67,9 +79,9 @@ use its explicit Python command from the repository root.
 - **Prerequisite:** complete 02.
 - **CLI commands exercised:** `perfcheck summarize`.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/03-summarize.py`
-- **Consumer:** `uv run --group examples marimo run examples/03-summarize.py`
-- **Script:** `uv --directory . run --group examples python examples/03-summarize.py`
+- **Author:** `just notebook-edit examples/03-summarize.py`
+- **Consumer:** `just notebook-run examples/03-summarize.py`
+- **Script:** `just notebook-script examples/03-summarize.py`
 
 ### 04. [04-compare.py](04-compare.py), compare cohorts
 
@@ -78,9 +90,9 @@ use its explicit Python command from the repository root.
 - **CLI commands exercised:** `perfcheck collect`, `perfcheck summarize`, and
   `perfcheck compare`.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/04-compare.py`
-- **Consumer:** `uv run --group examples marimo run examples/04-compare.py`
-- **Script:** `uv --directory . run --group examples python examples/04-compare.py`
+- **Author:** `just notebook-edit examples/04-compare.py`
+- **Consumer:** `just notebook-run examples/04-compare.py`
+- **Script:** `just notebook-script examples/04-compare.py`
 
 ### 05. [05-failures-and-ci.py](05-failures-and-ci.py), handle failures in CI
 
@@ -92,9 +104,9 @@ use its explicit Python command from the repository root.
 - **Prerequisite:** complete 04.
 - **CLI commands exercised:** `perfcheck compare`.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/05-failures-and-ci.py`
-- **Consumer:** `uv run --group examples marimo run examples/05-failures-and-ci.py`
-- **Script:** `uv --directory . run --group examples python examples/05-failures-and-ci.py`
+- **Author:** `just notebook-edit examples/05-failures-and-ci.py`
+- **Consumer:** `just notebook-run examples/05-failures-and-ci.py`
+- **Script:** `just notebook-script examples/05-failures-and-ci.py`
 
 ### 06. [06-statistical-foundations.py](06-statistical-foundations.py), statistical foundations
 
@@ -106,9 +118,9 @@ use its explicit Python command from the repository root.
 - **Prerequisite:** complete 05.
 - **CLI command explained:** the collect-to-compare evidence flow.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/06-statistical-foundations.py`
-- **Consumer:** `uv run --group examples marimo run examples/06-statistical-foundations.py`
-- **Script:** `uv --directory . run --group examples python examples/06-statistical-foundations.py`
+- **Author:** `just notebook-edit examples/06-statistical-foundations.py`
+- **Consumer:** `just notebook-run examples/06-statistical-foundations.py`
+- **Script:** `just notebook-script examples/06-statistical-foundations.py`
 
 ### 07. [07-summary-and-eligibility.py](07-summary-and-eligibility.py), summaries and eligibility
 
@@ -120,9 +132,9 @@ use its explicit Python command from the repository root.
 - **Prerequisite:** complete 06.
 - **CLI command explained:** `perfcheck summarize`.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/07-summary-and-eligibility.py`
-- **Consumer:** `uv run --group examples marimo run examples/07-summary-and-eligibility.py`
-- **Script:** `uv --directory . run --group examples python examples/07-summary-and-eligibility.py`
+- **Author:** `just notebook-edit examples/07-summary-and-eligibility.py`
+- **Consumer:** `just notebook-run examples/07-summary-and-eligibility.py`
+- **Script:** `just notebook-script examples/07-summary-and-eligibility.py`
 
 ### 08. [08-bootstrap-and-decisions.py](08-bootstrap-and-decisions.py), bootstrap decisions
 
@@ -134,9 +146,9 @@ use its explicit Python command from the repository root.
 - **Prerequisite:** complete 07.
 - **CLI command explained:** `perfcheck compare`.
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/08-bootstrap-and-decisions.py`
-- **Consumer:** `uv run --group examples marimo run examples/08-bootstrap-and-decisions.py`
-- **Script:** `uv --directory . run --group examples python examples/08-bootstrap-and-decisions.py`
+- **Author:** `just notebook-edit examples/08-bootstrap-and-decisions.py`
+- **Consumer:** `just notebook-run examples/08-bootstrap-and-decisions.py`
+- **Script:** `just notebook-script examples/08-bootstrap-and-decisions.py`
 
 ### 09. [09-plain-python-mechanics.py](09-plain-python-mechanics.py), plain-Python mechanics
 
@@ -149,9 +161,9 @@ use its explicit Python command from the repository root.
 - **Boundary:** educational `random.Random` draws are not production NumPy PCG64 evidence.
 - **Explanation:** [Plain-Python mechanics](../docs/explanation/plain-python-mechanics.rst).
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/09-plain-python-mechanics.py`
-- **Consumer:** `uv run --group examples marimo run examples/09-plain-python-mechanics.py`
-- **Script:** `uv --directory . run --group examples python examples/09-plain-python-mechanics.py`
+- **Author:** `just notebook-edit examples/09-plain-python-mechanics.py`
+- **Consumer:** `just notebook-run examples/09-plain-python-mechanics.py`
+- **Script:** `just notebook-script examples/09-plain-python-mechanics.py`
 
 ### 10. [10-comparative-methods.py](10-comparative-methods.py), comparative methods
 
@@ -166,6 +178,6 @@ use its explicit Python command from the repository root.
 - **Boundary:** each method does not determine perfcheck PASS/FAIL.
 - **Explanation:** [Comparative methods](../docs/explanation/comparative-methods.rst).
 - **Duration:** 5 minutes.
-- **Author:** `uv run --group examples marimo edit examples/10-comparative-methods.py`
-- **Consumer:** `uv run --group examples marimo run examples/10-comparative-methods.py`
-- **Script:** `uv --directory . run --group examples python examples/10-comparative-methods.py`
+- **Author:** `just notebook-edit examples/10-comparative-methods.py`
+- **Consumer:** `just notebook-run examples/10-comparative-methods.py`
+- **Script:** `just notebook-script examples/10-comparative-methods.py`
