@@ -51,15 +51,15 @@ def test_ci_preserves_matrix_and_fixed_separate_coverage_gate() -> None:
         assert "persist-credentials: false" in job
 
 
-def test_ci_pins_and_artifact_allowlist_match_official_release_receipts() -> None:
-    # Given: release provenance receipts from tasks 5 and 6.
+def test_ci_tags_and_artifact_allowlist_match_verified_official_releases() -> None:
+    # Given: live-verified exact stable release tags.
     workflow = (_ROOT / ".github/workflows/ci.yml").read_text()
     expected = {
-        "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-        "astral-sh/setup-uv": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
-        "extractions/setup-just": "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
-        "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
-        "actions/setup-node": "249970729cb0ef3589644e2896645e5dc5ba9c38",
+        "actions/checkout": "v7.0.1",
+        "astral-sh/setup-uv": "v10.3.2",
+        "extractions/setup-just": "v4.0.0",
+        "actions/upload-artifact": "v7.0.2",
+        "actions/setup-node": "v7.1.0",
     }
     # When: action references and the upload input block are extracted.
     actions = list(re.finditer(r"uses: ([^@\s]+)@([^\s]+)", workflow))

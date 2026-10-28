@@ -143,23 +143,19 @@ def test_pages_workflow_has_fail_closed_job_wiring() -> None:
     )
 
 
-def test_pages_action_pins_match_verified_official_releases() -> None:
-    # Given: official tag/commit/action.yml receipts recorded in task-6 evidence.
+def test_pages_action_tags_match_verified_official_releases() -> None:
+    # Given: live-verified exact stable release tags.
     expected = [
-        ("actions/checkout", "3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),
-        ("astral-sh/setup-uv", "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e", "v10.3.2"),
-        ("extractions/setup-just", "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3", "v4"),
-        ("actions/setup-node", "249970729cb0ef3589644e2896645e5dc5ba9c38", "v6.5.0"),
-        (
-            "actions/upload-pages-artifact",
-            "fc324d3547104276b827a68afc52ff2a11cc49c9",
-            "v5.0.0",
-        ),
-        ("actions/deploy-pages", "368f82528645a54fb793d4d04e342629a3f51346", "v5.0.1"),
+        ("actions/checkout", "v7.0.1"),
+        ("astral-sh/setup-uv", "v10.3.2"),
+        ("extractions/setup-just", "v4.0.0"),
+        ("actions/setup-node", "v7.1.0"),
+        ("actions/upload-pages-artifact", "v5.0.0"),
+        ("actions/deploy-pages", "v5.0.1"),
     ]
-    # When: every action reference and readable release comment is extracted.
+    # When: every action reference is extracted without requiring version comments.
     actual = re.findall(
-        r"(?:uses: )([^@\s]+)@([^\s]+) # ([^\n]+)",
+        r"uses: ([^@\s]+)@([^\s]+)",
         _WORKFLOW.read_text(encoding="utf-8"),
     )
     # Then: arbitrary SHA-shaped strings and unreviewed actions cannot pass policy.

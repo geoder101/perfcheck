@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ needs.authorize.outputs.sha }}
           persist-credentials: false
@@ -74,15 +74,15 @@ jobs:
               raise SystemExit("Pages requires a clean checkout")
           print(f"Verified Pages source SHA: {head}")
           PY
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: "3.14"
           enable-cache: false
-      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4
+      - uses: extractions/setup-just@v4.0.0
         with:
           just-version: "1.58.0"
       - run: uv sync --locked --group dev --group docs --group examples
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "24.18.0"
           package-manager-cache: false
@@ -103,7 +103,7 @@ jobs:
           rm -rf docs/_build
           just docs-check
           uv run --no-sync python -m tools.pages_authorization
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      - uses: actions/upload-pages-artifact@v5.0.0
         with:
           name: github-pages
           path: docs/_build/html
@@ -122,6 +122,6 @@ jobs:
     steps:
       - name: Deploy documentation
         id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        uses: actions/deploy-pages@v5.0.1
         with:
           artifact_name: github-pages

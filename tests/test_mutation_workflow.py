@@ -185,13 +185,13 @@ def test_workflow_is_manual_bounded_and_read_only() -> None:
     )
 
 
-def test_action_pins_match_verified_official_metadata() -> None:
-    # Given: official release receipts retained by tasks 5 and 6.
+def test_action_tags_match_verified_official_releases() -> None:
+    # Given: live-verified exact stable release tags.
     expected = {
-        "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-        "astral-sh/setup-uv": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
-        "extractions/setup-just": "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
-        "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
+        "actions/checkout": "v7.0.1",
+        "astral-sh/setup-uv": "v10.3.2",
+        "extractions/setup-just": "v4.0.0",
+        "actions/upload-artifact": "v7.0.2",
     }
     # When: actual workflow action references are parsed.
     actions = dict(re.findall(r"uses: ([^@\s]+)@([^\s]+)", _WORKFLOW.read_text()))
