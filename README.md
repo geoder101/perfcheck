@@ -255,7 +255,7 @@ and mutation evidence are not published on Pages.
 ### Optional mutation pilot
 
 `just mutation` explicitly installs the dedicated mutation group with pinned
-`mutmut==3.8.0`. This Unix-only manual pilot mutates a disposable snapshot of
+`mutmut==3.8.1`. This Unix-only manual pilot mutates a disposable snapshot of
 `src/perfcheck/regression_aggregation.py`, selecting only
 `tests/test_suite_aggregation.py`: one worker, 600-second child budget. It does
 not mutate checkout sources or run in ordinary checks; Windows is unsupported.

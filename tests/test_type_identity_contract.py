@@ -6,6 +6,7 @@ import sys
 from typing import TYPE_CHECKING
 
 import pytest
+from pydantic import TypeAdapter
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -73,5 +74,15 @@ def test_production_identity_annotations_preserve_string_wire_contract() -> None
     schema = SuitePolicy.model_json_schema()
 
     # Then: production annotations have distinct domains while JSON remains strings.
-    assert schema["$defs"]["PolicyIdentifier"]["type"] == "string"
+    identifier_adapter = TypeAdapter(dict[str, str])
+    identifier_schema = identifier_adapter.validate_python(
+        schema["$defs"]["PolicyIdentifier"]
+    )
+    if "$ref" in identifier_schema:
+        _, definitions_key, identifier_key = identifier_schema["$ref"].split("/")
+        identifier_schema = identifier_adapter.validate_python(
+            schema[definitions_key][identifier_key]
+        )
+    assert identifier_schema["type"] == "string"
+    assert identifier_schema["pattern"] == r"^[A-Za-z0-9][A-Za-z0-9._:-]*$"
     assert policy.model_dump(mode="json")["policy_id"] == "policy-1"

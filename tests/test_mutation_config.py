@@ -58,7 +58,7 @@ def test_mutation_is_explicit_and_targeted() -> None:
         "tools.mutation_probe",
     ]
     assert (
-        "\"mutmut==3.8.0; sys_platform != 'win32'\""
+        "\"mutmut==3.8.1; sys_platform != 'win32'\""
         in (root / "pyproject.toml").read_text()
     )
 

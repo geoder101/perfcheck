@@ -11,6 +11,10 @@ the canonical recipes. `just sync` restores the ordinary locked development
 environment; `just check` runs the standard gates. Neither `just check` nor
 `just test` runs coverage or mutation.
 
+For Python dependency maintenance, follow
+[Upgrade Python dependencies](../docs/how-to/upgrade-dependencies.rst), including
+all uv groups, the separate build backend, and compatibility checks.
+
 ## Coverage and CI evidence
 
 - [coverage_gate.py](coverage_gate.py) clears owned reports and runs the fixed

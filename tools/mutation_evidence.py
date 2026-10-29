@@ -79,7 +79,7 @@ def read_imports(path: Path, mutant_root: Path) -> tuple[ImportReceipt, ...]:
 
 
 class NativeStats(BaseModel):
-    """The exact aggregate export schema of mutmut 3.8.0."""
+    """Validate the expected aggregate fields from mutmut's native statistics."""
 
     model_config: ClassVar[ConfigDict] = ConfigDict(
         frozen=True, strict=True, extra="forbid"

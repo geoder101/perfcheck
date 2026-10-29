@@ -1,7 +1,7 @@
 How-to guides
 =============
 
-Use these guides when you already know the outcome you need from the CLI.
+Use these guides when you already know the CLI or repository task you need to do.
 
 .. toctree::
    :maxdepth: 1
@@ -10,3 +10,4 @@ Use these guides when you already know the outcome you need from the CLI.
    summarize-evidence
    compare-cohorts
    ci-regression-gate
+   upgrade-dependencies

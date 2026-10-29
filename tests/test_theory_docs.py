@@ -46,7 +46,7 @@ def _assert_furo_configuration(conf: str, pyproject: str) -> None:
     assert docs_group is not None
     assert tuple(re.findall(r'"([^"]+)"', docs_group.group("dependencies"))) == (
         "furo==2025.12.19",
-        "sphinx==9.1.1",
+        "sphinx==9.2.0",
         "sphinx-autoapi==3.8.1",
         "sphinxcontrib-mermaid==2.1.1",
     )

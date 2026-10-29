@@ -57,6 +57,7 @@ _SECTION_PAGES: Final = (
             "summarize-evidence",
             "compare-cohorts",
             "ci-regression-gate",
+            "upgrade-dependencies",
         ),
     ),
     ("reference", ("cli", "policy-and-artifacts", "glossary", "api/index")),
