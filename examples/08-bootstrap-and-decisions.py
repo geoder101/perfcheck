@@ -27,7 +27,7 @@ with app.setup:
 
 
 @app.cell(hide_code=True)
-def _():
+def _() -> None:
     md(r"""
     # Bootstrap evidence and decisions
 
@@ -53,17 +53,21 @@ def _():
     the practical threshold: equality passes. The controls below recompute
     the actual distribution; the later known-sigma experiment is separate.
     """)
-    return
 
 
 @app.cell
-def _(bootstrap_seed):
+def _(bootstrap_seed: mo.ui.slider) -> None:
     md(f"Exact PCG64 seed: **{int(bootstrap_seed.value)}**")
-    return
 
 
 @app.cell(hide_code=True)
-def _(bootstrap_seed, direction, enabled, shift, threshold):
+def _(
+    bootstrap_seed: mo.ui.slider,
+    direction: mo.ui.switch,
+    enabled: mo.ui.slider,
+    shift: mo.ui.slider,
+    threshold: mo.ui.slider,
+) -> None:
     _inputs = BootstrapExperiment(
         current=tuple(x + float(shift.value) for x in (90.0, 89.0, 91.0, 90.0)),
         higher_is_worse=direction.value,
@@ -137,11 +141,10 @@ def _(bootstrap_seed, direction, enabled, shift, threshold):
             ]
         )
     )
-    return
 
 
 @app.cell(hide_code=True)
-def _():
+def _() -> tuple[mo.ui.slider, mo.ui.switch, mo.ui.slider, mo.ui.slider, mo.ui.slider]:
     direction = mo.ui.switch(value=False, label="Higher is worse (off: lower is worse)")
     shift = lab_slider((-15, 20, 1), 0, "Current shift (units/s)")
     threshold = lab_slider((0, 20, 0.25), 3, "Practical threshold (units/s)")
@@ -152,7 +155,7 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _():
+def _() -> None:
     md(r"""
     ## A different question — repeated confidence intervals
 
@@ -163,11 +166,10 @@ def _():
     The fixed mean is either contained or missed by each realized interval.
     **This is not percentile-bootstrap coverage or perfcheck validation.**
     """)
-    return
 
 
 @app.cell
-def _():
+def _() -> tuple[mo.ui.slider, mo.ui.slider, mo.ui.slider, mo.ui.slider]:
     ci_n = lab_slider((2, 100, 1), 25, "CI sample size n")
     ci_sigma = lab_slider((1, 30, 1), 10, "Known sigma (ms)")
     ci_confidence = lab_slider((0.80, 0.99, 0.01), 0.95, "Nominal confidence")
@@ -177,7 +179,12 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(ci_confidence, ci_n, ci_repetitions, ci_sigma):
+def _(
+    ci_confidence: mo.ui.slider,
+    ci_n: mo.ui.slider,
+    ci_repetitions: mo.ui.slider,
+    ci_sigma: mo.ui.slider,
+) -> None:
     _inputs = CoverageExperiment(
         n=int(ci_n.value),
         sigma=float(ci_sigma.value),
@@ -209,11 +216,10 @@ def _(ci_confidence, ci_n, ci_repetitions, ci_sigma):
             ]
         )
     )
-    return
 
 
 @app.cell(hide_code=True)
-def _():
+def _() -> None:
     md("""
     ## Takeaway
 
@@ -226,8 +232,7 @@ def _():
         "a perfcheck PASS or FAIL.\n"
     )
     _ = sys.stdout.write(_takeaway)
-    return
 
 
 if __name__ == "__main__":
-    app.run()
+    _app_run_result = app.run()
