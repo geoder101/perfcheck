@@ -32,7 +32,8 @@ unless [README's public scope](README.md#scope) changes in the same work.
 
 ## Commands and Quality Gates
 
-- Use canonical [justfile](justfile) recipes, not hand-assembled substitutes;
+- The [justfile](justfile) is the source of truth for commands; run `just --list`
+  for the full set. Use canonical recipes, not hand-assembled substitutes, and
   don't duplicate them in `podman.just`. Use `just build` for distributions.
 - Follow [setup](README.md#install) and [configuration](pyproject.toml):
   Python `>=3.14,<3.15`, `uv` package/environment management, `uv_build` backend.
