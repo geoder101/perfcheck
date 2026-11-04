@@ -80,6 +80,10 @@ typecheck:
 build:
   uv build --no-sources
 
+# Install the tool locally into a managed uv tool environment (exposes `perfcheck` on PATH).
+install:
+  uv tool install .
+
 # Verify that the committed lockfile resolves without modification.
 lock-check:
   uv lock --check
