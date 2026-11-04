@@ -110,3 +110,9 @@ mutation:
 sync:
   just lock-check
   uv sync --locked --group dev --group docs --group examples
+
+# Upgrade all packages to the latest compatible versions, then sync dev, docs, and examples.
+upgrade-deps:
+  just lock-check
+  uv lock --upgrade --refresh
+  uv sync --locked --group dev --group docs --group examples
