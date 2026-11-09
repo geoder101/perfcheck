@@ -30,7 +30,8 @@ from perfcheck.collection_service import (
     has_enabled_failure,
 )
 from perfcheck.comparison_models import ComparisonCohorts
-from perfcheck.errors import PerfcheckError
+from perfcheck.bootstrap_models import BootstrapInputError
+from perfcheck.errors import ArtifactSchemaError, PerfcheckError
 from perfcheck.model_types import RunId, Status
 from perfcheck.regression import evaluate_regression
 from perfcheck.report import build_report, render_json_report, render_markdown_report
@@ -208,10 +209,20 @@ def _exit_code(code: int) -> NoReturn:
     raise typer.Exit(code)
 
 
+# Pure typed input diagnostics carry a stable, secret-free label and are safe
+# to surface; ArtifactIntegrityError carries the artifact id and OSError carries
+# untrusted file state, so both keep a generic message.
+_INPUT_DIAGNOSTICS: tuple[type[PerfcheckError], ...] = (
+    CliInputError,
+    CollectionInputError,
+    BootstrapInputError,
+    ArtifactSchemaError,
+)
+
+
 def _exit_input_error(error: Exception) -> NoReturn:
-    match error:
-        case CliInputError(code=CliInputCode.REPORT_REQUIRED):
-            _console.print(f"error: {CliInputCode.REPORT_REQUIRED}")
-        case _:
-            _console.print("error: invalid command input")
+    if isinstance(error, _INPUT_DIAGNOSTICS):
+        _console.print(f"error: {error}")
+    else:
+        _console.print("error: invalid command input")
     raise typer.Exit(3)

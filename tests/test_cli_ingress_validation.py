@@ -63,7 +63,12 @@ def test_collect_rejects_invalid_policy_before_client_creation(
     # Then: it safely rejects input without stdout, network clients, or artifacts.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert result.stderr == "error: invalid command input\n"
+    expected = {
+        "missing": "invalid policy JSON",
+        "malformed": "invalid policy JSON",
+        "stale": "policy hash mismatch",
+    }[kind]
+    assert result.stderr == f"error: {expected}\n"
     assert not output.exists()
 
 
@@ -116,7 +121,7 @@ def test_collect_rejects_invalid_interval_before_client_creation(
     # Then: interval rejection is safe and cannot leave partial artifacts.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert result.stderr == "error: invalid command input\n"
+    assert result.stderr == "error: start and end must be RFC-3339 UTC instants\n"
     assert not output.exists()
 
 
@@ -144,7 +149,11 @@ def test_compare_rejects_invalid_bootstrap_options_on_eligible_cohorts(
     # Then: it exits safely before writing either report or machine stdout.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert result.stderr.endswith("error: invalid command input\n")
+    expected = {
+        "--seed": "bootstrap seed must be nonnegative",
+        "--resamples": "requested resamples must be positive",
+    }[override[0]]
+    assert result.stderr.endswith(f"error: {expected}\n")
     assert not report_json.exists()
     assert not report_md.exists()
 
@@ -190,7 +199,7 @@ def test_compare_arithmetic_overflow_exits_safely_without_reports(
     # Then: the typed numerical failure reaches the safe CLI input-error boundary.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert result.stderr.endswith("error: invalid command input\n")
+    assert result.stderr.endswith("error: bootstrap arithmetic must remain finite\n")
     assert "RuntimeWarning" not in result.stderr
     assert "Traceback" not in result.stderr
     assert not report_json.exists()

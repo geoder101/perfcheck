@@ -99,7 +99,9 @@ def test_selected_capstone_has_real_decision_and_cleaned_workspace(
     assert capstone.stage_statuses == (0,) * (count * 2)
     assert len(capstone.commands) == count * 2 + 2
     assert capstone.overwrite_status == 3
-    assert capstone.overwrite_context == "error: invalid command input"
+    assert capstone.overwrite_context == (
+        "error: output path already exists; use --force to replace it"
+    )
     assert not capstone.workspace.exists()
     assert metric.metric_id in capstone.report_markdown
     assert f"Suite status: {status}" in capstone.report_markdown
@@ -244,7 +246,8 @@ def test_failures_lesson_handles_existing_report_preflight_without_secret_leakag
     # Then: it preserves the exact CLI outcome while the notebook itself succeeds.
     assert result.returncode == 0, result.stderr
     assert (
-        "Handled failure: exit status 3 — error: invalid command input" in result.stdout
+        "Handled failure: exit status 3 — "
+        "error: output path already exists; use --force to replace it" in result.stdout
     )
     assert "Selected scenario: pass" in result.stdout
     assert "decision_lower_bound" in result.stdout

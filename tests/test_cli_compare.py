@@ -242,7 +242,8 @@ def test_compare_rejects_bootstrap_overrides_for_baseline_reference(
     # Then: invalid method options cannot emit reports or machine-readable stdout.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert "error: invalid command input" in result.stderr
+    expected_message = "error: seed and resamples are invalid for baseline reference"
+    assert expected_message in result.stderr
     assert not list(tmp_path.glob("report.*"))
 
 

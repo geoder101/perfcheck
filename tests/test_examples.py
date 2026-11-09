@@ -14,7 +14,7 @@ _LESSON_OUTPUT_EVIDENCE = (
     (_LESSON_PATHS[1], "metric_record_count"),
     (_LESSON_PATHS[2], "eligibility"),
     (_LESSON_PATHS[3], '"suite_status": "pass"'),
-    (_LESSON_PATHS[4], "Handled failure: exit status 3 — error: invalid command input"),
+    (_LESSON_PATHS[4], "Handled failure: exit status 3 — error: output path already exists; use --force to replace it"),
     (_LESSON_PATHS[5], "sampling-distribution center"),
     (_LESSON_PATHS[6], "Rejected evidence: eligible=false, reason=gap_too_large"),
     (_LESSON_PATHS[7], "Reference advisory:"),

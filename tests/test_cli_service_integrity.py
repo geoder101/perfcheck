@@ -87,7 +87,7 @@ def test_compare_sanitizes_direct_summary_integrity_failures(
 ) -> None:
     # Given: comparison inputs with a schema-valid but untrusted direct summary.
     arguments = compare_inputs(tmp_path)
-    summary, _ = rejected_summary(kind)
+    summary, reason = rejected_summary(kind)
     current = tmp_path / "current-0.json"
     _ = current.write_text(summary.model_dump_json(), encoding="utf-8")
     originals = {path: path.read_bytes() for path in tmp_path.iterdir()}
@@ -107,7 +107,7 @@ def test_compare_sanitizes_direct_summary_integrity_failures(
     # Then: safe diagnostics expose no secret or output and preserve every input.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert result.stderr == "error: invalid command input\n"
+    assert result.stderr == f"error: {reason}\n"
     assert {path: path.read_bytes() for path in tmp_path.iterdir()} == originals
 
 

@@ -117,7 +117,7 @@ def test_summarize_preflights_destination_before_loading_inputs(
     # Then: output refusal precedes both input loaders and preserves the file.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert result.stderr == "error: invalid command input\n"
+    assert result.stderr == "error: output path already exists; use --force to replace it\n"
     assert output.read_bytes() == b"keep-summary"
 
 
