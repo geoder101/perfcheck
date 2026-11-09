@@ -33,11 +33,13 @@ def test_timeout_terminates_descendant(tmp_path: Path) -> None:
             assert ready
         finally:
             os.close(descriptor)
-    if proc.exists():
-        assert proc.read_text().split()[2] == "Z"
-    else:
-        with pytest.raises(ProcessLookupError):
-            os.kill(pid, 0)
+    # The descendant is dead: an unreaped zombie ("Z") or already reaped ("gone").
+    # Read lazily; the entry can be reaped between the exists() check and the open.
+    try:
+        state = proc.read_text().split()[2]
+    except FileNotFoundError:
+        state = "gone"
+    assert state in {"Z", "gone"}
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Unix process groups")
