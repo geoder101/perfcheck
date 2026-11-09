@@ -64,12 +64,23 @@ def main() -> int:
     environment = _mermaid_cli_env()
     with lock_build():
         clean_exit = _execute_build(
-            ["-M", "clean", "docs", str(_ROOT / "docs/_build")], _ROOT, environment
+            ["sphinx-build", "-M", "clean", "docs", str(_ROOT / "docs/_build")],
+            _ROOT,
+            environment,
         )
         if clean_exit != 0:
             return clean_exit
         html_exit = _execute_build(
-            ["-M", "html", "docs", str(_ROOT / "docs/_build"), "-E", "-a", "-W"],
+            [
+                "sphinx-build",
+                "-M",
+                "html",
+                "docs",
+                str(_ROOT / "docs/_build"),
+                "-E",
+                "-a",
+                "-W",
+            ],
             _ROOT,
             environment,
         )
