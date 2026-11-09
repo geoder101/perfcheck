@@ -54,7 +54,7 @@ def write_artifact(
 ) -> None:
     """Persist one preflight-verified artifact without exposing partial output."""
     verify_artifact(artifact, source_run=source_run)
-    _write_bytes(path, canonical_json_bytes(artifact), force=force)
+    write_bytes(path, canonical_json_bytes(artifact), force=force)
 
 
 @overload
@@ -173,9 +173,15 @@ def _verify_summary_source(summary: SummaryArtifact, source_run: RunArtifact) ->
         raise ArtifactIntegrityError(summary.summary_id, "source hash mismatch")
 
 
-def _write_bytes(path: Path, data: bytes, *, force: bool) -> None:
+def write_bytes(path: Path, data: bytes, *, force: bool) -> None:
+    """Atomically write bytes without exposing a partial destination.
+
+    The temporary file is cleaned up unless publication itself failed; a cleanup
+    failure on an already-published file is surfaced rather than swallowed.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
+    publication_succeeded = False
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
             temporary_path = Path(temporary.name)
@@ -187,6 +193,11 @@ def _write_bytes(path: Path, data: bytes, *, force: bool) -> None:
         else:
             os.link(temporary_path, path)
             _ = temporary_path.unlink()
+        publication_succeeded = True
     finally:
         if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                if publication_succeeded:
+                    raise

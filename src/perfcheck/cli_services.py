@@ -2,11 +2,8 @@
 
 from __future__ import annotations
 
-import os
-import tempfile
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
 from typing import TYPE_CHECKING, assert_never, override
 
 from pydantic import ValidationError
@@ -24,11 +21,14 @@ from perfcheck.storage import (
     policy_content_sha256,
     summary_cache_path,
     write_artifact,
+    write_bytes,
 )
 from perfcheck.summarize import MetricSummaryInput, summarize
 from perfcheck.summary_models import SummaryArtifact, SummaryMetricRecord
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from perfcheck.artifact_models import Artifact
     from perfcheck.collection_models import MetricCollectionRecord
 
@@ -143,28 +143,7 @@ def preflight_paths(paths: tuple[Path, ...], force: bool) -> None:
 
 def write_report(path: Path, content: bytes, force: bool) -> None:
     """Atomically write one report without exposing a partial destination."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary_path: Path | None = None
-    publication_succeeded = False
-    try:
-        with tempfile.NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
-            temporary_path = Path(temporary.name)
-            _ = temporary.write(content)
-            temporary.flush()
-            os.fsync(temporary.fileno())
-        if force:
-            _ = temporary_path.replace(path)
-        else:
-            os.link(temporary_path, path)
-            _ = temporary_path.unlink()
-        publication_succeeded = True
-    finally:
-        if temporary_path is not None:
-            try:
-                temporary_path.unlink(missing_ok=True)
-            except OSError:
-                if publication_succeeded:
-                    raise
+    write_bytes(path, content, force=force)
 
 
 def _load_input_artifact(path: Path) -> Artifact:

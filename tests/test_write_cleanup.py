@@ -74,7 +74,7 @@ def failing_filesystem(
                     assert_never(case.stage)
             yield stream
 
-    module = storage if case.writer == "artifact" else cli_services
+    module = storage
     with monkeypatch.context() as patch:
         patch.setattr(module, "tempfile", SimpleNamespace(NamedTemporaryFile=temporary))
         patch.setattr(module, "os", filesystem_operations(case.stage, error))
@@ -189,7 +189,7 @@ def test_report_preserves_publication_conflict_when_cleanup_also_fails(
 
     # When: the atomic link refuses to overwrite and its temporary cleanup fails.
     with monkeypatch.context() as patch:
-        patch.setattr(cli_services, "os", SimpleNamespace(fsync=os.fsync, link=link))
+        patch.setattr(storage, "os", SimpleNamespace(fsync=os.fsync, link=link))
         patch.setattr(Path, "unlink", unlink)
         with pytest.raises(FileExistsError) as caught:
             cli_services.write_report(destination, b"new report", force=False)
