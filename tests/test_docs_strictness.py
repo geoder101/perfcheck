@@ -91,6 +91,15 @@ exclude_patterns = ["_build", "_templates", "tutorials",
                     "how-to", "reference", "explanation"]
 """
         )
+    # The strict reference check only exercises the Python domain (nitpicky), so
+    # drop autoapi -- it never resolves the intentionally-missing targets here and
+    # reading its source tree is the build's dominant cost.
+    with (tmp_path / "docs/conf.py").open("a", encoding="utf-8") as stream:
+        _ = stream.write(
+            """
+extensions = ["sphinx.ext.imgmath", "sphinxcontrib.mermaid"]
+"""
+        )
 
     # When: the real warning-as-error build resolves Python references.
     result = build_docs(tmp_path)
