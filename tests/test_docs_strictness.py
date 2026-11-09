@@ -67,17 +67,21 @@ def test_reference_policy_rejects_blanket_suppression(suppression: str) -> None:
         _assert_strict_reference_policy(mutated)
 
 
-@pytest.mark.parametrize(
-    "target", ["perfcheck.missing_reference", "pydantic.MissingReference"]
+_MISSING_INTERNAL_REFERENCE: Final = "perfcheck.missing_reference"
+_MISSING_EXTERNAL_REFERENCE: Final = "pydantic.MissingReference"
+_MISSING_PYTHON_REFERENCES: Final = (
+    _MISSING_INTERNAL_REFERENCE,
+    _MISSING_EXTERNAL_REFERENCE,
 )
-def test_docs_build_rejects_missing_python_references(
-    target: str, tmp_path: Path
-) -> None:
-    # Given: fresh sources containing a broken internal or external reference.
+
+
+def test_docs_build_rejects_missing_python_references(tmp_path: Path) -> None:
+    # Given: fresh sources containing a broken internal and external reference.
     copy_docs_project(_CONF.parents[1], tmp_path)
     index = tmp_path / "docs/index.rst"
     with index.open("a", encoding="utf-8") as stream:
-        _ = stream.write(f"\n:py:class:`{target}`\n")
+        for target in _MISSING_PYTHON_REFERENCES:
+            _ = stream.write(f"\n:py:class:`{target}`\n")
     # Scope the tree down so only the affected page renders; reference
     # resolution is unchanged, which keeps the strict build fast.
     with (tmp_path / "docs/conf.py").open("a", encoding="utf-8") as stream:
@@ -93,7 +97,8 @@ exclude_patterns = ["_build", "_templates", "tutorials",
 
     # Then: unresolved names fail the build instead of being silently hidden.
     assert result.returncode != 0
-    assert f"reference target not found: {target}" in result.stderr
+    for target in _MISSING_PYTHON_REFERENCES:
+        assert f"reference target not found: {target}" in result.stderr
 
 
 @pytest.mark.parametrize("failure", ["missing", "nonzero", "no-output"])
