@@ -15,8 +15,6 @@ from perfcheck.collection_models import (
 )
 from perfcheck.comparison_models import (
     ComparisonCohorts,
-    ComparisonReport,
-    ComparisonResult,
 )
 from perfcheck.model_types import (
     V1_ALGORITHM_MANIFEST,
@@ -55,8 +53,6 @@ __all__ = [
     "ComparisonCohorts",
     "ComparisonMethod",
     "ComparisonMode",
-    "ComparisonReport",
-    "ComparisonResult",
     "Direction",
     "EligibilityPolicy",
     "EligibilityReason",

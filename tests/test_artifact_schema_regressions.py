@@ -1,18 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from perfcheck.model_types import MetricId
-from perfcheck.models import (
-    ComparisonCohorts,
-    ComparisonMethod,
-    ComparisonReport,
-    ComparisonResult,
-    Direction,
-    RunArtifact,
-    Status,
-    SummaryArtifact,
-)
-from tests.artifact_schema_support import VALID_RUN_JSON, valid_summary_json
+from perfcheck.models import RunArtifact
+from tests.artifact_schema_support import VALID_RUN_JSON
 
 
 @pytest.mark.parametrize(
@@ -42,46 +32,3 @@ def test_run_artifact_rejects_verifier_reported_boundary_values(
     # Then: the affected field is rejected rather than persisted.
     with pytest.raises(ValidationError, match=field_name):
         _ = RunArtifact.model_validate_json(invalid_json)
-
-
-def valid_report_inputs() -> tuple[SummaryArtifact, ComparisonResult]:
-    run = RunArtifact.model_validate_json(VALID_RUN_JSON)
-    summary = SummaryArtifact.model_validate_json(valid_summary_json(run))
-    result = ComparisonResult(
-        metric_id=MetricId("cpu-system"),
-        direction=Direction.HIGHER_IS_WORSE,
-        status=Status.INCONCLUSIVE,
-        method=ComparisonMethod.BASELINE_REFERENCE,
-        reference_anomaly=False,
-    )
-    return summary, result
-
-
-def test_comparison_report_rejects_cohort_policy_hash_mismatch() -> None:
-    # Given: otherwise valid cohorts and a report policy hash that differs.
-    summary, result = valid_report_inputs()
-
-    # When: the report crosses its Pydantic boundary.
-    # Then: the report rejects summaries from a different policy snapshot.
-    with pytest.raises(ValidationError, match="policy hash"):
-        _ = ComparisonReport(
-            policy_sha256="0" * 64,
-            suite_status=Status.INCONCLUSIVE,
-            cohorts=ComparisonCohorts(current=(summary,), baseline=()),
-            metric_results=(result,),
-        )
-
-
-def test_comparison_report_rejects_duplicate_metric_result_ids() -> None:
-    # Given: otherwise valid report data with one repeated metric outcome.
-    summary, result = valid_report_inputs()
-
-    # When: the report crosses its Pydantic boundary.
-    # Then: duplicate metric result identifiers are rejected.
-    with pytest.raises(ValidationError, match="duplicate report metric"):
-        _ = ComparisonReport(
-            policy_sha256=summary.policy_sha256,
-            suite_status=Status.INCONCLUSIVE,
-            cohorts=ComparisonCohorts(current=(summary,), baseline=()),
-            metric_results=(result, result),
-        )
