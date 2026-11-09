@@ -132,6 +132,8 @@ def main() -> None:
             sys.executable,
             "-m",
             "pytest",
+            "-n",
+            "auto",
             str(_ROOT / "tests/test_examples.py"),
             str(_ROOT / "tests/test_examples_support.py"),
             str(_ROOT / "tests/test_examples_fixture.py"),
