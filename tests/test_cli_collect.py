@@ -260,7 +260,7 @@ def test_collect_rejects_an_unsafe_override_without_creating_output(
     assert not output_path.exists()
 
 
-def test_collect_propagates_unexpected_failures_without_rendering_secrets(
+def test_collect_fails_on_unexpected_failure_without_rendering_secrets(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     # Given: an unexpected implementation failure containing a credential-shaped value.
@@ -273,12 +273,12 @@ def test_collect_propagates_unexpected_failures_without_rendering_secrets(
 
     monkeypatch.setattr("perfcheck.cli.load_policy", fail)
 
-    # When: collect crosses the real command process boundary.
+    # When: collect crosses the command boundary with an unexpected failure.
     result = CliRunner().invoke(app, _arguments(policy_path, output_path))
 
-    # Then: the unexpected failure is not swallowed or rendered to command output.
+    # Then: the failure is converted to a generic diagnostic, never a leaked traceback.
     assert result.exit_code == 1
-    assert isinstance(result.exception, RuntimeError)
+    assert result.stderr == "error: internal failure\n"
     assert result.stdout == ""
     assert "top-secret" not in result.output
 
