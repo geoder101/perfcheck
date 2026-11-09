@@ -78,6 +78,15 @@ def test_docs_build_rejects_missing_python_references(
     index = tmp_path / "docs/index.rst"
     with index.open("a", encoding="utf-8") as stream:
         _ = stream.write(f"\n:py:class:`{target}`\n")
+    # Scope the tree down so only the affected page renders; reference
+    # resolution is unchanged, which keeps the strict build fast.
+    with (tmp_path / "docs/conf.py").open("a", encoding="utf-8") as stream:
+        _ = stream.write(
+            """
+exclude_patterns = ["_build", "_templates", "tutorials",
+                    "how-to", "reference", "explanation"]
+"""
+        )
 
     # When: the real warning-as-error build resolves Python references.
     result = build_docs(tmp_path)
