@@ -8,8 +8,12 @@ set shell := ["powershell.exe", "-NoLogo", "-Command"]
 default:
   @just --list
 
-# Run the standard test suite, optionally forwarding pytest arguments.
+# Run the standard test suite in parallel with a per-test timeout safety net.
 test *args:
+  uv run pytest -n auto --ignore=tests/test_examples.py --ignore=tests/test_examples_check.py {{args}}
+
+# Run the standard test suite serially, optionally forwarding pytest arguments.
+test-serial *args:
   uv run pytest --ignore=tests/test_examples.py --ignore=tests/test_examples_check.py {{args}}
 
 # Measure application statement and branch coverage with the standard test selection.
@@ -93,14 +97,18 @@ docs-tools:
   npm ci --prefix tools/docs --ignore-scripts
   node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
 
-# Build the documentation without cached renderer assets and fail on warnings.
-docs-check:
-  uv run --group docs sphinx-build -M clean docs docs/_build
-  uv run --group docs sphinx-build -M html docs docs/_build -E -a -W
+# Build the documentation only when render inputs changed, failing on warnings.
+# Pass --fresh to force a rebuild regardless of the cached input hash.
+docs-check *args:
+  uv run python -m tools.docs_gate {{args}}
 
 # Preview already-built documentation locally, optionally choosing a port.
 docs-preview port="8000": docs-check
   python -m http.server --directory docs/_build/html {{port}}
+
+# Clear the content-addressed cache that lets the docs render tests reuse a build.
+docs-cache-clear:
+  rm -rf .pytest_docs_cache .docs_inputs_sha
 
 # Run the standard local verification suite.
 check: lock-check format-check lint typecheck test examples-check docs-check build

@@ -63,8 +63,9 @@ saved diffs, and why surviving mutants are advisory rather than a score gate.
   Mermaid renderer, using the selected Puppeteer browser profile.
 - [docs/package.json](docs/package.json) declares the documentation-only JS tools;
   [docs/package-lock.json](docs/package-lock.json) locks their dependency tree.
-- [docs/puppeteer.json](docs/puppeteer.json) configures native browser launches.
-  Container profiles live alongside it and are selected by the launcher.
+- [docs/puppeteer-nosandbox.json](docs/puppeteer-nosandbox.json) configures native
+   browser launches. Container profiles live alongside it and are selected by the
+   launcher.
 
 ```bash
 just docs-tools

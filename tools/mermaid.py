@@ -35,13 +35,16 @@ def command(args: Sequence[str], root: Path) -> list[str]:
             "PERFCHECK_DOCS_CONTAINER=1"
         )
         raise LauncherError(reason)
-    profile = "puppeteer.json"
     if container:
         profile = (
             "puppeteer-container-nosandbox.json"
             if opt_in == "1"
             else "puppeteer-container.json"
         )
+    else:
+        # A native developer or CI machine cannot rely on Chrome's unprivileged
+        # sandbox, so the native renderer opts out of sandboxing to launch.
+        profile = "puppeteer-nosandbox.json"
     override_cli = os.environ.get("PERFCHECK_MERMAID_CLI")
     local = root / "tools/docs/node_modules/@mermaid-js/mermaid-cli/src/cli.js"
     if override_cli is not None:

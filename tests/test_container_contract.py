@@ -199,6 +199,7 @@ def test_build_context_is_a_strict_input_allowlist() -> None:
         "!tools/docs/puppeteer.json",
         "!tools/docs/puppeteer-container.json",
         "!tools/docs/puppeteer-container-nosandbox.json",
+        "!tools/docs/puppeteer-nosandbox.json",
     ]
 
 

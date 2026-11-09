@@ -43,7 +43,7 @@ def test_docs_copy_keeps_renderer_inputs_without_install_state(tmp_path: Path) -
         (source / directory).mkdir(parents=True)
     for relative in (
         "tools/mermaid.py",
-        "tools/docs/puppeteer-native.json",
+        "tools/docs/puppeteer-nosandbox.json",
         "tools/docs/node_modules/ignored.js",
         "tools/docs/.cache/ignored",
     ):
@@ -55,7 +55,7 @@ def test_docs_copy_keeps_renderer_inputs_without_install_state(tmp_path: Path) -
     copy_docs_project(source, destination)
     # Then: launch/config inputs survive without duplicating dependencies or caches.
     assert (destination / "tools/mermaid.py").is_file()
-    assert (destination / "tools/docs/puppeteer-native.json").is_file()
+    assert (destination / "tools/docs/puppeteer-nosandbox.json").is_file()
     assert not (destination / "tools/docs/node_modules").exists()
     assert not (destination / "tools/docs/.cache").exists()
 

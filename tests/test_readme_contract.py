@@ -20,16 +20,15 @@ def test_docs_tools_provisions_only_when_explicitly_requested() -> None:
     assert "docs-tools" not in source.split("\ncheck:", 1)[1].splitlines()[0]
 
 
-def test_docs_check_cleans_renderer_cache_before_strict_build() -> None:
+def test_docs_check_delegates_to_cache_aware_gate() -> None:
     # Given: a renderer configuration can change without changing diagram source.
     source = (_README_PATH.parent / "justfile").read_text(encoding="utf-8")
     # When: the documentation recipe is inspected.
-    recipe = source.split("\ndocs-check:\n", 1)[1].split("\n\n", 1)[0]
-    # Then: Sphinx make-clean runs before the existing strict make-html command.
-    assert recipe.splitlines() == [
-        "  uv run --group docs sphinx-build -M clean docs docs/_build",
-        "  uv run --group docs sphinx-build -M html docs docs/_build -E -a -W",
-    ]
+    block = source.split("\ndocs-check *args:\n", 1)[1].split("\n\n", 1)[0]
+    recipe = block.splitlines()
+    # Then: the cache-aware gate decides when to build and --fresh forces a rebuild.
+    assert recipe == ["  uv run python -m tools.docs_gate {{args}}"]
+    assert "Pass --fresh to force a rebuild" in source
 
 
 def test_readme_does_not_claim_commands_are_future_work() -> None:

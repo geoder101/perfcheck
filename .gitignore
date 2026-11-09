@@ -1,6 +1,8 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.pytest_docs_cache/
+.docs_inputs_sha
 .ruff_cache/
 .pyright/
 .venv/

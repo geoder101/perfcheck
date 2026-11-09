@@ -10,3 +10,4 @@ tools/docs/**
 !tools/docs/puppeteer.json
 !tools/docs/puppeteer-container.json
 !tools/docs/puppeteer-container-nosandbox.json
+!tools/docs/puppeteer-nosandbox.json

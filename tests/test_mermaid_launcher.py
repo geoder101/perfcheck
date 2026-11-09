@@ -50,7 +50,7 @@ console.error('selected stderr');process.exit(37);"""
     assert json.loads(result.stdout) == [
         *args,
         "--puppeteerConfigFile",
-        str(ROOT / "tools/docs/puppeteer.json"),
+        str(ROOT / "tools/docs/puppeteer-nosandbox.json"),
     ]
     assert result.stderr == "selected stderr\n"
 
@@ -69,7 +69,7 @@ def test_invalid_explicit_cli_fails_without_fallback(
 @pytest.mark.parametrize(
     ("container", "opt_in", "profile"),
     [
-        (None, None, "puppeteer.json"),
+        (None, None, "puppeteer-nosandbox.json"),
         ("1", None, "puppeteer-container.json"),
         ("1", "1", "puppeteer-container-nosandbox.json"),
     ],
@@ -88,7 +88,9 @@ def test_profile_selection_is_explicit(
         monkeypatch.setenv("PERFCHECK_CONTAINER_BROWSER_NO_SANDBOX", opt_in)
     # When: command configuration is resolved.
     argv = mermaid.command([], ROOT)
-    # Then: native mode never silently selects the system browser or disables sandbox.
+    # Then: native mode never silently selects the system browser; it runs headless
+    # without Chrome's unprivileged sandbox, which CI and containerized hosts cannot
+    # provide, while the container profile keeps sandboxing unless explicitly opted out.
     assert argv[-1] == str(ROOT / "tools/docs" / profile)
 
 
@@ -177,7 +179,7 @@ def test_windows_rejects_global_cmd_fallback(
 @pytest.mark.parametrize(
     ("filename", "expected"),
     [
-        ("puppeteer.json", {"headless": True}),
+        ("puppeteer-nosandbox.json", {"headless": True, "args": ["--no-sandbox"]}),
         (
             "puppeteer-container.json",
             {"headless": True, "executablePath": "/usr/bin/chromium"},
@@ -197,7 +199,7 @@ def test_browser_profiles_use_regular_headless(
 ) -> None:
     # Given: checked-in explicit launch profiles.
     # When: their actual serialized options are loaded.
-    # Then: only the explicit opt-in profile disables sandboxing; none use shell.
+    # Then: no-sandbox is declared per profile, never assumed; none use a shell.
     assert json.loads((ROOT / "tools/docs" / filename).read_text()) == expected
 
 
