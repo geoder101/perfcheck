@@ -42,9 +42,11 @@ Expected observable
 ``FAIL``, and exit status ``2`` for ``INCONCLUSIVE``. Exit status ``3`` means
 invalid command input, such as an existing output without ``--force``. A
 collection job can return exit status ``4`` after writing a raw run with an
-enabled metric collection failure.
+enabled metric collection failure. The remaining command outcome is the
+exit status ``5`` for ``internal failure``: an unexpected error crossed the
+boundary and was reported without its message.
 
-These application outcomes (``0`` through ``4``) are distinct from launcher or
+These application outcomes (``0`` through ``5``) are distinct from launcher or
 recipe failures. If the application cannot start, inspect the launcher diagnostic;
 that failure is not a statistical verdict.
 

@@ -46,4 +46,5 @@ Exit outcomes
 
 ``compare`` exits ``0`` for ``PASS``, ``1`` for ``FAIL``, and ``2`` for
 ``INCONCLUSIVE``. Invalid command input and output-path contract failures exit
-``3``. A collection with an enabled metric failure exits ``4``.
+``3``. A collection with an enabled metric failure exits ``4``. An unexpected
+boundary failure exits ``5`` and reports without its message.

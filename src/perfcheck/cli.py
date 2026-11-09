@@ -176,11 +176,10 @@ def _run_command(action: Callable[[], None]) -> None:
         # Defense in depth: an unexpected failure (a bug, or a third-party error
         # carrying internal state or credential-shaped values in its message)
         # must never reach standalone_mode with a traceback on command output.
-        # Fail closed with a fixed diagnostic. Exit 1 mirrors the prior default;
-        # there is no free documented exit status, so fold internal failure into
-        # the general FAIL outcome.
+        # Fail closed on a dedicated exit status, keeping internal failures
+        # distinct from a genuine suite FAIL and reported without their message.
         _console.print("error: internal failure")
-        raise typer.Exit(1) from None
+        raise typer.Exit(5) from None
 
 
 def _render_outcome(status: Status) -> None:

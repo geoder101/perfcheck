@@ -277,7 +277,7 @@ def test_collect_fails_on_unexpected_failure_without_rendering_secrets(
     result = CliRunner().invoke(app, _arguments(policy_path, output_path))
 
     # Then: the failure is converted to a generic diagnostic, never a leaked traceback.
-    assert result.exit_code == 1
+    assert result.exit_code == 5
     assert result.stderr == "error: internal failure\n"
     assert result.stdout == ""
     assert "top-secret" not in result.output

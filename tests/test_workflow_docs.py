@@ -37,6 +37,7 @@ def _assert_exit_claims(documented: str) -> None:
         ("2", "INCONCLUSIVE"),
         ("3", ""),
         ("4", ""),
+        ("5", "internal failure"),
     }
 
 
@@ -70,6 +71,7 @@ def test_workflow_pages_document_only_supported_cli_contracts() -> None:
     assert "exit status ``2`` for ``INCONCLUSIVE``" in documented
     assert "exit status ``3`` for invalid command input" in documented
     assert "exit status ``4``" in documented
+    assert "exit status ``5`` for ``internal failure``" in documented
     _assert_exit_claims(documented)
 
 
