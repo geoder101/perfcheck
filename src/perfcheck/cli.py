@@ -11,6 +11,7 @@ from asyncer import runnify
 from rich.console import Console
 from rich.table import Table
 
+from perfcheck.bootstrap_models import BootstrapInputError
 from perfcheck.cli_services import (
     CliInputCode,
     CliInputError,
@@ -30,7 +31,6 @@ from perfcheck.collection_service import (
     has_enabled_failure,
 )
 from perfcheck.comparison_models import ComparisonCohorts
-from perfcheck.bootstrap_models import BootstrapInputError
 from perfcheck.errors import ArtifactSchemaError, PerfcheckError
 from perfcheck.model_types import RunId, Status
 from perfcheck.regression import evaluate_regression

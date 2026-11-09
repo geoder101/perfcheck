@@ -147,7 +147,10 @@ def test_collect_preserves_existing_destination_without_collection_side_effects(
     # Then: refusal preserves bytes without creating clients, requests, or files.
     assert result.exit_code == 3
     assert result.stdout == ""
-    assert result.stderr == "error: output path already exists; use --force to replace it\n"
+    assert (
+        result.stderr
+        == "error: output path already exists; use --force to replace it\n"
+    )
     assert output.read_bytes() == original
     assert clients == []
     assert requests == []

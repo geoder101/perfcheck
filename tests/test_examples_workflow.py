@@ -245,10 +245,11 @@ def test_failures_lesson_handles_existing_report_preflight_without_secret_leakag
 
     # Then: it preserves the exact CLI outcome while the notebook itself succeeds.
     assert result.returncode == 0, result.stderr
-    assert (
+    message = (
         "Handled failure: exit status 3 — "
-        "error: output path already exists; use --force to replace it" in result.stdout
+        "error: output path already exists; use --force to replace it"
     )
+    assert message in result.stdout
     assert "Selected scenario: pass" in result.stdout
     assert "decision_lower_bound" in result.stdout
     assert "eligible=True" in result.stdout
