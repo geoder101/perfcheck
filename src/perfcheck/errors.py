@@ -43,7 +43,6 @@ class ArtifactSchemaCode(StrEnum):
     DUPLICATE_SOURCE_RUN = "duplicate source run identifiers are invalid"
     DUPLICATE_SOURCE_CONTENT = "duplicate source content hashes are invalid"
     INVALID_COMPARISON_OPTIONS = "comparison options must agree with method"
-    DUPLICATE_REPORT_METRIC = "duplicate report metric identifiers are invalid"
 
 
 @dataclass(frozen=True, slots=True)
