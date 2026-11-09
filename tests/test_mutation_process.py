@@ -26,18 +26,22 @@ def test_timeout_terminates_descendant(tmp_path: Path) -> None:
     assert result.timed_out
     pid = int(pid_file.read_text())
     proc = Path(f"/proc/{pid}/stat")
-    if sys.platform == "linux" and proc.exists():
-        descriptor = os.pidfd_open(pid)
-        try:
-            ready, _, _ = select([descriptor], [], [], 2)
-            assert ready
-        finally:
-            os.close(descriptor)
     # The descendant is dead: an unreaped zombie ("Z") or already reaped ("gone").
-    # Read lazily; the entry can be reaped between the exists() check and the open.
+    try:
+        if sys.platform == "linux" and proc.exists():
+            descriptor = os.pidfd_open(pid)
+            try:
+                ready, _, _ = select([descriptor], [], [], 2)
+                assert ready
+            finally:
+                os.close(descriptor)
+    except ProcessLookupError:
+        # The reaped entry vanished between the exists() check and the open; the
+        # descendant is already gone, which satisfies the dead-state assertion.
+        pass
     try:
         state = proc.read_text().split()[2]
-    except FileNotFoundError:
+    except FileNotFoundError, ProcessLookupError:
         state = "gone"
     assert state in {"Z", "gone"}
 
@@ -85,9 +89,15 @@ except InterruptedError:
     assert (tmp_path / "interrupted").read_text() == "caught"
     pid = int((tmp_path / "pid").read_text())
     if Path(f"/proc/{pid}").exists():
-        descriptor = os.pidfd_open(pid)
         try:
-            ready, _, _ = select([descriptor], [], [], 2)
-            assert ready
-        finally:
-            os.close(descriptor)
+            descriptor = os.pidfd_open(pid)
+        except ProcessLookupError:
+            # The child reaped between the exists() check and the open; it has
+            # exited, which satisfies the "child has exited" assertion above.
+            pass
+        else:
+            try:
+                ready, _, _ = select([descriptor], [], [], 2)
+                assert ready
+            finally:
+                os.close(descriptor)
