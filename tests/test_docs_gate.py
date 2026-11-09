@@ -135,3 +135,53 @@ def test_is_up_to_date_requires_matching_key_and_built_index(
     assert without_index is False
     assert with_index is True
     assert stale is False
+
+
+def test_is_up_to_date_missing_key_never_reports_up_to_date(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: no stored input hash exists yet (fresh checkout or empty cache).
+    monkeypatch.setattr(docs_gate, "_STORED_KEY", tmp_path / "missing")
+    monkeypatch.setattr(docs_gate, "_BUILT_INDEX", tmp_path / "index.html")
+    # When: any key is compared against the absent stored hash.
+    result = docs_gate.is_up_to_date("known")
+    # Then: a missing stored key can never match, so no rebuild is skipped.
+    assert result is False
+
+
+def test_gate_propagates_html_step_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: the clean step succeeds but the strict HTML build fails on warnings.
+    monkeypatch.setattr(docs_gate, "docs_input_sha", lambda: "changed-hash")
+    monkeypatch.setattr(docs_gate, "_STORED_KEY", tmp_path / "stored_key")
+
+    def html_run(command: Sequence[str], *_args: object) -> int:
+        tokens = [str(token) for token in command]
+        return 1 if "html" in tokens else 0
+
+    monkeypatch.setattr(docs_gate, "_execute_build", html_run)
+    monkeypatch.setattr(sys, "argv", ["tools.docs_gate"])
+    # When: the HTML render fails after a successful clean.
+    result = docs_gate.main()
+    # Then: the failure code is returned and the stale hash is not recorded.
+    assert result == 1
+    assert not (tmp_path / "stored_key").is_file()
+
+
+def test_gate_forces_build_with_fresh_flag_when_index_missing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: an up-to-date stored hash but no built HTML, forced to rebuild.
+    key = "stable-hash"
+    monkeypatch.setattr(docs_gate, "docs_input_sha", lambda: key)
+    _install_key(monkeypatch, tmp_path, key)
+    steps = _track_build(monkeypatch)
+    monkeypatch.setattr(sys, "argv", ["tools.docs_gate", "--fresh"])
+    # When: the forced rebuild runs despite a missing output index.
+    result = docs_gate.main()
+    # Then: it still cleans then builds and refreshes the input hash.
+    assert result == 0
+    assert steps == ["clean", "html"]
+    recorded = (tmp_path / "stored_key").read_text(encoding="utf-8").strip()
+    assert recorded == key
