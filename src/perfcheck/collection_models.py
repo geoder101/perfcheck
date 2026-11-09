@@ -20,7 +20,6 @@ from perfcheck.model_types import (
     MetricIdentifier,
     NonBlankText,
     PositiveInteger,
-    PrometheusStatus,
     Rfc3339UtcDatetime,
     StrictModel,
 )
@@ -109,7 +108,6 @@ class QueryProvenance(StrictModel):
     end: AwareDatetime
     step_seconds: PositiveInteger
     http_status: HttpStatusCode | None = None
-    prometheus_status: PrometheusStatus | None = None
 
     @field_validator("endpoint_url")
     @classmethod

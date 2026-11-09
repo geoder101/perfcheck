@@ -94,7 +94,6 @@ def test_artifact_identity_matches_explicit_stdlib_sha256_oracle() -> None:
         b'"metric_records":[{"availability":"available","failure":null,'
         b'"metric_id":"latency","provenance":{"end":"2026-01-01T01:10:00Z",'
         b'"endpoint_url":"https://metrics.example.test","http_status":null,'
-        b'"prometheus_status":null,'
         b'"query":"latency_seconds","request_path":"/api/v1/query_range",'
         b'"start":"2026-01-01T01:00:00Z","step_seconds":15},'
         b'"series":{"labels":[],"metric_id":"latency","samples":['

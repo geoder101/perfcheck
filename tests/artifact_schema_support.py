@@ -75,8 +75,7 @@ VALID_RUN_JSON: Final = """
         "start": "2026-01-01T00:00:00Z",
         "end": "2026-01-01T00:10:00Z",
         "step_seconds": 15,
-        "http_status": 200,
-        "prometheus_status": "success"
+        "http_status": 200
       },
       "series": {
         "metric_id": "cpu-system",

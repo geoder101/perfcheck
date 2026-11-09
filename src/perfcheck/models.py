@@ -29,7 +29,6 @@ from perfcheck.model_types import (
     EligibilityReason,
     MetricAvailability,
     MetricUnit,
-    PrometheusStatus,
     Statistic,
     Status,
 )
@@ -70,7 +69,6 @@ __all__ = [
     "MetricPolicy",
     "MetricSummary",
     "MetricUnit",
-    "PrometheusStatus",
     "QueryProvenance",
     "RunArtifact",
     "RunMetadata",

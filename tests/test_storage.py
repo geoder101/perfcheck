@@ -72,7 +72,6 @@ def _run_payload() -> JsonValue:
                     "end": "2026-01-01T00:10:00Z",
                     "step_seconds": 15,
                     "http_status": 200,
-                    "prometheus_status": "success",
                 },
                 "series": {
                     "metric_id": "cpu-system",

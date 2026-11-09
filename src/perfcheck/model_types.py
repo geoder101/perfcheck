@@ -164,13 +164,6 @@ class MetricAvailability(StrEnum):
     UNAVAILABLE = "unavailable"
 
 
-class PrometheusStatus(StrEnum):
-    """Prometheus API response statuses that can be persisted safely."""
-
-    SUCCESS = "success"
-    ERROR = "error"
-
-
 class CollectionFailureReason(StrEnum):
     """Known unavailable-metric causes."""
 
