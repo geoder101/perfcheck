@@ -174,6 +174,8 @@ def test_main_exits_for_examples_test_failure_after_marimo_validation(
                 "pytest",
                 "-n",
                 "auto",
+                "--dist",
+                "loadfile",
                 str(_ROOT / "tests/test_examples.py"),
                 str(_ROOT / "tests/test_examples_support.py"),
                 str(_ROOT / "tests/test_examples_fixture.py"),

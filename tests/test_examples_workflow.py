@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from html import escape
 from itertools import pairwise
 from pathlib import Path
@@ -29,7 +30,11 @@ _PASS_POLICY = _ROOT / "tests/fixtures/policy-pass.json"
 
 @pytest.fixture(scope="module")
 def capstones() -> tuple[CapstoneReceipt, ...]:
-    return tuple(run_capstone(scenario) for scenario in Scenario)
+    # The scenarios are independent (own workspace and mock endpoint), and
+    # subprocess steps release the GIL, so compute them concurrently to cut
+    # the module-scoped setup wall time.
+    with ThreadPoolExecutor(max_workers=len(Scenario)) as pool:
+        return tuple(pool.map(run_capstone, Scenario))
 
 
 @pytest.mark.parametrize("scenario", tuple(Scenario))

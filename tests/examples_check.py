@@ -134,6 +134,8 @@ def main() -> None:
             "pytest",
             "-n",
             "auto",
+            "--dist",
+            "loadfile",
             str(_ROOT / "tests/test_examples.py"),
             str(_ROOT / "tests/test_examples_support.py"),
             str(_ROOT / "tests/test_examples_fixture.py"),
