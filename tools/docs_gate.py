@@ -13,7 +13,7 @@ import subprocess
 import sys
 from typing import TYPE_CHECKING, Final
 
-from tools.docs_inputs import docs_input_sha, docs_root
+from tools.docs_inputs import docs_input_sha, docs_root, lock_build
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -62,18 +62,19 @@ def main() -> int:
         _ = sys.stdout.write("docs up to date; skipping rebuild\n")
         return 0
     environment = _mermaid_cli_env()
-    clean_exit = _execute_build(
-        ["-M", "clean", "docs", str(_ROOT / "docs/_build")], _ROOT, environment
-    )
-    if clean_exit != 0:
-        return clean_exit
-    html_exit = _execute_build(
-        ["-M", "html", "docs", str(_ROOT / "docs/_build"), "-E", "-a", "-W"],
-        _ROOT,
-        environment,
-    )
-    if html_exit == 0:
-        _ = _STORED_KEY.write_text(key, encoding="utf-8")
+    with lock_build():
+        clean_exit = _execute_build(
+            ["-M", "clean", "docs", str(_ROOT / "docs/_build")], _ROOT, environment
+        )
+        if clean_exit != 0:
+            return clean_exit
+        html_exit = _execute_build(
+            ["-M", "html", "docs", str(_ROOT / "docs/_build"), "-E", "-a", "-W"],
+            _ROOT,
+            environment,
+        )
+        if html_exit == 0:
+            _ = _STORED_KEY.write_text(key, encoding="utf-8")
     return html_exit
 
 

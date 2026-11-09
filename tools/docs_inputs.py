@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import sys
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Final
+from typing import TYPE_CHECKING, Final
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 _ROOT: Final = Path(__file__).resolve().parents[1]
 
@@ -35,3 +40,24 @@ def docs_input_sha() -> str:
             hasher.update(path.read_bytes())
             hasher.update(b"\0")
     return hasher.hexdigest()
+
+
+_LOCK_PATH: Final = _ROOT / ".docs_build.lock"
+
+
+@contextmanager
+def lock_build() -> Generator[None]:
+    """Serialize concurrent docs renders across processes on Unix (no-op on Windows)."""
+    if sys.platform == "win32":
+        yield
+        return
+    _LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    handle = _LOCK_PATH.open("w")
+    import fcntl  # noqa: PLC0415 - Unix-only; avoided on Windows
+
+    try:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(handle, fcntl.LOCK_UN)
+        handle.close()
