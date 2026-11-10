@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+import uuid
 from pathlib import Path
 from shutil import copytree, ignore_patterns, rmtree
 from typing import Final
@@ -70,7 +71,7 @@ def prune_cache(max_keys: int, active_marker: Path) -> None:
     keep: set[Path] = set(entries[-max_keys:] if max_keys > 0 else [])
     keep.add(active_marker.parent)
     for stale in entries:
-        if stale in keep or (stale / ".reading").is_file():
+        if stale in keep or any(stale.glob(".reading-*")):
             continue
         rmtree(stale)
 
@@ -80,14 +81,15 @@ def ensure_built_docs(project: Path) -> subprocess.CompletedProcess[str] | None:
 
     Renders into a content-addressed tree and returns the build result only when a
     fresh Sphinx render actually ran, so the caller can assert on it; returns
-    ``None`` when an identical cached build was reused. Readers publish a marker
-    before leaving the build lock so a concurrent worker never reaps or copies a
-    half-written tree, then release the lock so many workers copy the cache at once.
+    ``None`` when an identical cached build was reused. Each reader publishes a
+    unique marker before leaving the build lock so a concurrent prune never reaps or
+    copies a half-written tree, then releases the lock so many workers hit the cache
+    at once and only unlinks its own marker when done.
     """
     key = docs_input_sha()
     key_dir = _CACHE_DIR / key
     cached_docs = key_dir / "docs"
-    reading_marker = key_dir / ".reading"
+    reading_marker = key_dir / f".reading-{uuid.uuid4().hex}"
     reuse_cached = False
     with lock_build():
         if not cached_docs.joinpath("_build/html/index.html").is_file():

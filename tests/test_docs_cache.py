@@ -54,7 +54,8 @@ def test_prune_preserves_reader_marked_cache(cache_dir: Path) -> None:
     # Given: an old tree another worker is actively copying, plus newer trees.
     active = cache_dir / "active"
     (active / "docs").mkdir(parents=True, exist_ok=True)
-    _ = (active / ".reading").write_text("active", encoding="utf-8")
+    reader = active / ".reading-reader"
+    _ = reader.write_text("reader", encoding="utf-8")
     for index in range(3):
         tree = cache_dir / f"old-{index:02d}"
         (tree / "docs").mkdir(parents=True, exist_ok=True)
@@ -62,9 +63,9 @@ def test_prune_preserves_reader_marked_cache(cache_dir: Path) -> None:
         os.utime(tree, (1_000_000 + index, 1_000_000 + index))
     os.utime(active, (1_000_000, 1_000_000))
     # When: pruning with the active reader flagged and only two newest kept.
-    docs_build.prune_cache(2, active_marker=active / ".reading")
+    docs_build.prune_cache(2, active_marker=cache_dir / "elsewhere" / ".reading")
     # Then: the marked reader survives even though it is beyond the newest window.
-    assert (active / ".reading").is_file()
+    assert reader.is_file()
     assert sorted(child.name for child in cache_dir.iterdir()) == [
         "active",
         "old-01",
@@ -101,7 +102,7 @@ def test_built_docs_caches_then_reuses_without_rebuilding(
     assert calls["build"] == 1
     cached = tmp_path / "cache" / "content-key" / "docs"
     assert (cached / "_build" / "html" / "index.html").is_file()
-    assert not (tmp_path / "cache" / "content-key" / ".reading").is_file()
+    assert not any((tmp_path / "cache" / "content-key").glob(".reading-*"))
     assert (worker / "docs" / "_build" / "html" / "index.html").is_file()
 
     # When: a second worker requests the same inputs.
