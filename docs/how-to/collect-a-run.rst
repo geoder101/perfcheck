@@ -24,7 +24,7 @@ Steps
 
    .. code-block:: console
 
-      $ just cli collect --suite policy.json --run-id run-2026-07-03 --start 2026-07-03T10:00:00Z --end 2026-07-03T10:10:00Z --out runs/run-2026-07-03.json
+      $ just cli collect --policy policy.json --run-id run-2026-07-03 --start 2026-07-03T10:00:00Z --end 2026-07-03T10:10:00Z --out runs/run-2026-07-03.json
 
 #. When the suite policy should be overridden for this invocation, add the
    documented ``--prometheus-url`` option with its safe HTTP(S) base URL.

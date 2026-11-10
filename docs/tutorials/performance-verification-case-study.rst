@@ -98,7 +98,7 @@ at the repository root:
    for spec in baseline-1:11 baseline-2:12 current-1:13 current-2:14; do
        name="${spec%:*}"
        day="${spec#*:}"
-       uv run perfcheck collect --suite "$POLICY" \
+       uv run perfcheck collect --policy "$POLICY" \
            --prometheus-url http://127.0.0.1:18090 \
            --run-id "failure-$name" \
            --start "2026-07-${day}T10:00:00Z" \

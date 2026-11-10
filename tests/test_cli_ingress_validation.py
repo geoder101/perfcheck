@@ -47,7 +47,7 @@ def test_collect_rejects_invalid_policy_before_client_creation(
         app,
         [
             "collect",
-            "--suite",
+            "--policy",
             str(policy_path),
             "--run-id",
             "run-1",
@@ -105,7 +105,7 @@ def test_collect_rejects_invalid_interval_before_client_creation(
         app,
         [
             "collect",
-            "--suite",
+            "--policy",
             str(policy_path),
             "--run-id",
             "run-1",

@@ -84,7 +84,7 @@ def collect_cli(directory: Path, policy: SuitePolicy) -> Result:
         app,
         [
             "collect",
-            "--suite",
+            "--policy",
             str(directory / "policy.json"),
             "--run-id",
             "mixed-run",

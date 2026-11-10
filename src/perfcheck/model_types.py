@@ -189,6 +189,21 @@ class EligibilityReason(StrEnum):
     STATISTIC_REQUIRES_MORE_POINTS = "statistic_requires_more_points"
 
 
+class MetricReason(StrEnum):
+    """Why a run is withheld or omitted from one metric's comparison decision.
+
+    These ad-hoc reason literals used to live as plain strings across the
+    regression modules; centralizing them here gives the shared ``MetricExclusion``
+    and ``MetricOutcome`` reason fields one typed vocabulary instead of string
+    constants repeated at each call site.
+    """
+
+    METRIC_DISABLED = "metric_disabled"
+    METRIC_INELIGIBLE = "metric_ineligible"
+    METRIC_MISSING = "missing_metric"
+    METRIC_UNAVAILABLE = "metric_unavailable"
+
+
 class StrictModel(BaseModel):
     """Immutable, strict, forward-compatible public boundary model."""
 

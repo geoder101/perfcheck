@@ -141,7 +141,7 @@ def test_family_alpha_counts_enabled_unevaluable_but_not_disabled_metrics(
     parsed = Report.model_validate_json(render_json_report(report))
 
     # Then: both decisions use the fixed three-gate family; disabled contributes none.
-    metrics = {metric.metric_id: metric for metric in parsed.metrics}
+    metrics = {str(metric.metric_id): metric for metric in parsed.metrics}
     for name in ("a_pass", "z_lower"):
         metric = metrics[name]
         assert metric.method == "cohort_bootstrap"

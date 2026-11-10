@@ -171,7 +171,7 @@ def test_tampered_raw_artifact_is_rejected_before_summary_is_written(
             (
                 str(perfcheck_executable()),
                 "collect",
-                "--suite",
+                "--policy",
                 str(_PASS_POLICY),
                 "--prometheus-url",
                 endpoint,

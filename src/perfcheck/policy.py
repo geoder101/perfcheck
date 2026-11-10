@@ -107,6 +107,8 @@ def select_comparison(
 
 
 def _enabled_gate_count(policy: SuitePolicy) -> int:
+    # SuitePolicy validation guarantees at least one enabled metric, so the alpha
+    # split in select_comparison below always divides by a positive gate count.
     return sum(metric.enabled for metric in policy.metrics)
 
 

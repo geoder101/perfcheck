@@ -13,7 +13,7 @@ from perfcheck.bootstrap import (
     baseline_references,
     bootstrap_cohorts,
 )
-from perfcheck.model_types import ComparisonMethod, Status
+from perfcheck.model_types import ComparisonMethod, MetricReason, Status
 from perfcheck.policy import select_comparison
 from perfcheck.regression_cohorts import eligible_metric_cohort
 from perfcheck.regression_models import Cohort, MetricEvaluationInput, MetricOutcome
@@ -34,7 +34,7 @@ def evaluate_metric(
             status=Status.INCONCLUSIVE,
             method=None,
             evidence=None,
-            reason="metric_disabled",
+            reason=MetricReason.METRIC_DISABLED,
             exclusions=(),
         )
 

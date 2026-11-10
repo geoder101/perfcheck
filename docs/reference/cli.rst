@@ -14,8 +14,9 @@ Use the live help for the complete, installed command contract:
 -------------
 
 ``collect`` writes one portable raw-run artifact for every metric in a suite.
-It requires ``--suite``, ``--run-id``, ``--start``, ``--end``, and ``--out``.
+It requires ``--policy``, ``--run-id``, ``--start``, ``--end``, and ``--out``.
 ``--prometheus-url`` overrides the configured endpoint for this invocation.
+Pass ``--force`` only to replace an existing output path.
 If an enabled metric cannot be collected, the command still writes its raw
 evidence and exits with status ``4``.
 

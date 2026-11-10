@@ -80,7 +80,7 @@ def _write_policy(path: Path, policy: SuitePolicy) -> None:
 def _arguments(policy_path: Path, output_path: Path) -> list[str]:
     return [
         "collect",
-        "--suite",
+        "--policy",
         str(policy_path),
         "--run-id",
         "run-1",
@@ -155,6 +155,33 @@ def test_collect_preserves_existing_destination_without_collection_side_effects(
     assert clients == []
     assert requests == []
     assert set(tmp_path.iterdir()) == {policy_path, output}
+
+
+def test_collect_replaces_existing_destination_when_forced(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Given: an occupied output and collect invoked with --force.
+    policy_path, output = tmp_path / "policy.json", tmp_path / "run.json"
+    _write_policy(policy_path, _policy())
+    original = b"keep-run\x00\xff"
+    _ = output.write_bytes(original)
+
+    def handler(_request: httpx2.Request) -> httpx2.Response:
+        return _success_response()
+
+    monkeypatch.setattr(
+        "perfcheck.collection_service.create_collection_client",
+        lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
+    )
+
+    # When: collect targets the existing artifact with --force.
+    result = CliRunner().invoke(app, [*_arguments(policy_path, output), "--force"])
+
+    # Then: the destination is replaced with the freshly collected run.
+    assert result.exit_code == 0
+    assert output.read_bytes() != original
+    payload = _RUN_PAYLOAD.validate_json(output.read_bytes())
+    assert payload["artifact_type"] == "run"
 
 
 def test_collect_prefers_safe_override_and_writes_a_complete_portable_run(

@@ -31,8 +31,8 @@ class EligibilityPolicy(StrictModel):
 
     warmup_seconds: NonNegativeInteger = 0
     cooldown_seconds: NonNegativeInteger = 0
-    min_analysis_window_seconds: int = Field(default=300, ge=300)
-    min_points: int = Field(default=20, ge=20)
+    min_analysis_window_seconds: NonNegativeInteger = Field(default=300, ge=300)
+    min_points: NonNegativeInteger = Field(default=20, ge=20)
     min_coverage: Fraction = Field(default=0.8, ge=0.8)
     max_gap_steps: NonNegativeInteger = 3
 

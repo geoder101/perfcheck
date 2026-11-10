@@ -2,7 +2,20 @@
 
 from typing import Literal
 
-from perfcheck.model_types import AlgorithmManifest, StrictModel
+from perfcheck.model_types import (
+    AlgorithmManifest,
+    ComparisonMethod,
+    CompatibilitySha256,
+    Direction,
+    MetricIdentifier,
+    MetricUnit,
+    PolicyIdentifier,
+    PolicySha256,
+    Statistic,
+    Status,
+    StrictModel,
+    SuiteIdentifier,
+)
 
 
 class ReportSample(StrictModel):
@@ -41,22 +54,22 @@ class ReportOptions(StrictModel):
 class ReportProvenance(StrictModel):
     """Portable policy identity and algorithm manifest without local paths."""
 
-    policy_id: str
-    suite_id: str
-    policy_sha256: str
+    policy_id: PolicyIdentifier
+    suite_id: SuiteIdentifier
+    policy_sha256: PolicySha256
     algorithm_manifest: AlgorithmManifest
 
 
 class ReportMetric(StrictModel):
     """Reviewable report representation of one regression metric."""
 
-    metric_id: str
-    statistic: str
-    unit: str
-    direction: str
+    metric_id: MetricIdentifier
+    statistic: Statistic
+    unit: MetricUnit
+    direction: Direction
     enabled: bool
-    status: str
-    method: str | None
+    status: Status
+    method: ComparisonMethod | None
     current: ReportCohort
     baseline: ReportCohort
     effect: float | None
@@ -67,7 +80,7 @@ class ReportMetric(StrictModel):
     reference_anomaly: bool | None
     practical_threshold: float
     sample_size_warning: bool
-    comparison_fingerprint: str
+    comparison_fingerprint: CompatibilitySha256
     exclusions: tuple[ReportExclusion, ...]
     options: ReportOptions
     reason: str | None

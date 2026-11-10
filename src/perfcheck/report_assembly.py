@@ -59,44 +59,41 @@ def _build_metric(
     outcome: MetricOutcome,
 ) -> ReportMetric:
     evidence = outcome.evidence
+    parts: tuple[
+        float | None,
+        float | None,
+        float | None,
+        float | None,
+        float | None,
+        bool | None,
+    ]
+    warning: bool
+    options: ReportOptions
     match evidence:
-        case CohortBootstrapResult():
-            effect = evidence.observed_effect
-            decision_lower_bound = evidence.lower_decision_bound
-            diagnostic_lower_bound = evidence.diagnostic_lower_bound
-            diagnostic_upper_bound = evidence.diagnostic_upper_bound
-            reference_quantile = None
-            reference_anomaly = None
-            warning = evidence.sample_size_warning
-            options = _options(evidence)
-        case BaselineReferenceResult():
-            effect = evidence.reference_effect
-            decision_lower_bound = None
-            diagnostic_lower_bound = None
-            diagnostic_upper_bound = None
-            reference_quantile = evidence.reference_quantile
-            reference_anomaly = evidence.reference_anomaly
-            warning = evidence.sample_size_warning
-            options = _options(evidence)
+        case CohortBootstrapResult() as cohort:
+            parts = _cohort_bootstrap_fields(cohort)
+            warning = cohort.sample_size_warning
+            options = _options(cohort)
+        case BaselineReferenceResult() as reference:
+            parts = _baseline_reference_fields(reference)
+            warning = reference.sample_size_warning
+            options = _options(reference)
         case None:
-            effect = None
-            decision_lower_bound = None
-            diagnostic_lower_bound = None
-            diagnostic_upper_bound = None
-            reference_quantile = None
-            reference_anomaly = None
+            parts = (None, None, None, None, None, None)
             warning = False
-            options = ReportOptions(
-                requested_alpha=None,
-                effective_alpha=None,
-                effective_seed=None,
-                requested_resamples=None,
-                effective_resamples=None,
-            )
+            options = _empty_options()
         case _:
             assert_never(evidence)
+    (
+        effect,
+        decision_lower_bound,
+        diagnostic_lower_bound,
+        diagnostic_upper_bound,
+        reference_quantile,
+        reference_anomaly,
+    ) = parts
     return ReportMetric(
-        metric_id=outcome.metric_id,
+        metric_id=MetricId(outcome.metric_id),
         statistic=metric.statistic,
         unit=metric.unit,
         direction=outcome.direction,
@@ -124,6 +121,45 @@ def _build_metric(
         ),
         options=options,
         reason=outcome.reason,
+    )
+
+
+def _cohort_bootstrap_fields(
+    evidence: CohortBootstrapResult,
+) -> tuple[float, float, float, float, None, None]:
+    """Project cohort-bootstrap evidence onto the six optional report fields."""
+    return (
+        evidence.observed_effect,
+        evidence.lower_decision_bound,
+        evidence.diagnostic_lower_bound,
+        evidence.diagnostic_upper_bound,
+        None,
+        None,
+    )
+
+
+def _baseline_reference_fields(
+    evidence: BaselineReferenceResult,
+) -> tuple[float, None, None, None, float, bool]:
+    """Project baseline-reference evidence onto the six optional report fields."""
+    return (
+        evidence.reference_effect,
+        None,
+        None,
+        None,
+        evidence.reference_quantile,
+        evidence.reference_anomaly,
+    )
+
+
+def _empty_options() -> ReportOptions:
+    """Return the option set used when no comparison evidence is present."""
+    return ReportOptions(
+        requested_alpha=None,
+        effective_alpha=None,
+        effective_seed=None,
+        requested_resamples=None,
+        effective_resamples=None,
     )
 
 

@@ -80,7 +80,7 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
             [
                 str(console),
                 "collect",
-                "--suite",
+                "--policy",
                 str(policy_path),
                 "--prometheus-url",
                 endpoint,
@@ -103,7 +103,7 @@ def test_token_echo_fixture_keeps_collected_artifacts_secret_free(
             [
                 str(console),
                 "collect",
-                "--suite",
+                "--policy",
                 str(policy_path),
                 "--prometheus-url",
                 endpoint,

@@ -145,7 +145,7 @@ def collect_arguments(
     return (
         str(context.executable),
         "collect",
-        "--suite",
+        "--policy",
         str(context.policy_path),
         "--prometheus-url",
         request.endpoint,

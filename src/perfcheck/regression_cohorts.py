@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from perfcheck.bootstrap import RunValue
+from perfcheck.model_types import MetricReason
 from perfcheck.policy import ComparisonInput, comparison_fingerprint
 from perfcheck.regression_models import (
     Cohort,
@@ -34,7 +35,9 @@ def eligible_metric_cohort(
         )
         if not records:
             exclusions.append(
-                MetricExclusion(cohort, summary.source_run_id, "missing_metric")
+                MetricExclusion(
+                    cohort, summary.source_run_id, MetricReason.METRIC_MISSING
+                )
             )
             continue
         record = records[0]
@@ -45,7 +48,7 @@ def eligible_metric_cohort(
                     summary.source_run_id,
                     record.failure.reason.value
                     if record.failure is not None
-                    else "metric_unavailable",
+                    else MetricReason.METRIC_UNAVAILABLE,
                 )
             )
             continue
@@ -56,7 +59,7 @@ def eligible_metric_cohort(
                     summary.source_run_id,
                     record.summary.eligibility.reason.value
                     if record.summary.eligibility.reason is not None
-                    else "metric_ineligible",
+                    else MetricReason.METRIC_INELIGIBLE,
                 )
             )
             continue

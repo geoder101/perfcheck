@@ -91,7 +91,7 @@ def test_installed_command_workflow_writes_both_report_formats_for_each_verdict(
                 [
                     str(command),
                     "collect",
-                    "--suite",
+                    "--policy",
                     str(policy_path),
                     "--prometheus-url",
                     endpoint,

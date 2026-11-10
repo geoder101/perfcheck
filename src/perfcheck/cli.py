@@ -64,17 +64,18 @@ def summarize_command(
 
 @app.command(name="collect")
 def collect_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
-    policy_path: Annotated[Path, typer.Option("--suite")],
+    policy_path: Annotated[Path, typer.Option("--policy")],
     run_id: Annotated[str, typer.Option("--run-id")],
     start: Annotated[str, typer.Option("--start")],
     end: Annotated[str, typer.Option("--end")],
     output_path: Annotated[Path, typer.Option("--out")],
+    force: Annotated[bool, typer.Option("--force")] = False,
     prometheus_url: Annotated[str | None, typer.Option("--prometheus-url")] = None,
 ) -> None:
     """Collect all suite metrics into one atomic portable raw run artifact."""
 
     def action() -> None:
-        preflight_paths((output_path,), force=False)
+        preflight_paths((output_path,), force=force)
         policy = load_policy(policy_path)
         try:
             interval = SourceInterval(
@@ -83,7 +84,7 @@ def collect_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented fl
         except ValueError as error:
             raise CollectionInputError(CollectionInputCode.INVALID_INTERVAL) from error
         run = runnify(collect_run)(policy, RunId(run_id), interval, prometheus_url)
-        write_artifact(output_path, run)
+        write_artifact(output_path, run, force=force)
         _console.print(f"wrote run {run.run_id}")
         if has_enabled_failure(policy, run):
             _exit_code(4)

@@ -51,7 +51,6 @@ def test_workflow_pages_document_only_supported_cli_contracts() -> None:
 
     # Then: every workflow claim maps to the public command contract.
     required_options = (
-        "--suite",
         "--run-id",
         "--start",
         "--end",

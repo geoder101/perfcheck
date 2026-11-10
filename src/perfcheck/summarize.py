@@ -142,6 +142,9 @@ def _ineligibility_reason(
     policy: MetricPolicy,
     diagnostics: _EligibilityDiagnostics,
 ) -> EligibilityReason | None:
+    # First matching rule wins, in this precedence: an input-series defect (empty,
+    # non-finite, or duplicated timestamps) is reported before any policy-gated
+    # rule, then window -> statistic-minimum -> min-points -> coverage -> gap.
     reason = input_reason
     if (
         reason is None
