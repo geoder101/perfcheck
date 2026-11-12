@@ -130,8 +130,7 @@ minima nor an increased resample count establish nominal coverage.
 Fixture-backed boundary examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The downloadable :download:`policy outcome fixtures
-<../../tests/test_policy_outcomes.py>` include
+The downloadable `policy outcome fixtures <https://github.com/geoder101/perfcheck/blob/main/tests/test_policy_outcomes.py>`_ include
 ``test_evaluate_regression_uses_a_strict_directional_cohort_bound``.
 Each case has five constant current values and ten constant baseline values,
 so every resampled mean difference equals the oriented effect. With
@@ -151,13 +150,11 @@ effect is 6 against :math:`T=5`: an anomaly remains ``INCONCLUSIVE`` in both
 directions. The adjacent reference-equality fixture records no anomaly at 5,
 but still returns ``INCONCLUSIVE``, not ``PASS``.
 
-For the arithmetic behind the reference tail, :download:`bootstrap fixtures
-<../../tests/test_bootstrap.py>` include
+For the arithmetic behind the reference tail, `bootstrap fixtures <https://github.com/geoder101/perfcheck/blob/main/tests/test_bootstrap.py>`_ include
 ``test_baseline_reference_uses_the_oriented_tail_quantile_as_an_advisory``:
 current throughput 20 and baseline values 30, 25, 35 produce an oriented
 reference quantile of -25.25 and effect of 5.25. The anomaly is true; it is
-not a regression verdict. :download:`Lesson 08
-<../../examples/08-bootstrap-and-decisions.py>` is the runnable teaching
+not a regression verdict. `Lesson 08 <https://github.com/geoder101/perfcheck/blob/main/examples/08-bootstrap-and-decisions.py>`_ is the runnable teaching
 contrast, not a replacement for CLI method selection.
 
 Suite aggregation
@@ -190,8 +187,7 @@ unsupported computation as product evidence. The runnable contrast in
 ``examples/08-bootstrap-and-decisions.py`` shows the oriented bootstrap rule and
 a Welch statistic without calculating a p-value.
 
-:doc:`comparative-methods` and :download:`Lesson 10
-<../../examples/10-comparative-methods.py>` compute deterministic educational
+:doc:`comparative-methods` and `Lesson 10 <https://github.com/geoder101/perfcheck/blob/main/examples/10-comparative-methods.py>`_ compute deterministic educational
 Welch/t, seeded permutation, tied-rank and Bayesian contrasts. Each has its own
 dataset, question, assumptions, result and explicit non-verdict boundary.
 
@@ -209,7 +205,7 @@ dataset, question, assumptions, result and explicit non-verdict boundary.
        threshold for eligible, comparable multi-run cohorts? It resamples the
        observed cohort values with replacement and does not validate IID,
        normality, causal similarity, or representativeness.
-     - :download:`Bootstrap fixtures <../../tests/test_bootstrap.py>` include
+     - `Bootstrap fixtures <https://github.com/geoder101/perfcheck/blob/main/tests/test_bootstrap.py>`_ include
        ``test_bootstrap_cohorts_use_pcg64_draw_order_and_linear_quantiles``.
        Seed 19, effective alpha 0.025 and 4000 draws give observed effect
        1.1357142857142852 and lower bound -3.9287500000000004. The same
@@ -323,8 +319,8 @@ makes a calculation repeatable, not independent of previous calculations.
 See :doc:`multiple-testing` for family definition and stopping, and
 :doc:`uncertainty-and-comparison` for finite-sample and resampling limitations.
 
-Continue with :download:`Lab 08 <../../examples/08-bootstrap-and-decisions.py>`
+Continue with `Lab 08 <https://github.com/geoder101/perfcheck/blob/main/examples/08-bootstrap-and-decisions.py>`_
 to exercise the rule and :doc:`plain-python-mechanics` to check its arithmetic.
-:download:`Lab 10 <../../examples/10-comparative-methods.py>` and
+`Lab 10 <https://github.com/geoder101/perfcheck/blob/main/examples/10-comparative-methods.py>`_ and
 :doc:`comparative-methods` then show why a null-tail probability, a rank contrast
 or a Bayesian posterior cannot silently replace that rule.

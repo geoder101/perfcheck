@@ -232,4 +232,4 @@ Increasing the number of scrapes from one busy host isn't the same experiment
 as repeating independent runs. Use :doc:`experimental-design` before applying
 this intuition, then continue to :doc:`inference-and-power` and
 :doc:`multiple-testing`. To connect these ideas to artifacts, revisit
-:download:`lesson 06 <../../examples/06-statistical-foundations.py>`.
+`lesson 06 <https://github.com/geoder101/perfcheck/blob/main/examples/06-statistical-foundations.py>`_.

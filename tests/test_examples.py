@@ -8,6 +8,7 @@ from tests import examples_check
 from tests.examples_check import EXAMPLE_NOTEBOOKS, run_standalone_notebook
 
 _ROOT = Path(__file__).parents[1]
+_BLOB_PREFIX = "https://github.com/geoder101/perfcheck/blob/main/"
 _LESSON_PATHS = EXAMPLE_NOTEBOOKS
 _LESSON_OUTPUT_EVIDENCE = (
     (_LESSON_PATHS[0], "collect"),
@@ -129,7 +130,7 @@ def test_learning_routes_when_entering_docs_are_discoverable() -> None:
     assert ":doc:`explanation/learning-paths`" in landing
     assert "(docs/explanation/learning-paths.rst)" in readme
     assert all(name in routes for name in ("Beginner", "Practitioner", "Deep dive"))
-    assert ":download:`curriculum index <../../examples/README.md>`" in routes
+    assert f"<{_BLOB_PREFIX}examples/README.md>" in routes
 
 
 def test_documentation_scope_preserves_cli_only_setup_and_explicit_commands() -> None:

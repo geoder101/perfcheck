@@ -172,5 +172,5 @@ for that CI environment while supporting only a narrow deployment claim.
 Likewise, eligibility checks establish that a configured measurement window
 has enough usable evidence. They aren't tests of IID sampling, absence of
 confounding, or causality. Use :doc:`eligibility-and-comparability` and
-:download:`lesson 07 <../../examples/07-summary-and-eligibility.py>` to inspect what
+`lesson 07 <https://github.com/geoder101/perfcheck/blob/main/examples/07-summary-and-eligibility.py>`_ to inspect what
 the gates actually record, then state the assumptions the design still needs.

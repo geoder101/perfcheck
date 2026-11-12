@@ -3,7 +3,7 @@ Plain-Python mechanics
 
 The arithmetic behind :doc:`measurement-and-summaries` and
 :doc:`uncertainty-and-comparison` can be inspected without array syntax.
-:download:`Lesson 09 <../../examples/09-plain-python-mechanics.py>` follows
+`Lesson 09 <https://github.com/geoder101/perfcheck/blob/main/examples/09-plain-python-mechanics.py>`_ follows
 lessons 06-08 with finite, deterministic toy inputs. Its helpers are educational,
 not a production implementation, stable Python API, or source of verified
 perfcheck evidence. The supported interface remains the CLI.
@@ -11,7 +11,7 @@ perfcheck evidence. The supported interface remains the CLI.
 Prerequisites are :doc:`probability-and-distributions` and
 :doc:`measurement-and-summaries`; :doc:`experimental-design` explains why a
 scalar run summary isn't automatically an independent replicate. Work through
-:download:`Lab 08 <../../examples/08-bootstrap-and-decisions.py>` first to know
+`Lab 08 <https://github.com/geoder101/perfcheck/blob/main/examples/08-bootstrap-and-decisions.py>`_ first to know
 what the arithmetic is intended to describe.
 
 Location, spread, and slope
@@ -130,12 +130,12 @@ the wrong throughput tail: orientation precedes quantile selection.
 Lesson 09 does not implement artifact persistence, hashes, integrity checking,
 eligibility gates, or policy evaluation. Use the CLI workflow in
 :doc:`../tutorials/first-comparison` to produce verified evidence. The executable
-checks in :download:`the mechanics tests <../../tests/test_examples_mechanics.py>`
+checks in `the mechanics tests <https://github.com/geoder101/perfcheck/blob/main/tests/test_examples_mechanics.py>`_
 lock the numeric examples and repeatable isolated output; run them with
 ``just examples-check``.
 
 Next, :doc:`multiple-testing` derives the allocation that selects the decision
-quantile. :download:`Lab 10 <../../examples/10-comparative-methods.py>` and
+quantile. `Lab 10 <https://github.com/geoder101/perfcheck/blob/main/examples/10-comparative-methods.py>`_ and
 :doc:`comparative-methods` distinguish bootstrap resampling from a null-tail
 test and a posterior update. Arithmetic agreement is necessary for reliable
 implementation; the sampling design and calibration are separate obligations.

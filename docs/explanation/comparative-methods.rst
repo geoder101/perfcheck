@@ -2,7 +2,7 @@ Comparative methods
 ===================
 
 The same observations can support different questions, but the answers are not
-interchangeable. :download:`Lesson 10 <../../examples/10-comparative-methods.py>`
+interchangeable. `Lesson 10 <https://github.com/geoder101/perfcheck/blob/main/examples/10-comparative-methods.py>`_
 computes the four contrasts below with fixed local data and no new dependencies.
 These are teaching calculations, not verified artifacts or alternate CLI modes.
 The implemented rule remains in :doc:`decisions-and-limitations`; lesson 08
@@ -232,6 +232,6 @@ used by many tests, not a fifth competing distributional model.
 
 Trying all these approaches and reporting whichever is most persuasive adds
 selection to the experiment. Read :doc:`multiple-testing` before doing so.
-Then return to :download:`Lab 08 <../../examples/08-bootstrap-and-decisions.py>`
+Then return to `Lab 08 <https://github.com/geoder101/perfcheck/blob/main/examples/08-bootstrap-and-decisions.py>`_
 and :doc:`uncertainty-and-comparison` for the actual percentile-bootstrap rule;
 its reproducibility isn't evidence that any of the alternative assumptions hold.

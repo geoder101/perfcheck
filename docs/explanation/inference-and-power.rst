@@ -200,7 +200,7 @@ Next steps
 
 Read :doc:`multiple-testing` before inspecting many metrics, then
 :doc:`comparative-methods` to see how a different model changes the answer.
-:download:`Lab 10 <../../examples/10-comparative-methods.py>` keeps its Welch,
+`Lab 10 <https://github.com/geoder101/perfcheck/blob/main/examples/10-comparative-methods.py>`_ keeps its Welch,
 permutation, rank and Bayesian calculations separate from product verdicts.
-:download:`Lab 08 <../../examples/08-bootstrap-and-decisions.py>` demonstrates
+`Lab 08 <https://github.com/geoder101/perfcheck/blob/main/examples/08-bootstrap-and-decisions.py>`_ demonstrates
 the implemented bootstrap path, which doesn't compute the p-values above.

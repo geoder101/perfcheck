@@ -195,6 +195,6 @@ does its allocation cover ad-hoc metrics or repeated invocations. Read
 :doc:`decisions-and-limitations` for the resulting verdicts.
 
 Next, contrast the models in :doc:`comparative-methods` and
-:download:`Lab 10 <../../examples/10-comparative-methods.py>`. Return to
-:download:`Lab 08 <../../examples/08-bootstrap-and-decisions.py>` to inspect
+`Lab 10 <https://github.com/geoder101/perfcheck/blob/main/examples/10-comparative-methods.py>`_. Return to
+`Lab 08 <https://github.com/geoder101/perfcheck/blob/main/examples/08-bootstrap-and-decisions.py>`_ to inspect
 the fixed product rule without importing an exploratory testing procedure.

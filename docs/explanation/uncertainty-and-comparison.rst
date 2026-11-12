@@ -327,6 +327,6 @@ the multi-run bootstrap decision.
 
 Continue with :doc:`decisions-and-limitations` for strict threshold boundaries,
 then :doc:`plain-python-mechanics` for transparent arithmetic.
-:download:`Lab 08 <../../examples/08-bootstrap-and-decisions.py>` demonstrates
-the product rule; :download:`Lab 10 <../../examples/10-comparative-methods.py>`
+`Lab 08 <https://github.com/geoder101/perfcheck/blob/main/examples/08-bootstrap-and-decisions.py>`_ demonstrates
+the product rule; `Lab 10 <https://github.com/geoder101/perfcheck/blob/main/examples/10-comparative-methods.py>`_
 contrasts methods that don't determine its verdicts.

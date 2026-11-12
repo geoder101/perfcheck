@@ -7,8 +7,14 @@ Goal and question
 Is current **mean latency in seconds** worse than baseline under a policy chosen
 before examining outcomes? This case study follows timestamped observations into
 verified per-run summaries and an actual JSON/Markdown decision report. It needs
-only this checkout, Just, Python 3.14 and ``uv``; see the
-project's root ``README.md`` for full native prerequisites.
+only a local clone of this repository. Native setup needs the following tools:
+
+- `Just <https://just.systems/man/en/>`_
+- `Python 3.14 <https://www.python.org/downloads/release/python-31410/>`_
+- `uv <https://docs.astral.sh/uv/>`_
+
+See the project's root `README.md <https://github.com/geoder101/perfcheck/blob/main/README.md>`_ for the clone command and full native
+prerequisites.
 No remote Prometheus or load generator is required.
 The supported interface is the public ``perfcheck`` CLI, not the
 educational Python helpers or internal artifact schemas.
@@ -47,7 +53,7 @@ independence, exchangeability, representativeness or steady state. In particular
 Run the complete selected scenario
 ------------------------------------------------------------
 
-From the repository root:
+From the root of your local clone:
 
 .. code-block:: console
 
@@ -55,7 +61,7 @@ From the repository root:
    $ just notebook-run examples/05-failures-and-ci.py
 
 Setup installs the locked dev/docs/examples groups, not just minimal lesson
-dependencies. The :download:`curriculum index <../../examples/README.md>` explains
+dependencies. The `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_ explains
 the authoring, interactive viewing, and noninteractive script recipes.
 
 The native Marimo selector offers ``pass`` (default), ``regression`` and

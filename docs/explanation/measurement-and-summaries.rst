@@ -313,7 +313,7 @@ the weighting. Perfcheck compares the run-level scalars and doesn't pool
 the raw points to make a cohort quantile.
 
 Work through the arithmetic and gate evidence in
-:download:`lesson 07 <../../examples/07-summary-and-eligibility.py>`, then follow
+`lesson 07 <https://github.com/geoder101/perfcheck/blob/main/examples/07-summary-and-eligibility.py>`_, then follow
 :doc:`eligibility-and-comparability` into :doc:`inference-and-power`.
 The descriptive formulas explain what a value means. Whether a difference
 is precise or practically meaningful is a further question.

@@ -7,6 +7,7 @@ from typing import Final
 import pytest
 
 _ROOT: Final = Path(__file__).parents[1]
+_BLOB_PREFIX: Final = "https://github.com/geoder101/perfcheck/blob/main/"
 _COMPARATIVE_METHODS: Final = (
     "Welch/t",
     "Seeded permutation",
@@ -66,7 +67,7 @@ def test_comparative_explanation_keeps_each_method_outside_product_policy() -> N
     # When: each method's local artifact and policy boundary is checked.
     _assert_comparative_boundaries(source)
     # Then: the explanation links the actual runnable lesson and decisions chapter.
-    assert "<../../examples/10-comparative-methods.py>" in source
+    assert f"<{_BLOB_PREFIX}examples/10-comparative-methods.py>" in source
     assert ":doc:`decisions-and-limitations`" in source
 
 
@@ -140,9 +141,9 @@ def test_decision_examples_link_exact_fixtures_and_preserve_verdicts() -> None:
         "test_evaluate_regression_uses_a_strict_directional_cohort_bound",
         "test_evaluate_regression_keeps_directional_reference_anomalies_inconclusive",
         "test_bootstrap_cohorts_use_pcg64_draw_order_and_linear_quantiles",
-        "<../../tests/test_bootstrap.py>",
-        "<../../tests/test_policy_outcomes.py>",
-        "<../../examples/08-bootstrap-and-decisions.py>",
+        f"<{_BLOB_PREFIX}tests/test_bootstrap.py>",
+        f"<{_BLOB_PREFIX}tests/test_policy_outcomes.py>",
+        f"<{_BLOB_PREFIX}examples/08-bootstrap-and-decisions.py>",
         "0.05 / 2 = 0.025",
     ):
         assert term in source

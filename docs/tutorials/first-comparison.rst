@@ -10,16 +10,20 @@ pointing at a live Prometheus service or choosing persistent output paths.
 Prerequisite
 ------------
 
-Native setup requires Just, uv, and Python 3.14; see the
-project's root ``README.md`` for full prerequisites.
-Run setup and the lesson commands from the repository root:
+Native setup requires Just, uv, and Python 3.14, available as
+`Just <https://just.systems/man/en/>`_,
+`uv <https://docs.astral.sh/uv/>`, and
+`Python 3.14 <https://www.python.org/downloads/release/python-31410/>`. These
+commands run against a local copy of the repository, so work from the root of
+your clone; see the project's `README.md <https://github.com/geoder101/perfcheck/blob/main/README.md>`_
+for the clone command and full prerequisites:
 
 .. code-block:: console
 
    $ just sync
 
 This installs the locked dev/docs/examples groups, not just the minimal lesson
-dependencies. The :download:`curriculum index <../../examples/README.md>` explains
+dependencies. The `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_ explains
 the authoring, interactive viewing, and noninteractive script recipes.
 
 Steps
@@ -28,11 +32,11 @@ Steps
 #. Run the first five executable lessons in order. They use local fixtures and
    temporary workspaces, so they are the safe first comparison path.
 
-   * :download:`Lesson 01, workflow overview <../../examples/01-overview.py>`
-   * :download:`Lesson 02, collect a raw run <../../examples/02-collect.py>`
-   * :download:`Lesson 03, summarize evidence <../../examples/03-summarize.py>`
-   * :download:`Lesson 04, compare cohorts <../../examples/04-compare.py>`
-   * :download:`Lesson 05, CI outcomes <../../examples/05-failures-and-ci.py>`
+    * `Lesson 01, workflow overview <https://github.com/geoder101/perfcheck/blob/main/examples/01-overview.py>`_
+    * `Lesson 02, collect a raw run <https://github.com/geoder101/perfcheck/blob/main/examples/02-collect.py>`_
+    * `Lesson 03, summarize evidence <https://github.com/geoder101/perfcheck/blob/main/examples/03-summarize.py>`_
+    * `Lesson 04, compare cohorts <https://github.com/geoder101/perfcheck/blob/main/examples/04-compare.py>`_
+    * `Lesson 05, CI outcomes <https://github.com/geoder101/perfcheck/blob/main/examples/05-failures-and-ci.py>`_
 
 #. Start with the overview lesson:
 

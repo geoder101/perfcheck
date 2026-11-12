@@ -59,6 +59,6 @@ Run lesson commands from that same root. Open the
 selected lesson with ``just notebook-run examples/`` followed by its filename
 as the single required path argument. Use ``just notebook-edit`` with that path
 to author it, or ``just notebook-script`` with that path to run the same default
-controls without a browser. Download the :download:`curriculum index <../../examples/README.md>`
+controls without a browser. Download the `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_
 for all ten filenames and explicit author, consumer, and script commands.
 Start there for control descriptions; the routes above don't add lessons.

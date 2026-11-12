@@ -8,6 +8,7 @@ import pytest
 
 _ROOT: Final = Path(__file__).parents[1]
 _DOCS: Final = _ROOT / "docs"
+_BLOB_PREFIX: Final = "https://github.com/geoder101/perfcheck/blob/main/"
 _SECTION_DOCUMENTS: Final = (
     "tutorials/index",
     "how-to/index",
@@ -253,7 +254,18 @@ def test_committed_document_manifest_has_no_unowned_or_legacy_pages() -> None:
     assert actual == expected
 
 
-def test_all_local_rst_downloads_and_external_style_links_resolve() -> None:
+def _resolve_repo_path(source: Path, link: str) -> Path:
+    """Resolve an in-repo ``<path>_`` link to a repository file path.
+
+    ``blob/main`` external links map to files in the checkout under the resolved
+    repository root; relative links resolve against their source page.
+    """
+    if link.startswith(_BLOB_PREFIX):
+        return _ROOT / link[len(_BLOB_PREFIX) :]
+    return source.parent / link
+
+
+def test_all_rst_blob_and_relative_links_resolve() -> None:
     # Given: every authored RST page, excluding generated API and HTML outputs.
     sources = tuple(
         path
@@ -261,15 +273,21 @@ def test_all_local_rst_downloads_and_external_style_links_resolve() -> None:
         if not {"_build", "_templates", "api"}.intersection(path.parts)
     )
 
-    # When: explicit local targets inside RST links/download roles are resolved.
+    # When: in-repo download links (blob/main or relative) are collected.
     destinations = tuple(
-        source.parent / match.group(1)
+        (source, _resolve_repo_path(source, match.group(1)))
         for source in sources
         for match in re.finditer(r"<([^<>]+)>`", source.read_text(encoding="utf-8"))
-        if "://" not in match.group(1)
-        and (match.group(1).startswith(".") or "/" in match.group(1))
+        if match.group(1).startswith(_BLOB_PREFIX) or match.group(1).startswith(".")
     )
 
     # Then: lesson and fixture downloads are real files, not just convincing labels.
-    assert destinations
-    assert all(destination.is_file() for destination in destinations)
+    assert destinations, "Expected in-repo documentation links in authored RST sources."
+    broken = [
+        f"{source.relative_to(_ROOT)} -> {resolved}"
+        for source, resolved in destinations
+        if not resolved.is_file()
+    ]
+    assert not broken, (
+        "In-repo documentation links resolve to missing files:\n" + "\n".join(broken)
+    )

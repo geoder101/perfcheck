@@ -23,7 +23,7 @@ Use this reading path as a small book, not a list of formulas to memorize:
 
 The mathematical sections are optional on a first reading. Keep the worked
 examples and assumptions even if you skip a derivation. The existing
-:download:`lesson 06 <../../examples/06-statistical-foundations.py>` is a runnable
+`lesson 06 <https://github.com/geoder101/perfcheck/blob/main/examples/06-statistical-foundations.py>`_ is a runnable
 companion; :doc:`../reference/glossary` is the shared terminology reference.
 
 From observations to evidence

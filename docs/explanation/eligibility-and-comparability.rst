@@ -189,5 +189,5 @@ The third requires judgment and evidence about the experiment. More runs,
 more bootstrap draws, or a stricter alpha cannot repair a wrong experimental
 unit or a confounded design. Continue with :doc:`experimental-design`,
 :doc:`inference-and-power`, and :doc:`multiple-testing`; use
-:download:`lesson 07 <../../examples/07-summary-and-eligibility.py>` to inspect the
+`lesson 07 <https://github.com/geoder101/perfcheck/blob/main/examples/07-summary-and-eligibility.py>`_ to inspect the
 concrete eligibility evidence behind this distinction.
