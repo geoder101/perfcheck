@@ -10,10 +10,8 @@ pointing at a live Prometheus service or choosing persistent output paths.
 Prerequisite
 ------------
 
-Native setup requires Just, uv, and Python 3.14, available as
-`Just <https://just.systems/man/en/>`_,
-`uv <https://docs.astral.sh/uv/>`, and
-`Python 3.14 <https://www.python.org/downloads/release/python-31410/>`. These
+Native setup requires `Just <https://just.systems/man/en/>`_, `uv <https://docs.astral.sh/uv/>`_, and
+`Python <https://www.python.org/>`_ (at least v3.14). These
 commands run against a local copy of the repository, so work from the root of
 your clone; see the project's `README.md <https://github.com/geoder101/perfcheck/blob/main/README.md>`_
 for the clone command and full prerequisites:

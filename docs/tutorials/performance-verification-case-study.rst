@@ -10,7 +10,7 @@ verified per-run summaries and an actual JSON/Markdown decision report. It needs
 only a local clone of this repository. Native setup needs the following tools:
 
 - `Just <https://just.systems/man/en/>`_
-- `Python 3.14 <https://www.python.org/downloads/release/python-31410/>`_
+- `Python <https://www.python.org/>`_ (at least v3.14)
 - `uv <https://docs.astral.sh/uv/>`_
 
 See the project's root `README.md <https://github.com/geoder101/perfcheck/blob/main/README.md>`_ for the clone command and full native
