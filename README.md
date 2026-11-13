@@ -4,7 +4,7 @@
 
 ## Install
 
-For a native checkout, install Python 3.14,
+For a native checkout, install Python 3.14 or later,
 [Just](https://just.systems/man/en/chapter_4.html), and
 [uv](https://docs.astral.sh/uv/). Just is the project's task runner; uv is the
 underlying Python package and environment manager. Run these commands from the

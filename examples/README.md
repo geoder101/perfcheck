@@ -22,7 +22,7 @@ alternative statistical teaching models do not determine perfcheck PASS/FAIL.
 
 ## Setup
 
-Native setup requires Just, uv, and Python 3.14. See the
+Native setup requires Just, uv, and Python 3.14 or later. See the
 [root installation guide](../README.md) for full prerequisites.
 Run setup and all lesson commands from the repository root:
 

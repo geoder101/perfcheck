@@ -51,7 +51,7 @@ Deep dive: examine models and calculations
 Running the labs
 ----------------
 
-Native setup requires Just, uv, and Python 3.14; the
+Native setup requires Just, uv, and Python 3.14 or later; the
 project's root ``README.md`` owns the full prerequisites.
 Run ``just sync`` from the repository root to install the locked
 dev/docs/examples groups, a broader environment than examples-only setup.
