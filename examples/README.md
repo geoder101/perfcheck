@@ -33,8 +33,14 @@ just sync
 `just sync` installs the locked dev/docs/examples groups, a broader environment
 than the minimal examples-only dependencies.
 
-`notebook-edit` authors a lesson, `notebook-run` views it, and `notebook-script` runs it noninteractively.
-Each Just recipe takes one required notebook path. Authoring uses
+Start every lesson with ``just notebook-edit``: this opens the lesson in Marimo's
+editor, where you run each cell in turn, editing the code and re-running as you
+learn. This is the way to go through a lesson. Once you have read a control-driven
+lesson (05 through 10), try ``just notebook-run`` to feel its sliders and selectors
+with the code hidden. Reach for ``just notebook-script`` only when you have no
+browser -- to verify that a lesson runs clean end to end, or to reproduce it on a
+headless machine or CI runner; it executes the whole notebook at once without
+interacting. Each Just recipe takes one required notebook path. Authoring uses
 `uv run --group examples marimo edit` internally; script execution uses
 `uv --directory . run --group examples python` internally.
 Direct `uv` commands remain in the tutorials for standalone fixture-server
@@ -48,9 +54,10 @@ follow, not embedded resources. Dependency installation may require network acce
 
 ## Lessons
 
-Each lesson takes about five minutes. Start at 01, then continue in numeric
-order. Use each lesson's explicit author, consumer, or script command below
-from the repository root.
+Start at 01, then continue in numeric
+order. Begin each lesson with ``just notebook-edit`` from the repository root;
+the ``run`` and ``script`` commands listed under each entry are the app-view and
+headless alternatives described above.
 
 ### 01. [01-overview.py](01-overview.py), workflow overview
 
@@ -58,7 +65,6 @@ from the repository root.
 - **Prerequisite:** setup above.
 - **CLI commands exercised:** `perfcheck collect`, `perfcheck summarize`, and
   `perfcheck compare`.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/01-overview.py`
 - **Consumer:** `just notebook-run examples/01-overview.py`
 - **Script:** `just notebook-script examples/01-overview.py`
@@ -68,7 +74,6 @@ from the repository root.
 - **Goal:** collect deterministic raw performance evidence.
 - **Prerequisite:** complete 01.
 - **CLI commands exercised:** `perfcheck collect`.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/02-collect.py`
 - **Consumer:** `just notebook-run examples/02-collect.py`
 - **Script:** `just notebook-script examples/02-collect.py`
@@ -78,7 +83,6 @@ from the repository root.
 - **Goal:** verify raw evidence and create a canonical summary.
 - **Prerequisite:** complete 02.
 - **CLI commands exercised:** `perfcheck summarize`.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/03-summarize.py`
 - **Consumer:** `just notebook-run examples/03-summarize.py`
 - **Script:** `just notebook-script examples/03-summarize.py`
@@ -89,7 +93,6 @@ from the repository root.
 - **Prerequisite:** complete 03.
 - **CLI commands exercised:** `perfcheck collect`, `perfcheck summarize`, and
   `perfcheck compare`.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/04-compare.py`
 - **Consumer:** `just notebook-run examples/04-compare.py`
 - **Script:** `just notebook-script examples/04-compare.py`
@@ -103,7 +106,6 @@ from the repository root.
   uses `pass`. Inspect the report and the separately handled overwrite error.
 - **Prerequisite:** complete 04.
 - **CLI commands exercised:** `perfcheck compare`.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/05-failures-and-ci.py`
 - **Consumer:** `just notebook-run examples/05-failures-and-ci.py`
 - **Script:** `just notebook-script examples/05-failures-and-ci.py`
@@ -117,7 +119,6 @@ from the repository root.
 - **Explanation:** [Probability and distributions](../docs/explanation/probability-and-distributions.rst).
 - **Prerequisite:** complete 05.
 - **CLI command explained:** the collect-to-compare evidence flow.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/06-statistical-foundations.py`
 - **Consumer:** `just notebook-run examples/06-statistical-foundations.py`
 - **Script:** `just notebook-script examples/06-statistical-foundations.py`
@@ -131,7 +132,6 @@ from the repository root.
 - **Explanation:** [Experimental design](../docs/explanation/experimental-design.rst).
 - **Prerequisite:** complete 06.
 - **CLI command explained:** `perfcheck summarize`.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/07-summary-and-eligibility.py`
 - **Consumer:** `just notebook-run examples/07-summary-and-eligibility.py`
 - **Script:** `just notebook-script examples/07-summary-and-eligibility.py`
@@ -145,7 +145,6 @@ from the repository root.
 - **Explanation:** [Inference and power](../docs/explanation/inference-and-power.rst).
 - **Prerequisite:** complete 07.
 - **CLI command explained:** `perfcheck compare`.
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/08-bootstrap-and-decisions.py`
 - **Consumer:** `just notebook-run examples/08-bootstrap-and-decisions.py`
 - **Script:** `just notebook-script examples/08-bootstrap-and-decisions.py`
@@ -160,7 +159,6 @@ from the repository root.
 - **CLI commands explained:** `perfcheck summarize` and `perfcheck compare`; no CLI invocation.
 - **Boundary:** educational `random.Random` draws are not production NumPy PCG64 evidence.
 - **Explanation:** [Plain-Python mechanics](../docs/explanation/plain-python-mechanics.rst).
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/09-plain-python-mechanics.py`
 - **Consumer:** `just notebook-run examples/09-plain-python-mechanics.py`
 - **Script:** `just notebook-script examples/09-plain-python-mechanics.py`
@@ -177,7 +175,6 @@ from the repository root.
 - **CLI command explained:** `perfcheck compare`; no CLI invocation or new policy.
 - **Boundary:** each method does not determine perfcheck PASS/FAIL.
 - **Explanation:** [Comparative methods](../docs/explanation/comparative-methods.rst).
-- **Duration:** 5 minutes.
 - **Author:** `just notebook-edit examples/10-comparative-methods.py`
 - **Consumer:** `just notebook-run examples/10-comparative-methods.py`
 - **Script:** `just notebook-script examples/10-comparative-methods.py`

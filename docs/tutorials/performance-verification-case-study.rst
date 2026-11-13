@@ -61,15 +61,18 @@ From the root of your local clone:
    $ just notebook-run examples/05-failures-and-ci.py
 
 Setup installs the locked dev/docs/examples groups, not just minimal lesson
-dependencies. The `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_ explains
-the authoring, interactive viewing, and noninteractive script recipes.
+dependencies. Read lesson 05 first with ``just notebook-edit`` to change the
+selector and watch each scenario; view it with ``just notebook-run`` to feel the
+selector with the code hidden, or run it with ``just notebook-script`` for the
+default ``pass`` scenario without a browser. The `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_ explains
+these authoring, interactive-viewing, and noninteractive recipes.
 
 The native Marimo selector offers ``pass`` (default), ``regression`` and
 ``advisory-reference``. Only the selected scenario executes. Each selection
 creates a fresh temporary directory and loopback fixture process, calls the real
 ``collect``, ``summarize`` and ``compare`` commands, displays actual artifact
 excerpts and cleans up. Changing the selection does not reuse prior evidence.
-The script form runs the default pass scenario without a browser:
+The script form runs the default pass scenario headless:
 
 .. code-block:: console
 

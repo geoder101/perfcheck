@@ -40,7 +40,7 @@ Steps
 
    .. code-block:: console
 
-      $ just notebook-run examples/01-overview.py
+      $ just notebook-edit examples/01-overview.py
 
 #. Continue through lesson 05. The lessons exercise the CLI, but they do not
    replace it. The supported public surface remains the ``perfcheck`` command.

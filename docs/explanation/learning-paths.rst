@@ -56,9 +56,12 @@ project's root ``README.md`` owns the full prerequisites.
 Run ``just sync`` from the repository root to install the locked
 dev/docs/examples groups, a broader environment than examples-only setup.
 Run lesson commands from that same root. Open the
-selected lesson with ``just notebook-run examples/`` followed by its filename
-as the single required path argument. Use ``just notebook-edit`` with that path
-to author it, or ``just notebook-script`` with that path to run the same default
-controls without a browser. Download the `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_
-for all ten filenames and explicit author, consumer, and script commands.
+selected lesson with ``just notebook-edit examples/`` followed by its filename
+as the single required path argument. This is how you read a lesson, cell by
+cell. Revisit a control-driven lesson (05 through 10) with ``just notebook-run``
+to feel its sliders and selectors with the code hidden, and use
+``just notebook-script`` only to run the default controls without a browser,
+for example to verify a lesson runs clean on a headless machine. Download the
+`curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_
+for all ten filenames and explicit commands.
 Start there for control descriptions; the routes above don't add lessons.
