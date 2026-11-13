@@ -1,7 +1,7 @@
 # Official multi-platform index digests verified from the registries on 2026-10-26.
-FROM docker.io/library/python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56
+FROM docker.io/library/python:3.14.10-slim-bookworm@sha256:3fe1a0b6c2d6b2ebb572906cdabeca75aeb558c0c17db5ffefbcf8094871c32b
 
-COPY --from=ghcr.io/astral-sh/uv:0.12.9@sha256:8b940d3a9d65bed080436972241af2e21c84b5e8c9193f7014ed71479ee795ff /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.24@sha256:3af4716e991d6956a41e573eab705d0ee08500cd829ed30293eb8472f372c65a /uv /uvx /usr/local/bin/
 
 # Tool versions above/below are fixed; Debian packages use current Bookworm indexes.
 RUN apt-get update \
@@ -11,16 +11,16 @@ RUN apt-get update \
         texlive-latex-base texlive-latex-recommended texlive-latex-extra dvisvgm \
     && rm -rf /var/lib/apt/lists/*
 
-# Hashes match official 1.58.0/SHA256SUMS and locally downloaded release archives.
-# https://github.com/casey/just/releases/download/1.58.0/SHA256SUMS
+# Hashes match official 1.59.0/SHA256SUMS and locally downloaded release archives.
+# https://github.com/casey/just/releases/download/1.59.0/SHA256SUMS
 RUN set -eu; \
     case "$(dpkg --print-architecture)" in \
-        amd64) target="x86_64-unknown-linux-musl"; sha256="4a5cc2f53e6f0f8c59092a6cc38291eb729d46a7dd95d3ae582008881b84931d" ;; \
-        arm64) target="aarch64-unknown-linux-musl"; sha256="748237128c4c40cbdabc65e841d05ceba13cc23a91eaba395495894c1d9764df" ;; \
+        amd64) target="x86_64-unknown-linux-musl"; sha256="409044617b6f06517c1035e55ca38c8c856ff8b650e41bc2aa1ef82d5903a23e" ;; \
+        arm64) target="aarch64-unknown-linux-musl"; sha256="23871b1702bfd550fb5f901778fd4290ecf2ee034a45a889fbe96d89b188086d" ;; \
         *) printf '%s\n' 'Unsupported architecture: expected amd64 or arm64' >&2; exit 1 ;; \
     esac; \
     curl --fail --show-error --silent --location --retry 3 \
-        "https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-${target}.tar.gz" \
+        "https://github.com/casey/just/releases/download/1.59.0/just-1.59.0-${target}.tar.gz" \
         --output /tmp/just.tar.gz \
     && printf '%s  %s\n' "$sha256" /tmp/just.tar.gz | sha256sum --check --strict \
     && tar -xzf /tmp/just.tar.gz -C /usr/local/bin just \
@@ -29,12 +29,12 @@ RUN set -eu; \
 
 RUN set -eu; \
     case "$(dpkg --print-architecture)" in \
-        amd64) target="x64"; sha256="783130984963db7ba9cbd01089eaf2c2efb055c7c1693c943174b967b3050cb8" ;; \
-        arm64) target="arm64"; sha256="6b4484c2190274175df9aa8f28e2d758a819cb1c1fe6ab481e2f95b463ab8508" ;; \
+        amd64) target="x64"; sha256="9f5eb6ac21845a66c493c91a253b1da32fd684e89e9b7202d4936982336be4ca" ;; \
+        arm64) target="arm64"; sha256="df224555a083b918e46260cc969838501b9f9a87140c1195e5b9597b56d5dae2" ;; \
         *) printf '%s\n' 'Unsupported architecture: expected amd64 or arm64' >&2; exit 1 ;; \
     esac; \
     curl --fail --show-error --silent --location --retry 3 \
-        "https://nodejs.org/dist/v24.18.0/node-v24.18.0-linux-${target}.tar.gz" \
+        "https://nodejs.org/dist/v24.18.1/node-v24.18.1-linux-${target}.tar.gz" \
         --output /tmp/node.tar.gz \
     && printf '%s  %s\n' "$sha256" /tmp/node.tar.gz | sha256sum --check --strict \
     && tar -xzf /tmp/node.tar.gz -C /usr/local --strip-components=1 \

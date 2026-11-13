@@ -136,8 +136,8 @@ offline `check`: fresh-wheel tests and isolated builds may fetch dependencies.
 Podman build and run disable automatic proxy-environment forwarding with
 `--http-proxy=false`; proxy-dependent contributors must configure networking
 deliberately rather than rely on inherited host proxy variables.
-The image pins Python 3.14.7 and uv 0.12.9 by image digest and verifies Just 1.58.0
-release checksums (amd64/arm64). It also includes checksum-verified Node 24.18.0,
+The image pins Python 3.14.10 and uv 0.12.24 by image digest and verifies Just 1.59.0
+release checksums (amd64/arm64). It also includes checksum-verified Node 24.18.1,
 the locked Mermaid CLI, and system Chromium. Do not run `docs-tools` inside the
 container: the image already owns the JS tools and browser, and downloading
 Puppeteer's Chrome there would leave an unused browser. No external host JS or

@@ -32,14 +32,14 @@ def test_toolchain_uses_verified_versioned_images(
         if key == "COPY" and "--from=" in value
     ]
     # Then: both official multi-platform image inputs are immutable and versioned.
-    python_digest = "82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56"
-    uv_digest = "8b940d3a9d65bed080436972241af2e21c84b5e8c9193f7014ed71479ee795ff"
+    python_digest = "3fe1a0b6c2d6b2ebb572906cdabeca75aeb558c0c17db5ffefbcf8094871c32b"
+    uv_digest = "3af4716e991d6956a41e573eab705d0ee08500cd829ed30293eb8472f372c65a"
     assert bases == [
-        f"docker.io/library/python:3.14.7-slim-bookworm@sha256:{python_digest}"
+        f"docker.io/library/python:3.14.10-slim-bookworm@sha256:{python_digest}"
     ]
     assert copies == [
         [
-            f"--from=ghcr.io/astral-sh/uv:0.12.9@sha256:{uv_digest}",
+            f"--from=ghcr.io/astral-sh/uv:0.12.24@sha256:{uv_digest}",
             "/uv",
             "/uvx",
             "/usr/local/bin/",
@@ -138,8 +138,8 @@ def test_just_archives_are_verified_before_extraction(
     instructions: tuple[tuple[str, str], ...],
 ) -> None:
     # Given: release SHA256SUMS and both downloaded archive hashes agree.
-    amd64_sha = "4a5cc2f53e6f0f8c59092a6cc38291eb729d46a7dd95d3ae582008881b84931d"
-    arm64_sha = "748237128c4c40cbdabc65e841d05ceba13cc23a91eaba395495894c1d9764df"
+    amd64_sha = "409044617b6f06517c1035e55ca38c8c856ff8b650e41bc2aa1ef82d5903a23e"
+    arm64_sha = "23871b1702bfd550fb5f901778fd4290ecf2ee034a45a889fbe96d89b188086d"
     expected = f"""set -eu;
 case "$(dpkg --print-architecture)" in
     amd64) target="x86_64-unknown-linux-musl"; sha256="{amd64_sha}" ;;
@@ -148,7 +148,7 @@ case "$(dpkg --print-architecture)" in
         exit 1 ;;
 esac;
 curl --fail --show-error --silent --location --retry 3
-    "https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-${{target}}.tar.gz"
+    "https://github.com/casey/just/releases/download/1.59.0/just-1.59.0-${{target}}.tar.gz"
     --output /tmp/just.tar.gz
 && printf '%s  %s\\n' "$sha256" /tmp/just.tar.gz | sha256sum --check --strict
 && tar -xzf /tmp/just.tar.gz -C /usr/local/bin just
@@ -219,19 +219,19 @@ def test_image_installs_locked_js_outside_checkout(
 def test_node_archives_are_verified_before_extraction(
     instructions: tuple[tuple[str, str], ...],
 ) -> None:
-    # Given: independently verified official Node 24.18.0 archive hashes.
+    # Given: independently verified official Node 24.18.1 archive hashes.
     (installer,) = [
         value for key, value in instructions if key == "RUN" and "node.tar.gz" in value
     ]
     # When/Then: both supported architectures check the archive before unpacking.
     assert (
-        "783130984963db7ba9cbd01089eaf2c2efb055c7c1693c943174b967b3050cb8" in installer
+        "9f5eb6ac21845a66c493c91a253b1da32fd684e89e9b7202d4936982336be4ca" in installer
     )
     assert (
-        "6b4484c2190274175df9aa8f28e2d758a819cb1c1fe6ab481e2f95b463ab8508" in installer
+        "df224555a083b918e46260cc969838501b9f9a87140c1195e5b9597b56d5dae2" in installer
     )
     assert (
-        "https://nodejs.org/dist/v24.18.0/node-v24.18.0-linux-${target}.tar.gz"
+        "https://nodejs.org/dist/v24.18.1/node-v24.18.1-linux-${target}.tar.gz"
         in installer
     )
     assert installer.index("sha256sum --check --strict") < installer.index("tar -xzf")
