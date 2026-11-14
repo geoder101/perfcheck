@@ -52,6 +52,9 @@ pythonPlatform = "All"
 include = ["src", "tests", "examples", "tools"]
 exclude = ["**/__pycache__", "**/.venv", "build", "dist"]
 
+[tool.ty.environment]
+python = "./.venv"
+
 [tool.esbonio.sphinx]
 pythonCommand = ["uv", "run", "--group", "docs", "python"]
 buildArguments = ["-M", "html", "docs", "${defaultBuildDir}"]
