@@ -29,6 +29,10 @@ change locally or checking it in CI.
 Whether you are new to performance testing or bringing an existing benchmark
 into CI, these guides and runnable examples will help you get started.
 
+.. note::
+
+   This documentation is evolving. Some topics are still being refined.
+
 Where to start
 --------------
 
