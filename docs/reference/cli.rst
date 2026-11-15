@@ -16,6 +16,19 @@ Use the live help for the complete, installed command contract:
 ``collect`` writes one portable raw-run artifact for every metric in a suite.
 It requires ``--policy``, ``--run-id``, ``--start``, ``--end``, and ``--out``.
 ``--prometheus-url`` overrides the configured endpoint for this invocation.
+
+HTTP auth is resolved from four optional flags with the matching environment
+variable as fallback, and a flag wins over its env var. No policy is involved.
+``--prometheus-auth-scheme`` selects ``none``, ``bearer``, or ``basic``; the CLI
+rejects any other value. ``--prometheus-bearer-token`` supplies a bearer token,
+and ``--prometheus-auth-basic-user`` and ``--prometheus-auth-basic-password``
+supply the two halves of basic auth. Setting only
+``PERFCHECK_PROMETHEUS_BEARER_TOKEN`` still infers bearer auth. The resolved
+scheme and header are forwarded to the transport only; the token and password
+never reach the artifact, labels, provenance, logs, or CLI output. An
+incomplete configuration (for example, ``basic`` with no password) fails with a
+secret-free message and exit status ``3``.
+
 Pass ``--force`` only to replace an existing output path.
 If an enabled metric cannot be collected, the command still writes its raw
 evidence and exits with status ``4``.

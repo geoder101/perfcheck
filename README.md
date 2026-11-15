@@ -96,6 +96,30 @@ just cli compare --help
   writes JSON (`--report-json`), Markdown (`--report-md`), or both. At least
   one report output is required; `--json` additionally emits JSON to stdout.
 
+## Prometheus authentication
+
+`collect` authenticates to Prometheus with four optional flags, resolved from
+the flag with the matching environment variable as fallback and a flag winning
+over its env var. No policy is involved.
+
+| Flag | Purpose |
+| --- | --- |
+| `--prometheus-auth-scheme` | Scheme: `none`, `bearer`, or `basic`. The CLI rejects any other value. |
+| `--prometheus-bearer-token` | Bearer token, matched by `PERFCHECK_PROMETHEUS_BEARER_TOKEN`. |
+| `--prometheus-auth-basic-user` | Basic username, matched by `PERFCHECK_PROMETHEUS_BASIC_USERNAME`. |
+| `--prometheus-auth-basic-password` | Basic password, matched by `PERFCHECK_PROMETHEUS_BASIC_PASSWORD`. |
+
+`none` sends no `Authorization` header, `bearer` sends `Authorization: Bearer
+<token>`, and `basic` sends `Authorization: Basic <base64(user:pass)>`. Setting
+only `PERFCHECK_PROMETHEUS_BEARER_TOKEN` still infers bearer auth. The resolved
+scheme and header are forwarded to the transport only; the token and password
+never reach the artifact, labels, provenance, logs, or CLI output. An
+incomplete configuration (for example, `basic` with no password) fails with a
+secret-free message and exit status `3`.
+
+See the how-to guide [Authenticate Prometheus collection](docs/how-to/prometheus-authentication.rst)
+for a step-by-step walkthrough.
+
 ## Quality checks
 
 Run the same local checks before contributing documentation or code:

@@ -9,6 +9,7 @@ import httpx2
 import pytest
 
 from perfcheck import collection_service
+from perfcheck.collection_auth import AuthConfig, AuthScheme
 from perfcheck.collection_models import SourceInterval
 from perfcheck.model_types import (
     CollectionFailureReason,
@@ -222,6 +223,61 @@ def test_collect_run_closes_factory_client_when_a_worker_raises(
         assert len(raised.value.exceptions) == 1
         assert isinstance(raised.value.exceptions[0], TransportCrashError)
         assert sibling_exited.is_set()
+
+    anyio.run(scenario)
+    assert len(factory_clients) == 1
+    assert factory_clients[0].is_closed
+
+
+def test_collect_run_forwards_resolved_auth_config_to_transport(
+    monkeypatch: pytest.MonkeyPatch,
+    factory_clients: list[httpx2.AsyncClient],
+) -> None:
+    # Given: a resolved bearer configuration supplied by the caller and a
+    # transport that records the Authorization header it receives.
+    suite = policy(1)
+    captured: dict[str, str] = {}
+
+    async def scenario() -> None:
+        async def respond(request: httpx2.Request) -> httpx2.Response:
+            captured["authorization"] = request.headers.get("authorization", "")
+            return httpx2.Response(
+                200,
+                json={
+                    "status": "success",
+                    "data": {
+                        "resultType": "matrix",
+                        "result": [
+                            {
+                                "metric": {},
+                                "values": [[interval().start.timestamp(), "1"]],
+                            }
+                        ],
+                    },
+                },
+            )
+
+        async def send(
+            self: httpx2.AsyncHTTPTransport, request: httpx2.Request
+        ) -> httpx2.Response:
+            del self
+            return await httpx2.MockTransport(respond).handle_async_request(request)
+
+        monkeypatch.setattr(httpx2.AsyncHTTPTransport, "handle_async_request", send)
+
+        # When: collect_run is invoked with a non-default resolved config.
+        run = await collection_service.collect_run(
+            suite,
+            RunId("auth-run"),
+            interval(),
+            None,
+            auth_config=AuthConfig(AuthScheme.BEARER, bearer_token="tok"),  # noqa: S106
+        )
+
+        # Then: the transport authenticated with the resolved bearer config.
+        assert run is not None
+        assert captured["authorization"] == "Bearer tok"
+        assert_records(run, suite, partial_failure=False)
 
     anyio.run(scenario)
     assert len(factory_clients) == 1

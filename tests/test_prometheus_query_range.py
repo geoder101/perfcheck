@@ -1,16 +1,15 @@
 from __future__ import annotations
 
+import base64
 import json
 from datetime import UTC, datetime, timedelta, timezone
-from typing import TYPE_CHECKING
 
 import anyio
 import httpx2
+import pytest
 from pydantic import JsonValue
 
-if TYPE_CHECKING:
-    import pytest
-
+from perfcheck.collection_auth import AuthConfig, AuthScheme
 from perfcheck.prometheus import (
     CollectionFailure,
     CollectionSuccess,
@@ -82,12 +81,10 @@ def test_collect_posts_complete_form_to_base_path_endpoint() -> None:
     assert result.samples[0].value == 1.25
 
 
-def test_collect_uses_override_url_and_bearer_token_without_retaining_it(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Given: an override endpoint, bearer token, and hostile echo response.
+def test_collect_uses_override_url_and_bearer_token_without_retaining_it() -> None:
+    # Given: an override endpoint, explicit bearer config, and hostile echo response.
     credential = "unsafe-bearer-value"
-    monkeypatch.setenv("PERFCHECK_PROMETHEUS_BEARER_TOKEN", credential)
+    auth_config = AuthConfig(AuthScheme.BEARER, bearer_token=credential)
 
     def handler(request: httpx2.Request) -> httpx2.Response:
         assert request.url == "https://override.example/p/api/v1/query_range"
@@ -101,13 +98,14 @@ def test_collect_uses_override_url_and_bearer_token_without_retaining_it(
         }
         return httpx2.Response(200, json=body)
 
-    # When: the override is supplied.
+    # When: the override and explicit bearer config are supplied.
     async def collect() -> CollectionSuccess | CollectionFailure:
         transport = httpx2.MockTransport(handler)
         async with httpx2.AsyncClient(transport=transport) as client:
             return await PrometheusQueryRangeCollector(client).collect(
                 _query(url="https://suite.example"),
                 prometheus_url_override="https://override.example/p",
+                auth_config=auth_config,
             )
 
     result = anyio.run(collect)
@@ -125,12 +123,10 @@ def test_collect_uses_override_url_and_bearer_token_without_retaining_it(
     assert result.response.warnings == ("token=[REDACTED]",)
 
 
-def test_collect_redacts_nested_credential_aliases_from_all_response_evidence(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_collect_redacts_nested_credential_aliases_from_all_response_evidence() -> None:
     # Given: a bearer token echoed through case and format credential aliases.
     credential = "unsafe-bearer-value"
-    monkeypatch.setenv("PERFCHECK_PROMETHEUS_BEARER_TOKEN", credential)
+    auth_config = AuthConfig(AuthScheme.BEARER, bearer_token=credential)
 
     def handler(_: httpx2.Request) -> httpx2.Response:
         body = _response()
@@ -153,7 +149,9 @@ def test_collect_redacts_nested_credential_aliases_from_all_response_evidence(
     async def collect() -> CollectionSuccess | CollectionFailure:
         transport = httpx2.MockTransport(handler)
         async with httpx2.AsyncClient(transport=transport) as client:
-            return await PrometheusQueryRangeCollector(client).collect(_query())
+            return await PrometheusQueryRangeCollector(client).collect(
+                _query(), auth_config=auth_config
+            )
 
     result = anyio.run(collect)
 
@@ -211,12 +209,12 @@ def test_collect_drops_opaque_upstream_extras_from_response_provenance() -> None
     assert opaque_value not in json.dumps(result.response.body)
 
 
-def test_collect_redacts_bearer_value_from_query_provenance_and_hostile_json_key(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_collect_redacts_bearer_value_from_query_provenance_and_hostile_json_key() -> (
+    None
+):
     # Given: a bearer value echoed through the query and an untrusted JSON key.
     credential = "unsafe-bearer-value"
-    monkeypatch.setenv("PERFCHECK_PROMETHEUS_BEARER_TOKEN", credential)
+    auth_config = AuthConfig(AuthScheme.BEARER, bearer_token=credential)
 
     def handler(_: httpx2.Request) -> httpx2.Response:
         body = _response()
@@ -237,7 +235,9 @@ def test_collect_redacts_bearer_value_from_query_provenance_and_hostile_json_key
     async def collect() -> CollectionSuccess | CollectionFailure:
         transport = httpx2.MockTransport(handler)
         async with httpx2.AsyncClient(transport=transport) as client:
-            return await PrometheusQueryRangeCollector(client).collect(query)
+            return await PrometheusQueryRangeCollector(client).collect(
+                query, auth_config=auth_config
+            )
 
     result = anyio.run(collect)
 
@@ -247,6 +247,168 @@ def test_collect_redacts_bearer_value_from_query_provenance_and_hostile_json_key
     assert credential not in result.request.query
     assert "[REDACTED]" in result.request.query
     assert credential not in json.dumps(result.response.body)
+
+
+@pytest.mark.parametrize(
+    ("auth_config", "expected_authorization"),
+    [
+        (AuthConfig(AuthScheme.NONE), None),
+        (
+            AuthConfig(AuthScheme.BEARER, bearer_token="top-secret"),  # noqa: S106 - synthetic redaction fixture.
+            "Bearer top-secret",
+        ),
+        (
+            AuthConfig(
+                AuthScheme.BASIC,
+                basic_username="admin",
+                basic_password="s3cret",  # noqa: S106 - synthetic redaction fixture.
+            ),
+            "Basic " + base64.b64encode(b"admin:s3cret").decode("ascii"),
+        ),
+    ],
+)
+def test_collect_sends_scheme_authorization_header(
+    auth_config: AuthConfig,
+    expected_authorization: str | None,
+) -> None:
+    # Given: an explicit auth config for each supported scheme.
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if expected_authorization is None:
+            assert "authorization" not in request.headers
+        else:
+            assert request.headers["authorization"] == expected_authorization
+        return httpx2.Response(200, json=_response())
+
+    # When: a matrix is collected under the scheme.
+    async def collect() -> CollectionSuccess | CollectionFailure:
+        transport = httpx2.MockTransport(handler)
+        async with httpx2.AsyncClient(transport=transport) as client:
+            return await PrometheusQueryRangeCollector(client).collect(
+                _query(), auth_config=auth_config
+            )
+
+    result = anyio.run(collect)
+
+    # Then: the transport sends exactly the scheme's Authorization header.
+    assert isinstance(result, CollectionSuccess)
+
+
+@pytest.mark.parametrize(
+    ("auth_config", "secrets"),
+    [
+        (
+            AuthConfig(AuthScheme.BEARER, bearer_token="unsafe-bearer-value"),  # noqa: S106 - synthetic redaction fixture.
+            ("unsafe-bearer-value",),
+        ),
+        (
+            AuthConfig(
+                AuthScheme.BASIC,
+                basic_username="unsafe-user",
+                basic_password="unsafe-pass",  # noqa: S106 - synthetic redaction fixture.
+            ),
+            ("unsafe-user", "unsafe-pass"),
+        ),
+    ],
+)
+def test_collect_retains_no_secret_in_representation_body_or_query(
+    auth_config: AuthConfig,
+    secrets: tuple[str, ...],
+) -> None:
+    # Given: a hostile response echoing every resolved secret and a query that
+    # carries one of them in a label selector.
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        body = _response()
+        for secret in secrets:
+            body[secret] = {"nested": secret}
+        body["warnings"] = [f"token={secrets[-1]}"]
+        return httpx2.Response(200, json=body)
+
+    query = _query()
+    query = RangeQuery(
+        prometheus_url=query.prometheus_url,
+        query=f'{query.query}{{credential="{secrets[-1]}"}}',
+        start=query.start,
+        end=query.end,
+        step_seconds=query.step_seconds,
+        expected_labels=query.expected_labels,
+    )
+
+    # When: collection retains request and response provenance.
+    async def collect() -> CollectionSuccess | CollectionFailure:
+        transport = httpx2.MockTransport(handler)
+        async with httpx2.AsyncClient(transport=transport) as client:
+            return await PrometheusQueryRangeCollector(client).collect(
+                query, auth_config=auth_config
+            )
+
+    result = anyio.run(collect)
+
+    # Then: no resolved secret survives in representation, serialized body, or query.
+    assert isinstance(result, CollectionSuccess)
+    for secret in secrets:
+        assert secret not in repr(result)
+        assert secret not in json.dumps(result.response.body)
+        assert secret not in result.request.query
+    assert "[REDACTED]" in result.request.query
+
+
+def test_collect_redacts_hostile_basic_credentials_from_all_evidence() -> None:
+    # Given: a basic config whose username and password are echoed through
+    # sensitive-key and alias fields in the response.
+    username = "unsafe-user"
+    password = "unsafe-pass"  # noqa: S105 - synthetic redaction fixture.
+    auth_config = AuthConfig(
+        AuthScheme.BASIC, basic_username=username, basic_password=password
+    )
+
+    def handler(_: httpx2.Request) -> httpx2.Response:
+        body = _response()
+        body["diagnostics"] = {
+            "Authorization": (
+                "Basic "
+                + base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
+            ),
+            "username": username,
+            "password": password,
+            "nested": [
+                {"USERNAME": username},
+                {"PASSWD": password},
+                f"{username}:{password}",
+            ],
+        }
+        body["warnings"] = [f"token={password}"]
+        body["infos"] = [f"password={password}"]
+        return httpx2.Response(200, json=body)
+
+    # When: a basic-authenticated collection retains hostile upstream evidence.
+    async def collect() -> CollectionSuccess | CollectionFailure:
+        transport = httpx2.MockTransport(handler)
+        async with httpx2.AsyncClient(transport=transport) as client:
+            return await PrometheusQueryRangeCollector(client).collect(
+                _query(), auth_config=auth_config
+            )
+
+    result = anyio.run(collect)
+
+    # Then: neither credential reaches serialized body, warnings, infos, or repr.
+    assert isinstance(result, CollectionSuccess)
+    serialized = json.dumps(result.response.body)
+    assert username not in serialized
+    assert password not in serialized
+    assert result.response.warnings == ("token=[REDACTED]",)
+    assert result.response.infos == ("password=[REDACTED]",)
+    assert username not in repr(result)
+    assert password not in repr(result)
+    body = result.response.body
+    assert isinstance(body, dict)
+    diagnostics = body["diagnostics"]
+    assert isinstance(diagnostics, dict)
+    assert diagnostics["[REDACTED]"] == "[REDACTED]"
+    assert diagnostics["nested"] == [
+        {"USERNAME": "[REDACTED]"},
+        {"PASSWD": "[REDACTED]"},
+        "[REDACTED]:[REDACTED]",
+    ]
 
 
 def test_collect_rejects_unsafe_endpoint_before_transport() -> None:

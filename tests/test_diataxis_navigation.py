@@ -55,6 +55,7 @@ _SECTION_PAGES: Final = (
         "how-to",
         (
             "collect-a-run",
+            "prometheus-authentication",
             "summarize-evidence",
             "compare-cohorts",
             "ci-regression-gate",

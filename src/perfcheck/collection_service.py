@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Final, assert_never, override
 import anyio
 import httpx2
 
+from perfcheck.collection_auth import AuthConfig
 from perfcheck.collection_models import (
     CollectionFailure,
     FloatSample,
@@ -109,8 +110,16 @@ async def collect_run(
     run_id: RunId,
     interval: SourceInterval,
     prometheus_url_override: str | None,
+    *,
+    auth_config: AuthConfig = AuthConfig.NONE,
 ) -> RunArtifact:
-    """Collect every policy metric and retain partial failures in one valid run."""
+    """Collect every policy metric and retain partial failures in one valid run.
+
+    The caller supplies the resolved ``AuthConfig``; this function never reads
+    environment variables or policy for auth. The resolved configuration is
+    forwarded to the transport only and is never serialized into the run
+    artifact, provenance, or logs.
+    """
     selected_url = prometheus_url_override or policy.prometheus_url
     if selected_url is None or resolve_endpoint(selected_url) is None:
         raise CollectionInputError(CollectionInputCode.INVALID_PROMETHEUS_URL)
@@ -130,7 +139,8 @@ async def collect_run(
                         step_seconds=metric.step_seconds,
                         expected_labels={},
                         expected_label_names=metric.expected_label_names,
-                    )
+                    ),
+                    auth_config=auth_config,
                 )
             records[index] = _record(metric, interval, selected_url, result)
 

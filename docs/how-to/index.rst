@@ -7,6 +7,7 @@ Use these guides when you already know the CLI or repository task you need to do
    :maxdepth: 1
 
    collect-a-run
+   prometheus-authentication
    summarize-evidence
    compare-cohorts
    ci-regression-gate

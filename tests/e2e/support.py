@@ -83,7 +83,10 @@ def perfcheck_executable(venv: Path, *, platform: PlatformName | None = None) ->
 
 @contextmanager
 def mock_prometheus_endpoint(
-    fixture: Path, *, echo_token_body: str | None = None
+    fixture: Path,
+    *,
+    echo_token_body: str | None = None,
+    echo_basic_body: str | None = None,
 ) -> Generator[str]:
     """Start the local Prometheus fixture and yield its endpoint until cleanup."""
     command = [
@@ -96,6 +99,8 @@ def mock_prometheus_endpoint(
     ]
     if echo_token_body is not None:
         command.extend(("--echo-token-body", echo_token_body))
+    if echo_basic_body is not None:
+        command.extend(("--echo-basic-body", echo_basic_body))
     process = subprocess.Popen[bytes](
         command,
         stdout=subprocess.PIPE,

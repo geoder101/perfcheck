@@ -23,6 +23,11 @@ from perfcheck.cli_services import (
     summarize_raw,
     write_report,
 )
+from perfcheck.collection_auth import (
+    AuthResolutionError,
+    AuthScheme,
+    resolve_auth,
+)
 from perfcheck.collection_models import SourceInterval
 from perfcheck.collection_service import (
     CollectionInputCode,
@@ -71,8 +76,32 @@ def collect_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented fl
     output_path: Annotated[Path, typer.Option("--out")],
     force: Annotated[bool, typer.Option("--force")] = False,
     prometheus_url: Annotated[str | None, typer.Option("--prometheus-url")] = None,
+    prometheus_auth_scheme: Annotated[
+        AuthScheme | None,
+        typer.Option(
+            "--prometheus-auth-scheme",
+            help=(
+                "Prometheus HTTP auth scheme: none, bearer, or basic. "
+                "A flag wins over the matching env var."
+            ),
+        ),
+    ] = None,
+    prometheus_bearer_token: Annotated[
+        str | None, typer.Option("--prometheus-bearer-token")
+    ] = None,
+    prometheus_auth_basic_user: Annotated[
+        str | None, typer.Option("--prometheus-auth-basic-user")
+    ] = None,
+    prometheus_auth_basic_password: Annotated[
+        str | None, typer.Option("--prometheus-auth-basic-password")
+    ] = None,
 ) -> None:
-    """Collect all suite metrics into one atomic portable raw run artifact."""
+    """Collect all suite metrics into one atomic portable raw run artifact.
+
+    HTTP auth is resolved from these flags with the matching env var as fallback;
+    a flag wins over its env var. The resolved configuration is forwarded to the
+    transport only and is never written to the artifact or CLI output.
+    """
 
     def action() -> None:
         preflight_paths((output_path,), force=force)
@@ -83,7 +112,19 @@ def collect_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented fl
             )
         except ValueError as error:
             raise CollectionInputError(CollectionInputCode.INVALID_INTERVAL) from error
-        run = runnify(collect_run)(policy, RunId(run_id), interval, prometheus_url)
+        auth_config = resolve_auth(
+            prometheus_auth_scheme,
+            prometheus_bearer_token,
+            prometheus_auth_basic_user,
+            prometheus_auth_basic_password,
+        )
+        run = runnify(collect_run)(
+            policy,
+            RunId(run_id),
+            interval,
+            prometheus_url,
+            auth_config=auth_config,
+        )
         write_artifact(output_path, run, force=force)
         _console.print(f"wrote run {run.run_id}")
         if has_enabled_failure(policy, run):
@@ -212,12 +253,15 @@ def _exit_code(code: int) -> NoReturn:
 
 # Pure typed input diagnostics carry a stable, secret-free label and are safe
 # to surface; ArtifactIntegrityError carries the artifact id and OSError carries
-# untrusted file state, so both keep a generic message.
+# untrusted file state, so both keep a generic message. AuthResolutionError
+# carries a secret-free reason, so its message is surfaced rather than the
+# generic "invalid command input".
 _INPUT_DIAGNOSTICS: tuple[type[PerfcheckError], ...] = (
     CliInputError,
     CollectionInputError,
     BootstrapInputError,
     ArtifactSchemaError,
+    AuthResolutionError,
 )
 
 

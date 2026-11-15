@@ -108,7 +108,9 @@ class ParsedResponse:
     envelope: PrometheusEnvelopeIngress | None
 
 
-def response_provenance(response: httpx2.Response, token: str | None) -> ParsedResponse:
+def response_provenance(
+    response: httpx2.Response, secrets: tuple[str, ...]
+) -> ParsedResponse:
     """Parse response bytes once into strict models and sanitized provenance."""
     try:
         envelope = PrometheusEnvelopeIngress.model_validate_json(response.content)
@@ -116,7 +118,7 @@ def response_provenance(response: httpx2.Response, token: str | None) -> ParsedR
         return ParsedResponse(
             ResponseProvenance(response.status_code, None, (), ()), None
         )
-    body = redact_json(envelope.model_dump(mode="json", by_alias=True), token)
+    body = redact_json(envelope.model_dump(mode="json", by_alias=True), secrets)
     envelope = PrometheusEnvelopeIngress.model_validate_json(
         json.dumps(body, separators=(",", ":"))
     )
@@ -124,32 +126,35 @@ def response_provenance(response: httpx2.Response, token: str | None) -> ParsedR
         ResponseProvenance(
             response.status_code,
             body,
-            tuple(redact_text(warning, token) for warning in envelope.warnings),
-            tuple(redact_text(info, token) for info in envelope.infos),
+            tuple(redact_text(warning, secrets) for warning in envelope.warnings),
+            tuple(redact_text(info, secrets) for info in envelope.infos),
         ),
         envelope,
     )
 
 
-def redact_text(value: str, token: str | None) -> str:
+def redact_text(value: str, secrets: tuple[str, ...]) -> str:
     """Replace known credential values in hostile text."""
-    token_safe = value.replace(token, _REDACTED) if token else value
-    bearer_safe = _BEARER_VALUE.sub(f"Bearer {_REDACTED}", token_safe)
+    secret_safe = value
+    for secret in secrets:
+        if secret:
+            secret_safe = secret_safe.replace(secret, _REDACTED)
+    bearer_safe = _BEARER_VALUE.sub(f"Bearer {_REDACTED}", secret_safe)
     return _ASSIGNMENT_CREDENTIAL_VALUE.sub(rf"\1{_REDACTED}", bearer_safe)
 
 
-def redact_json(value: JsonValue, token: str | None) -> JsonValue:
+def redact_json(value: JsonValue, secrets: tuple[str, ...]) -> JsonValue:
     """Recursively remove credential keys and bearer values from hostile JSON."""
     match value:
         case str() as text:
-            return redact_text(text, token)
+            return redact_text(text, secrets)
         case list() as values:
-            return [redact_json(item, token) for item in values]
+            return [redact_json(item, secrets) for item in values]
         case dict() as mapping:
             return {
-                _redacted_key(key, token): _REDACTED
+                _redacted_key(key, secrets): _REDACTED
                 if _is_sensitive_key(key)
-                else redact_json(item, token)
+                else redact_json(item, secrets)
                 for key, item in mapping.items()
             }
         case None | bool() | int() | float():
@@ -165,5 +170,5 @@ def _is_sensitive_key(key: str) -> bool:
     return normalized_key in _SENSITIVE_KEY_NAMES
 
 
-def _redacted_key(key: str, token: str | None) -> str:
-    return _REDACTED if _is_sensitive_key(key) else redact_text(key, token)
+def _redacted_key(key: str, secrets: tuple[str, ...]) -> str:
+    return _REDACTED if _is_sensitive_key(key) else redact_text(key, secrets)

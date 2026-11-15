@@ -125,8 +125,10 @@ def test_reference_options_exist_in_live_command_help(command: str) -> None:
     section = reference.split(f"\n``{command}``\n", maxsplit=1)[1]
     section = re.split(r"\n(?:``\w+``|Exit outcomes)\n", section, maxsplit=1)[0]
 
-    # When: the real Typer application renders that command's installed help.
-    result = CliRunner().invoke(app, [command, "--help"], color=False)
+    # When: render at a wide width so Rich keeps full option names for exact match.
+    result = CliRunner().invoke(
+        app, [command, "--help"], color=False, env={"COLUMNS": "200"}
+    )
 
     # Then: every documented option belongs to a live, successful command.
     assert result.exit_code == 0
@@ -139,7 +141,9 @@ def test_reference_options_reject_a_nonexistent_live_option_prefix() -> None:
     section = reference.split("\n``compare``\n", maxsplit=1)[1].replace(
         "``--report-json``", "``--report``"
     )
-    result = CliRunner().invoke(app, ["compare", "--help"], color=False)
+    result = CliRunner().invoke(
+        app, ["compare", "--help"], color=False, env={"COLUMNS": "200"}
+    )
     assert result.exit_code == 0
 
     # When: the same live-option validator checks the misleading prose.

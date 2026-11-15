@@ -20,12 +20,12 @@ def test_response_facade_preserves_redacted_valid_response_provenance() -> None:
     )
 
     # When: the established response facade parses the response.
-    parsed = response_provenance(response, "top-secret")
+    parsed = response_provenance(response, ("top-secret",))
 
     # Then: its public helpers retain the secret-safe compatibility contract.
     assert parsed.provenance.status_code == 200
     assert parsed.provenance.warnings == ("Bearer [REDACTED]",)
-    assert redact_json({"authorization": "top-secret"}, "top-secret") == {
+    assert redact_json({"authorization": "top-secret"}, ("top-secret",)) == {
         "[REDACTED]": "[REDACTED]"
     }
 
@@ -45,7 +45,7 @@ def test_response_facade_redacts_bearer_token_from_returned_envelope() -> None:
     )
 
     # When: the response crosses the compatibility facade.
-    parsed = response_provenance(response, credential)
+    parsed = response_provenance(response, (credential,))
 
     # Then: no returned representation can expose the bearer value.
     assert credential not in repr(parsed)
@@ -69,7 +69,7 @@ def test_response_facade_redacts_assignment_credentials_from_all_evidence() -> N
     )
 
     # When: the response enters the Prometheus compatibility facade.
-    parsed = response_provenance(response, None)
+    parsed = response_provenance(response, ())
 
     # Then: no persisted or printable ingress evidence exposes those credential values.
     evidence = (
@@ -131,8 +131,8 @@ def test_response_facade_redacts_every_sensitive_assignment_key_and_separator(
     )
 
     # When: the text and complete response cross the ingress boundary.
-    text = redact_text(warning, None)
-    parsed = response_provenance(response, None)
+    text = redact_text(warning, ())
+    parsed = response_provenance(response, ())
 
     # Then: no returned provenance, body, or representation retains the value.
     evidence = (
@@ -150,7 +150,7 @@ def test_response_facade_preserves_malformed_response_provenance() -> None:
     response = httpx2.Response(502, content=b'{"status":"success"')
 
     # When: the established response facade parses the response.
-    parsed = response_provenance(response, None)
+    parsed = response_provenance(response, ())
 
     # Then: it retains status evidence without exposing an invalid body.
     assert parsed.provenance.status_code == 502

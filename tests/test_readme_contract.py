@@ -95,6 +95,7 @@ def test_readme_links_project_first_docs_and_curriculum() -> None:
         "examples/README.md",
         "docs/explanation/learning-paths.rst",
         "docs/tutorials/performance-verification-case-study.rst",
+        "docs/how-to/prometheus-authentication.rst",
     )
     assert "just docs-check" in source
     assert "just docs-preview" in source

@@ -39,10 +39,13 @@ class FixtureArguments(argparse.Namespace):
     port: int = 0
     fixture: Path = Path()
     echo_token_body: str | None = None
+    echo_basic_body: str | None = None
 
 
 def _handler(
-    fixture: PrometheusFixture, echo_token: str | None
+    fixture: PrometheusFixture,
+    echo_token: str | None,
+    echo_basic: str | None,
 ) -> type[BaseHTTPRequestHandler]:
     positions: dict[str, int] = {}
 
@@ -92,6 +95,16 @@ def _handler(
             if echo_token is not None:
                 response["warnings"] = [f"api_key={echo_token}"]
                 response["infos"] = [f"x-api-key={echo_token}"]
+            if echo_basic is not None:
+                username, _, password = echo_basic.partition(":")
+                response["warnings"] = [
+                    f"api_key={username}",
+                    f"api_key={password}",
+                ]
+                response["infos"] = [
+                    f"x-api-key={username}",
+                    f"x-api-key={password}",
+                ]
             self._send(HTTPStatus.OK, response)
 
         def _send(self, status: HTTPStatus, payload: dict[str, JsonValue]) -> None:
@@ -114,11 +127,16 @@ def main() -> None:
     _ = parser.add_argument("--port", type=int, required=True)
     _ = parser.add_argument("--fixture", type=Path, required=True)
     _ = parser.add_argument("--echo-token-body")
+    _ = parser.add_argument("--echo-basic-body")
     arguments = FixtureArguments()
     _ = parser.parse_args(namespace=arguments)
     fixture = PrometheusFixture.model_validate_json(arguments.fixture.read_bytes())
     with ThreadingHTTPServer(
-        ("127.0.0.1", arguments.port), _handler(fixture, arguments.echo_token_body)
+        (
+            "127.0.0.1",
+            arguments.port,
+        ),
+        _handler(fixture, arguments.echo_token_body, arguments.echo_basic_body),
     ) as server:
         print(f"http://127.0.0.1:{server.server_port}", flush=True)  # noqa: T201
         server.serve_forever()
