@@ -20,6 +20,7 @@ from perfcheck.cli_services import (
     load_raw,
     options,
     preflight_paths,
+    stamp_policy,
     summarize_raw,
     write_report,
 )
@@ -40,12 +41,19 @@ from perfcheck.errors import ArtifactSchemaError, PerfcheckError
 from perfcheck.model_types import RunId, Status
 from perfcheck.regression import evaluate_regression
 from perfcheck.report import build_report, render_json_report, render_markdown_report
-from perfcheck.storage import write_artifact
+from perfcheck.storage import write_artifact, write_bytes
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 app = typer.Typer(help="Reproducible performance-regression evidence for CI.")
+
+policy_app = typer.Typer(
+    no_args_is_help=True,
+    help="Policy authoring and verification helpers.",
+)
+app.add_typer(policy_app, name="policy")
+
 _console = Console(stderr=True)
 
 
@@ -193,6 +201,53 @@ def compare_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented fl
         if emit_json:
             typer.echo(json_report, nl=False)
         _exit_status(outcome.status)
+
+    _run_command(action)
+
+
+@policy_app.command(name="check")
+def check_command(
+    input_path: Annotated[Path, typer.Option("--input")],
+) -> None:
+    """Verify a policy is well-formed and its content hash matches its content.
+
+    Requires ``--input``. Exits ``0`` when the policy validates and ``3`` for
+    invalid JSON, a schema failure, or a content-hash mismatch.
+    """
+
+    def action() -> None:
+        policy = load_policy(input_path)
+        short = policy.policy_sha256[:12]
+        _console.print(f"policy {policy.policy_id} is valid ({short})")
+
+    _run_command(action)
+
+
+@policy_app.command(name="stamp")
+def stamp_command(
+    input_path: Annotated[Path, typer.Option("--input")],
+    output_path: Annotated[Path | None, typer.Option("--output")] = None,
+    to_stdout: Annotated[bool, typer.Option("--stdout")] = False,
+    force: Annotated[bool, typer.Option("--force")] = False,
+) -> None:
+    """Stamp a policy with its content hash and write canonical JSON.
+
+    Requires ``--input``. By default the stamped policy replaces the
+    ``--input`` file in place; pass ``--force`` to allow the overwrite.
+    ``--output`` writes a different path, and ``--stdout`` prints the stamped
+    policy without writing a file. ``--stdout`` takes precedence over
+    ``--output``.
+    """
+
+    def action() -> None:
+        stamped_bytes = stamp_policy(input_path)
+        if to_stdout:
+            typer.echo(stamped_bytes.decode("utf-8"), nl=False)
+            return
+        destination = output_path if output_path is not None else input_path
+        preflight_paths((destination,), force=force)
+        write_bytes(destination, stamped_bytes, force=force)
+        _console.print(f"wrote policy {destination}")
 
     _run_command(action)
 

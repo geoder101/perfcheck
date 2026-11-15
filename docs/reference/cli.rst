@@ -55,6 +55,34 @@ JSON report to stdout (it does not replace a report-file option), and ``--force`
 allows replacement of supplied report destinations. Omitting both report-file
 options is an input error with exit status ``3``, even with ``--json``.
 
+``policy``
+----------
+
+The ``policy`` group helps authors and verifiers work with policy files. It
+reads, validates, and re-writes policy JSON only; it never collects evidence or
+writes a report. Both subcommands require ``--input``.
+
+``policy check``
+----------------
+
+``policy check`` verifies that a policy parses and that its ``policy_sha256``
+matches its canonical content. It exits ``0`` when the policy is valid and
+``3`` for invalid JSON, a schema failure, or a content-hash mismatch. Use it
+before ``collect`` or ``compare`` to fail fast on a malformed policy.
+
+``policy stamp``
+----------------
+
+``policy stamp`` writes canonical JSON stamped with a correct ``policy_sha256``.
+A policy written without a hash, or with a stale one, is re-validated and
+re-stamped; the written form is then accepted by ``collect``, ``summarize``, and
+``compare`` unchanged. By default ``stamp`` overwrites the ``--input`` file in
+place; pass ``--force`` to allow the overwrite. ``--output`` writes a different
+path and ``--stdout`` prints the stamped policy without writing a file.
+``--stdout`` takes precedence over ``--output``.
+
+An incomplete policy fails the same way with exit status ``3``.
+
 Exit outcomes
 -------------
 

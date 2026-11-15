@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, assert_never, override
+from typing import TYPE_CHECKING, assert_never, cast, override
 
 from pydantic import ValidationError
 from rich.console import Console
@@ -17,6 +18,7 @@ from perfcheck.policy_models import SuitePolicy
 from perfcheck.run_models import RunArtifact
 from perfcheck.storage import (
     artifact_content_sha256,
+    canonical_json_bytes,
     load_artifact,
     policy_content_sha256,
     summary_cache_path,
@@ -72,6 +74,27 @@ def load_policy(path: Path) -> SuitePolicy:
     if policy.policy_sha256 != policy_content_sha256(policy):
         raise CliInputError(CliInputCode.POLICY_HASH_MISMATCH)
     return policy
+
+
+def stamp_policy(path: Path) -> bytes:
+    """Validate one policy and return canonical JSON stamped with its content hash.
+
+    The input policy may be unsigned or carry a stale ``policy_sha256``: the
+    returned canonical JSON always carries the correct self-referential hash,
+    so ``load_policy`` accepts it unchanged. Invalid JSON or a schema failure
+    fails the same way ``collect`` and ``compare`` reject a policy.
+    """
+    try:
+        raw = path.read_text(encoding="utf-8")
+        body = cast("dict[str, object]", json.loads(raw))
+        candidate = SuitePolicy.model_validate_json(
+            json.dumps({**body, "policy_sha256": "0" * 64})
+        )
+    except (OSError, TypeError, ValueError, ValidationError) as error:
+        raise CliInputError(CliInputCode.INVALID_POLICY_JSON) from error
+    stamped = candidate.model_dump(mode="json")
+    stamped["policy_sha256"] = policy_content_sha256(candidate)
+    return canonical_json_bytes(SuitePolicy.model_validate_json(json.dumps(stamped)))
 
 
 def load_raw(path: Path) -> RunArtifact:
