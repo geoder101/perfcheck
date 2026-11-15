@@ -5,10 +5,13 @@ Use the live help for the complete, installed command contract:
 
 .. code-block:: console
 
-   perfcheck --help
-   perfcheck collect --help
-   perfcheck summarize --help
-   perfcheck compare --help
+    perfcheck --help
+    perfcheck collect --help
+    perfcheck summarize --help
+    perfcheck compare --help
+    perfcheck policy --help
+    perfcheck policy check --help
+    perfcheck policy stamp --help
 
 ``collect``
 -------------
