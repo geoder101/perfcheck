@@ -85,11 +85,16 @@ run, and compares current and baseline evidence under one policy. Use the live
 help for each command's required paths and options:
 
 ```bash
+just cli policy --help
 just cli collect --help
 just cli summarize --help
 just cli compare --help
 ```
 
+- `policy` groups the authoring helpers: `policy check` validates a policy
+  parses and its content hash matches; `policy stamp` rewrites canonical JSON
+  stamped with the correct hash. Use them before collecting, summarizing, or
+  comparing to fail fast on a malformed policy.
 - `collect` writes one raw run artifact from all metrics in a suite.
 - `summarize` writes one canonical summary artifact from a verified raw run.
 - `compare` evaluates current and baseline summaries (or raw-run inputs) and

@@ -17,8 +17,9 @@ unless [README's public scope](README.md#scope) changes in the same work.
 
 ## Change Boundaries
 
-- Before changing command behavior, read all four: `just cli --help`,
-  `just cli collect --help`, `just cli summarize --help`, and `just cli compare --help`.
+- Before changing command behavior, read all five: `just cli --help`,
+  `just cli policy --help`, `just cli collect --help`,
+  `just cli summarize --help`, and `just cli compare --help`.
 - Start with the test named for the behavior or module being changed.
 - Keep credentials out of persisted artifacts, labels, metadata, queries, logs,
   and diagnostics. Review `src/perfcheck/errors.py` and collection logging

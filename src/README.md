@@ -62,6 +62,7 @@ native documentation-build prerequisites.
 ```bash
 just sync                  # install locked development, docs, and lesson tools
 just cli --help
+just cli policy --help
 just cli collect --help
 just cli summarize --help
 just cli compare --help

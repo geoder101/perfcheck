@@ -64,19 +64,6 @@ def main() -> None:
     """Configure the perfcheck command group."""
 
 
-@app.command(name="summarize")
-def summarize_command(
-    policy_path: Annotated[Path, typer.Option("--policy")],
-    run_path: Annotated[Path, typer.Option("--run")],
-    output_path: Annotated[Path, typer.Option("--out")],
-    force: Annotated[bool, typer.Option("--force")] = False,
-) -> None:
-    """Create one canonical summary artifact from one verified raw run."""
-    _run_command(
-        lambda: _summarize(policy_path, run_path, output_path, force),
-    )
-
-
 @app.command(name="collect")
 def collect_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented flags.
     policy_path: Annotated[Path, typer.Option("--policy")],
@@ -141,6 +128,19 @@ def collect_command(  # noqa: PLR0913, PLR0917 - Typer exposes the documented fl
             _exit_code(4)
 
     _run_command(action)
+
+
+@app.command(name="summarize")
+def summarize_command(
+    policy_path: Annotated[Path, typer.Option("--policy")],
+    run_path: Annotated[Path, typer.Option("--run")],
+    output_path: Annotated[Path, typer.Option("--out")],
+    force: Annotated[bool, typer.Option("--force")] = False,
+) -> None:
+    """Create one canonical summary artifact from one verified raw run."""
+    _run_command(
+        lambda: _summarize(policy_path, run_path, output_path, force),
+    )
 
 
 @app.command(name="compare")
