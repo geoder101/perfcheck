@@ -20,8 +20,10 @@ from perfcheck.cli_services import (
     load_raw,
     options,
     preflight_paths,
+    schema_pointer,
     stamp_policy,
     summarize_raw,
+    warn_schema_pointer,
     write_report,
 )
 from perfcheck.collection_auth import (
@@ -212,11 +214,14 @@ def check_command(
     """Verify a policy is well-formed and its content hash matches its content.
 
     Requires ``--input``. Exits ``0`` when the policy validates and ``3`` for
-    invalid JSON, a schema failure, or a content-hash mismatch.
+    invalid JSON, a schema failure, or a content-hash mismatch. A ``$schema``
+    pointer referencing an unknown or older perfcheck schema version prints a
+    warning on stderr but still exits ``0``.
     """
 
     def action() -> None:
         policy = load_policy(input_path)
+        warn_schema_pointer(schema_pointer(input_path))
         short = policy.policy_sha256[:12]
         _console.print(f"policy {policy.policy_id} is valid ({short})")
 

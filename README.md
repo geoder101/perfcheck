@@ -351,3 +351,9 @@ README does not promise compatibility or stability for internal APIs or artifact
 schemas. The supported surface described here is limited to the current CLI
 commands. No dashboard, database, DSL, HTML, or other external integrations are
 promised.
+
+The generated JSON Schema at `schemas/v1/perfcheck-policy.schema.json` is a
+hosted, versioned public contract for the policy file, not a Python-API
+compatibility promise. It is pinned to a single major version and served raw
+from the default branch; versioned schema files are immutable and are never
+overwritten in place.

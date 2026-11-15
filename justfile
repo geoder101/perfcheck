@@ -110,8 +110,16 @@ docs-preview port="8000": docs-check
 docs-cache-clear:
   rm -rf .pytest_docs_cache .docs_inputs_sha
 
+# Regenerate the hosted versioned policy JSON Schema deterministically.
+schema-gen:
+  uv run python -m tools.schema_gen
+
+# Verify the committed policy JSON Schema regenerates byte-identically (drift gate).
+schema-check:
+  uv run python -m tools.schema_gate
+
 # Run the standard local verification suite.
-check: lock-check format-check lint typecheck test examples-check docs-check build
+check: lock-check schema-check format-check lint typecheck test examples-check docs-check build
 
 # Run the optional Unix-only aggregation mutation pilot in isolation.
 mutation:

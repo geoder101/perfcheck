@@ -1,0 +1,325 @@
+{
+  "$defs": {
+    "AlgorithmManifest": {
+      "additionalProperties": false,
+      "description": "The only algorithm suite supported by the version-one contract.",
+      "properties": {
+        "bootstrap": {
+          "const": "pcg64-percentile-v1",
+          "default": "pcg64-percentile-v1",
+          "title": "Bootstrap",
+          "type": "string"
+        },
+        "eligibility": {
+          "const": "trim-coverage-gap-v1",
+          "default": "trim-coverage-gap-v1",
+          "title": "Eligibility",
+          "type": "string"
+        },
+        "report": {
+          "const": "canonical-json-markdown-v1",
+          "default": "canonical-json-markdown-v1",
+          "title": "Report",
+          "type": "string"
+        },
+        "summary": {
+          "const": "linear-quantile-v1",
+          "default": "linear-quantile-v1",
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "title": "AlgorithmManifest",
+      "type": "object"
+    },
+    "ComparisonMode": {
+      "description": "Policy-selected comparison modes.",
+      "enum": [
+        "auto",
+        "baseline_reference",
+        "cohort_bootstrap"
+      ],
+      "title": "ComparisonMode",
+      "type": "string"
+    },
+    "Direction": {
+      "description": "The direction in which a metric worsens.",
+      "enum": [
+        "higher_is_worse",
+        "lower_is_worse"
+      ],
+      "title": "Direction",
+      "type": "string"
+    },
+    "EligibilityPolicy": {
+      "additionalProperties": false,
+      "description": "Inclusive trim, coverage, and gap requirements for one metric.",
+      "properties": {
+        "cooldown_seconds": {
+          "$ref": "#/$defs/perfcheck__model_types__NonNegativeInteger__1",
+          "default": 0
+        },
+        "max_gap_steps": {
+          "$ref": "#/$defs/perfcheck__model_types__NonNegativeInteger__1",
+          "default": 3
+        },
+        "min_analysis_window_seconds": {
+          "$ref": "#/$defs/perfcheck__model_types__NonNegativeInteger__2",
+          "default": 300
+        },
+        "min_coverage": {
+          "$ref": "#/$defs/Fraction",
+          "default": 0.8
+        },
+        "min_points": {
+          "$ref": "#/$defs/perfcheck__model_types__NonNegativeInteger__3",
+          "default": 20
+        },
+        "warmup_seconds": {
+          "$ref": "#/$defs/perfcheck__model_types__NonNegativeInteger__1",
+          "default": 0
+        }
+      },
+      "title": "EligibilityPolicy",
+      "type": "object"
+    },
+    "Fraction": {
+      "maximum": 1.0,
+      "minimum": 0.8,
+      "type": "number"
+    },
+    "LabelName": {
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "type": "string"
+    },
+    "MetricIdentifier": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "type": "string"
+    },
+    "MetricPolicy": {
+      "additionalProperties": false,
+      "description": "A named metric, query, and fixed comparison interpretation.",
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/Direction"
+        },
+        "eligibility": {
+          "$ref": "#/$defs/EligibilityPolicy",
+          "default": {
+            "cooldown_seconds": 0,
+            "max_gap_steps": 3,
+            "min_analysis_window_seconds": 300,
+            "min_coverage": 0.8,
+            "min_points": 20,
+            "warmup_seconds": 0
+          }
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "expected_label_names": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/LabelName"
+          },
+          "title": "Expected Label Names",
+          "type": "array"
+        },
+        "metric_id": {
+          "$ref": "#/$defs/MetricIdentifier"
+        },
+        "practical_threshold": {
+          "$ref": "#/$defs/perfcheck__model_types__FiniteFloat__1"
+        },
+        "query": {
+          "$ref": "#/$defs/NonBlankText"
+        },
+        "rate_window_seconds": {
+          "$ref": "#/$defs/PositiveInteger"
+        },
+        "statistic": {
+          "$ref": "#/$defs/Statistic"
+        },
+        "step_seconds": {
+          "$ref": "#/$defs/PositiveInteger"
+        },
+        "unit": {
+          "$ref": "#/$defs/MetricUnit"
+        }
+      },
+      "required": [
+        "metric_id",
+        "query",
+        "unit",
+        "direction",
+        "statistic",
+        "practical_threshold",
+        "step_seconds",
+        "rate_window_seconds"
+      ],
+      "title": "MetricPolicy",
+      "type": "object"
+    },
+    "MetricUnit": {
+      "description": "Explicit units allowed by the version-one policy contract.",
+      "enum": [
+        "bytes",
+        "bytes_per_second",
+        "count",
+        "milliseconds",
+        "percent",
+        "requests_per_second",
+        "seconds"
+      ],
+      "title": "MetricUnit",
+      "type": "string"
+    },
+    "NonBlankText": {
+      "minLength": 1,
+      "pattern": "\\S",
+      "type": "string"
+    },
+    "PolicyIdentifier": {
+      "$ref": "#/$defs/_Identifier"
+    },
+    "PolicySha256": {
+      "type": "string"
+    },
+    "PositiveInteger": {
+      "exclusiveMinimum": 0,
+      "type": "integer"
+    },
+    "Statistic": {
+      "description": "Supported per-run summary statistics.",
+      "enum": [
+        "mean",
+        "p50",
+        "p90",
+        "p95",
+        "p99",
+        "min",
+        "max",
+        "std",
+        "first",
+        "last",
+        "delta",
+        "slope"
+      ],
+      "title": "Statistic",
+      "type": "string"
+    },
+    "SuiteIdentifier": {
+      "$ref": "#/$defs/_Identifier"
+    },
+    "_Identifier": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "type": "string"
+    },
+    "perfcheck__model_types__FiniteFloat__1": {
+      "minimum": 0.0,
+      "type": "number"
+    },
+    "perfcheck__model_types__FiniteFloat__2": {
+      "maximum": 0.05,
+      "minimum": 0.05,
+      "type": "number"
+    },
+    "perfcheck__model_types__NonNegativeInteger__1": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "perfcheck__model_types__NonNegativeInteger__2": {
+      "minimum": 300,
+      "type": "integer"
+    },
+    "perfcheck__model_types__NonNegativeInteger__3": {
+      "minimum": 20,
+      "type": "integer"
+    }
+  },
+  "$id": "https://perfcheck/schemas/v1/perfcheck-policy.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "An immutable, hash-addressed version-one collection policy snapshot.",
+  "properties": {
+    "$schema": {
+      "description": "Optional authoring aid pointing at the hosted perfcheck policy JSON Schema; perfcheck strips it before validation and never lets it affect policy identity or hash.",
+      "format": "uri",
+      "type": "string"
+    },
+    "algorithm_manifest": {
+      "$ref": "#/$defs/AlgorithmManifest",
+      "default": {
+        "bootstrap": "pcg64-percentile-v1",
+        "eligibility": "trim-coverage-gap-v1",
+        "report": "canonical-json-markdown-v1",
+        "summary": "linear-quantile-v1"
+      }
+    },
+    "comparison_mode": {
+      "$ref": "#/$defs/ComparisonMode",
+      "default": "auto"
+    },
+    "metrics": {
+      "items": {
+        "$ref": "#/$defs/MetricPolicy"
+      },
+      "minItems": 1,
+      "title": "Metrics",
+      "type": "array"
+    },
+    "min_baseline_reference_runs": {
+      "$ref": "#/$defs/PositiveInteger",
+      "default": 10
+    },
+    "min_baseline_runs": {
+      "$ref": "#/$defs/PositiveInteger",
+      "default": 10
+    },
+    "min_current_runs": {
+      "$ref": "#/$defs/PositiveInteger",
+      "default": 5
+    },
+    "nominal_alpha": {
+      "$ref": "#/$defs/perfcheck__model_types__FiniteFloat__2",
+      "default": 0.05
+    },
+    "policy_id": {
+      "$ref": "#/$defs/PolicyIdentifier"
+    },
+    "policy_sha256": {
+      "$ref": "#/$defs/PolicySha256"
+    },
+    "prometheus_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Prometheus Url"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "suite_id": {
+      "$ref": "#/$defs/SuiteIdentifier"
+    }
+  },
+  "required": [
+    "policy_id",
+    "suite_id",
+    "policy_sha256",
+    "metrics"
+  ],
+  "title": "SuitePolicy",
+  "type": "object"
+}

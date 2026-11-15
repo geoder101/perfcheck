@@ -7,7 +7,7 @@ import json
 import os
 import tempfile
 from pathlib import Path
-from typing import TYPE_CHECKING, assert_never, overload
+from typing import TYPE_CHECKING, assert_never, cast, overload
 
 from pydantic import ValidationError
 
@@ -28,6 +28,16 @@ def canonical_json_bytes(value: StrictModel, *, omit_field: str | None = None) -
     excluded = {omit_field} if omit_field is not None else None
     payload = value.model_dump(mode="json", exclude=excluded)
     return f"{_encode_json(payload)}\n".encode()
+
+
+def canonical_json_bytes_dict(payload: dict[str, object]) -> bytes:
+    """Serialize a plain JSON-compatible dict into canonical bytes.
+
+    Reuses the model encoder so custom float/int encoding matches
+    :func:`canonical_json_bytes`; callers own the payload shape.
+    """
+    encoded = _encode_json(cast("JsonValue", payload))
+    return f"{encoded}\n".encode()
 
 
 def policy_content_sha256(policy: SuitePolicy) -> str:

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, assert_never, cast, override
+from typing import TYPE_CHECKING, Final, assert_never, cast, override
 
 from pydantic import ValidationError
 from rich.console import Console
@@ -18,7 +19,7 @@ from perfcheck.policy_models import SuitePolicy
 from perfcheck.run_models import RunArtifact
 from perfcheck.storage import (
     artifact_content_sha256,
-    canonical_json_bytes,
+    canonical_json_bytes_dict,
     load_artifact,
     policy_content_sha256,
     summary_cache_path,
@@ -30,6 +31,8 @@ from perfcheck.summary_models import SummaryArtifact, SummaryMetricRecord
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from pydantic import JsonValue
 
     from perfcheck.artifact_models import Artifact
     from perfcheck.collection_models import MetricCollectionRecord
@@ -53,6 +56,51 @@ class CliInputCode(StrEnum):
 _console = Console(stderr=True)
 
 
+SCHEMA_KEY: Final[str] = "$schema"
+
+SCHEMA_VERSIONS: Final[dict[int, str]] = {
+    1: "schemas/v1/perfcheck-policy.schema.json",
+}
+CURRENT_SCHEMA_VERSION: Final[int] = 1
+
+_SCHEMA_POINTER_MAJOR_RE: Final = re.compile(r"/v(\d+)")
+
+
+def schema_pointer(path: Path) -> str | None:
+    """Return the top-level ``$schema`` pointer from a policy file, or ``None``."""
+    try:
+        parsed = cast("JsonValue", json.loads(path.read_text(encoding="utf-8")))
+    except OSError, ValueError:
+        return None
+    if not isinstance(parsed, dict):
+        return None
+    pointer = parsed.get(SCHEMA_KEY)
+    return pointer if isinstance(pointer, str) else None
+
+
+def warn_schema_pointer(pointer: str | None) -> None:
+    """Warn on stderr when a policy ``$schema`` pointer is unknown or older."""
+    if pointer is None:
+        return
+    major = _schema_pointer_major(pointer)
+    if major is None or major not in SCHEMA_VERSIONS or major < CURRENT_SCHEMA_VERSION:
+        template = (
+            "warning: policy $schema pointer {!r} is unknown or older "
+            "than the current schema version {}"
+        )
+        _console.print(template.format(pointer, CURRENT_SCHEMA_VERSION))
+
+
+def _schema_pointer_major(pointer: str | None) -> int | None:
+    """Extract the ``v<major>`` major version from a pointer, or ``None``."""
+    if pointer is None:
+        return None
+    match = _SCHEMA_POINTER_MAJOR_RE.search(pointer)
+    if match is None:
+        return None
+    return int(match.group(1))
+
+
 @dataclass(frozen=True, slots=True)
 class CliInputError(PerfcheckError):
     """An input or output contract could not be satisfied."""
@@ -68,8 +116,16 @@ class CliInputError(PerfcheckError):
 def load_policy(path: Path) -> SuitePolicy:
     """Parse and verify one policy snapshot before using it for analysis."""
     try:
-        policy = SuitePolicy.model_validate_json(path.read_bytes())
-    except (OSError, UnicodeDecodeError, ValidationError) as error:
+        parsed = cast("dict[str, object]", json.loads(path.read_text(encoding="utf-8")))
+        body = {key: value for key, value in dict(parsed).items() if key != SCHEMA_KEY}
+        policy = SuitePolicy.model_validate_json(json.dumps(body))
+    except (
+        OSError,
+        UnicodeDecodeError,
+        TypeError,
+        ValueError,
+        ValidationError,
+    ) as error:
         raise CliInputError(CliInputCode.INVALID_POLICY_JSON) from error
     if policy.policy_sha256 != policy_content_sha256(policy):
         raise CliInputError(CliInputCode.POLICY_HASH_MISMATCH)
@@ -81,12 +137,20 @@ def stamp_policy(path: Path) -> bytes:
 
     The input policy may be unsigned or carry a stale ``policy_sha256``: the
     returned canonical JSON always carries the correct self-referential hash,
-    so ``load_policy`` accepts it unchanged. Invalid JSON or a schema failure
-    fails the same way ``collect`` and ``compare`` reject a policy.
+    so ``load_policy`` accepts it unchanged. A top-level ``$schema`` pointer is
+    captured before validation and re-injected verbatim into the canonical
+    output; it never affects validation or the policy content hash. Invalid JSON
+    or a schema failure fails the same way ``collect`` and ``compare`` reject a
+    policy.
     """
     try:
         raw = path.read_text(encoding="utf-8")
-        body = cast("dict[str, object]", json.loads(raw))
+        parsed = cast("JsonValue", json.loads(raw))
+        pointer: JsonValue | None = None
+        body: dict[str, JsonValue] = {}
+        if isinstance(parsed, dict):
+            pointer = parsed.get(SCHEMA_KEY)
+            body = {key: value for key, value in parsed.items() if key != SCHEMA_KEY}
         candidate = SuitePolicy.model_validate_json(
             json.dumps({**body, "policy_sha256": "0" * 64})
         )
@@ -94,7 +158,9 @@ def stamp_policy(path: Path) -> bytes:
         raise CliInputError(CliInputCode.INVALID_POLICY_JSON) from error
     stamped = candidate.model_dump(mode="json")
     stamped["policy_sha256"] = policy_content_sha256(candidate)
-    return canonical_json_bytes(SuitePolicy.model_validate_json(json.dumps(stamped)))
+    if pointer is not None:
+        stamped[SCHEMA_KEY] = pointer
+    return canonical_json_bytes_dict(stamped)
 
 
 def load_raw(path: Path) -> RunArtifact:

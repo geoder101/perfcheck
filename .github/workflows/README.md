@@ -12,9 +12,9 @@ and disable persisted checkout credentials.
 
 - The Python 3.14 matrix runs `just check` on Linux, macOS, and Windows.
   It provisions the locked Python groups and documentation rendering tools first.
-- `just check` covers lock verification, formatting, lint, types, tests,
-  executable examples, strict documentation builds, and distribution builds.
-  It's coverage-free and mutation-free.
+- `just check` covers lock verification, schema drift check, formatting, lint,
+  types, tests, executable examples, strict documentation builds, and
+  distribution builds. It's coverage-free and mutation-free.
 - A separate Linux job runs `just coverage-check`, the fresh full-suite
   99% combined statement-and-branch gate. It doesn't depend on the matrix job.
 - Evidence export is attempted even after gate failure. Approved available

@@ -10,6 +10,13 @@ policy JSON before use and verify its ``policy_sha256`` against the canonical
 policy content. Evidence from a different policy hash cannot be summarized or
 compared under the selected policy.
 
+A policy may carry a top-level ``$schema`` property that points at the hosted,
+versioned JSON Schema in ``schemas/``. It is a pure authoring aid: perfcheck
+strips it before validation, so it never blocks validation and never affects
+``policy_content_sha256`` or policy identity. ``stamp`` preserves a present
+``$schema`` verbatim, and ``policy check`` WARNS (without changing the exit
+status) when the pointer references an unknown or older schema version.
+
 Raw-run artifact
 ----------------
 

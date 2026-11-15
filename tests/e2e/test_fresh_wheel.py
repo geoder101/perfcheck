@@ -121,6 +121,7 @@ def test_check_requires_lock_and_build_gates() -> None:
     # Then: Just uses platform-native shells, owns all gates, and CI invokes it.
     check_dependencies = (
         "lock-check",
+        "schema-check",
         "format-check",
         "lint",
         "typecheck",

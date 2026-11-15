@@ -67,6 +67,23 @@ unless [README's public scope](README.md#scope) changes in the same work.
   Leave hosted CI/platform/deployment results pending until real repository runs.
   Keep Pages docs-only, including internal AutoAPI, never coverage/mutation evidence.
 
+## Hosted schema contract
+
+- The versioned JSON Schema at `schemas/v1/perfcheck-policy.schema.json` is a
+  hosted, versioned public contract for the policy file (the only artifact a
+  user or AI authors). It is distinct from the still-unstable internal artifact
+  and Python schemas; see the Scope carve-out in [README](README.md#scope).
+- Versioned schema files are IMMUTABLE. Additive changes go to a new version
+  path; breaking changes go to a new major path. Never overwrite a committed
+  versioned schema file in place — the `schema-check` drift gate
+  (`just schema-check`, part of `just check`) fails on regeneration drift.
+- `$schema` is an authoring-only aid. perfcheck strips a data-level
+  `$schema` before validation and never lets it affect policy identity or the
+  content hash (`policy_content_sha256`). `stamp` preserves a present pointer
+  verbatim; `policy check` WARNS on an unknown or older pointer version.
+- Hosted raw URLs serve from the default branch. This is a hosted schema
+  contract, not a Python-API compatibility promise.
+
 ## Optional Podman Safety
 
 - Follow [Podman setup and overrides](README.md#optional-podman-environment);
