@@ -171,7 +171,7 @@ def test_validate_repository_course_reports_a_missing_index_entry(
     # When: the shared validator inspects the incomplete public index.
     with pytest.raises(
         AssertionError,
-        match=r"curriculum index must link 10-comparative-methods\.py",
+        match=r"curriculum index must link 11-comparison-internal-trace\.py",
     ):
         examples_check.validate_repository_course()
 

@@ -24,6 +24,7 @@ _EXPECTED_NOTEBOOK_NAMES: Final = (
     "08-bootstrap-and-decisions.py",
     "09-plain-python-mechanics.py",
     "10-comparative-methods.py",
+    "11-comparison-internal-trace.py",
 )
 _EXAMPLES_TEST_TIMEOUT_SECONDS: Final = 60.0
 EXAMPLE_NOTEBOOKS: Final[tuple[Path, ...]] = (
@@ -142,6 +143,7 @@ def main() -> None:
             str(_ROOT / "tests/test_examples_workflow.py"),
             str(_ROOT / "tests/test_examples_check.py"),
             str(_ROOT / "tests/test_examples_mechanics.py"),
+            str(_ROOT / "tests/test_examples_comparison.py"),
             str(_ROOT / "tests/test_examples_comparative.py"),
             str(_ROOT / "tests/test_examples_probability.py"),
             str(_ROOT / "tests/test_examples_design.py"),

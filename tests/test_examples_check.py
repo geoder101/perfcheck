@@ -24,7 +24,7 @@ def test_example_notebook_tuple_covers_the_ten_canonical_lessons() -> None:
     # When: its lesson filenames are read in sequence.
     notebook_names = tuple(path.name for path in examples_check.EXAMPLE_NOTEBOOKS)
 
-    # Then: it contains all and only the ten ordered curriculum lessons.
+    # Then: it contains all and only the eleven ordered curriculum lessons.
     assert notebook_names == (
         "01-overview.py",
         "02-collect.py",
@@ -36,6 +36,7 @@ def test_example_notebook_tuple_covers_the_ten_canonical_lessons() -> None:
         "08-bootstrap-and-decisions.py",
         "09-plain-python-mechanics.py",
         "10-comparative-methods.py",
+        "11-comparison-internal-trace.py",
     )
 
 
@@ -182,6 +183,7 @@ def test_main_exits_for_examples_test_failure_after_marimo_validation(
                 str(_ROOT / "tests/test_examples_workflow.py"),
                 str(_ROOT / "tests/test_examples_check.py"),
                 str(_ROOT / "tests/test_examples_mechanics.py"),
+                str(_ROOT / "tests/test_examples_comparison.py"),
                 str(_ROOT / "tests/test_examples_comparative.py"),
                 str(_ROOT / "tests/test_examples_probability.py"),
                 str(_ROOT / "tests/test_examples_design.py"),

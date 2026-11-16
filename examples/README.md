@@ -6,7 +6,7 @@ write any artifacts only to temporary workspaces.
 
 ## Choose a learning route
 
-The [learning paths](../docs/explanation/learning-paths.rst) reuse these ten
+The [learning paths](../docs/explanation/learning-paths.rst) reuse these eleven
 lessons and the existing chapters rather than introducing another course:
 
 - **Beginner:** CLI lessons 01–04, probability lab 06, summaries lab 07, then
@@ -178,3 +178,14 @@ headless alternatives described above.
 - **Author:** `just notebook-edit examples/10-comparative-methods.py`
 - **Consumer:** `just notebook-run examples/10-comparative-methods.py`
 - **Script:** `just notebook-script examples/10-comparative-methods.py`
+
+### 11. [11-comparison-internal-trace.py](11-comparison-internal-trace.py), comparison internal trace
+
+- **Goal:** trace the internal comparison flow end to end with a faithful, transparent mirror of the collect → summarize → compare decision core.
+- **Interactive controls:** change direction, practical threshold, current value, current and baseline run counts, enabled-metric count, and PCG64 seed; recompute the trace live.
+- **Explanation:** [Comparative methods](../docs/explanation/comparative-methods.rst).
+- **Prerequisite:** complete 10.
+- **CLI commands explained:** none; no CLI invocation — the lesson mirrors the comparison core directly instead of calling `perfcheck`.
+- **Author:** `just notebook-edit examples/11-comparison-internal-trace.py`
+- **Consumer:** `just notebook-run examples/11-comparison-internal-trace.py`
+- **Script:** `just notebook-script examples/11-comparison-internal-trace.py`

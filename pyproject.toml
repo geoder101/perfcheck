@@ -84,6 +84,7 @@ ignore = ["COM812", "CPY001", "D203", "D213", "FBT001", "FBT002", "ISC001"]
 # Lesson 09 deliberately teaches seeded, non-cryptographic resampling.
 "examples/09-plain-python-mechanics.py" = ["N999", "S311"]
 "examples/10-comparative-methods.py" = ["N999"]
+"examples/11-comparison-internal-trace.py" = ["N999"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

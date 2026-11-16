@@ -31,7 +31,7 @@ preserve quoted argument boundaries or the application's exit status.
 
 Start with the [Project documentation](docs/index.rst) for a workflow overview
 and four Diataxis paths: Tutorials, How-to guides, Reference, and Explanation.
-The [Marimo curriculum index](examples/README.md) offers ten executable lessons
+The [Marimo curriculum index](examples/README.md) offers eleven executable lessons
 in order, from the CLI workflow to statistical mechanics and comparative methods.
 Choose a beginner, practitioner, or deep-dive route in
 [Learning paths](docs/explanation/learning-paths.rst). The routes connect the

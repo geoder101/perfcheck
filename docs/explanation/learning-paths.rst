@@ -2,7 +2,7 @@ Learning paths
 ==============
 
 Choose a route, not a second set of chapters. Each route reuses the same
-explanations and ten numbered Marimo lessons. The CLI is the only supported
+explanations and eleven numbered Marimo lessons. The CLI is the only supported
 public interface; educational helpers and alternative methods aren't product
 features. See "Running the labs" below for local setup and per-lesson commands.
 
@@ -63,5 +63,5 @@ to feel its sliders and selectors with the code hidden, and use
 ``just notebook-script`` only to run the default controls without a browser,
 for example to verify a lesson runs clean on a headless machine. Download the
 `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_
-for all ten filenames and explicit commands.
+for all eleven filenames and explicit commands.
 Start there for control descriptions; the routes above don't add lessons.
