@@ -18,6 +18,7 @@ _LESSON_NAMES: Final = (
     "08-bootstrap-and-decisions.py",
     "09-plain-python-mechanics.py",
     "10-comparative-methods.py",
+    "11-comparison-internal-trace.py",
 )
 
 
@@ -74,7 +75,7 @@ def test_root_navigation_links_to_docs_and_curriculum() -> None:
     assert "[Marimo curriculum index](examples/README.md)" in readme
 
 
-def test_curriculum_links_exactly_ten_lessons_in_canonical_order() -> None:
+def test_curriculum_links_exactly_eleven_lessons_in_canonical_order() -> None:
     # Given: the public curriculum index and the independent ordered contract.
     source = _read(Path("examples/README.md"))
 
