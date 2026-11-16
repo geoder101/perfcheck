@@ -11,11 +11,14 @@ import pytest
 from examples import _comparison
 from examples._support import run_local_command
 
+from tests.examples_check import run_standalone_notebook
+
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
 
 _THRESHOLD: Final = 5.0
 _REPO_ROOT: Final = Path(__file__).resolve().parents[1]
+_LESSON_11: Final = _REPO_ROOT / "examples/11-comparison-internal-trace.py"
 
 
 @runtime_checkable
@@ -446,3 +449,80 @@ def test_comparison_demo_when_executed_as_a_script() -> None:
         "aggregate PASS+FAIL -> fail",
     ):
         assert receipt in first.stdout
+
+
+def test_internal_comparison_lesson_output_when_executed(
+    comparison: Comparison,
+) -> None:
+    # Given: the canonical lesson 11 path.
+    # When: two clean temporary workspaces execute the lesson end to end.
+    first = run_standalone_notebook(_LESSON_11)
+    second = run_standalone_notebook(_LESSON_11)
+
+    # Then: both runs exit zero with identical, receipt-rich output.
+    assert first.returncode == second.returncode == 0, first.stderr + second.stderr
+    assert first.stdout == second.stdout
+
+    # The fixed narrative sections appear in teaching order.
+    sections = ("Goal:", "Inputs:", "Run:", "Evidence:", "Takeaway:")
+    positions = tuple(first.stdout.index(section) for section in sections)
+    assert positions == tuple(sorted(positions))
+
+    # Every supported case prints its inputs and outputs.
+    for receipt in (
+        "reason=metric_disabled",
+        "METRIC_MISSING",
+        "METRIC_INELIGIBLE",
+        "insufficient_current_runs",
+        "reference_quantile=10.0",
+        "reference_effect=6.0",
+        "reference_anomaly=True",
+        "observed_effect=5.0",
+        "lower_decision_bound=5.0",
+        "status=pass",
+        "observed_effect=6.0",
+        "status=fail",
+        "aggregate PASS+FAIL -> fail",
+    ):
+        assert receipt in first.stdout
+
+    # The interactive laboratory recomputes the trace with the default controls.
+    _interactive_expected = (
+        "Interactive trace: direction=lower_is_worse; threshold=5; "
+        "current=5 x5; baseline x10; enabled=1; seed=42; "
+        "effective_alpha=0.05000; method=cohort_bootstrap; "
+        "observed_effect=5.000; lower_decision_bound=5.000000; "
+        "strict 5.000000 > 5.000 -> PASS"
+    )
+    assert _interactive_expected in first.stdout
+
+    # The varied-cohort lower bound matches the mirror's own computation.
+    _varied_policy = _policy(_comparison.Direction.LOWER_IS_WORSE)
+    _metric = _varied_policy.metrics[0]
+    _fp = _fingerprint(_varied_policy, _metric)
+    _current = _runs(_repeat(4.0, 5), start_day=1, fingerprint=_fp)
+    _outcome = comparison.evaluate_flow(
+        _varied_policy, _metric, _current, _baseline_cohort(_fp), seed=42
+    )
+    assert _outcome.status == _comparison.Status.FAIL
+    assert isinstance(_outcome.evidence, _comparison.CohortBootstrapResult)
+    _bound = f"lower_decision_bound={_outcome.evidence.lower_decision_bound}"
+    assert _bound in first.stdout
+
+    # The line-level reference map pairs each mirror function with its
+    # production file:line, and the explanation cross-links use blob/main URLs.
+    _source = _LESSON_11.read_text(encoding="utf-8")
+    for _func, _location in (
+        ("oriented", "src/perfcheck/bootstrap_sampling.py:76"),
+        ("bootstrap_cohort", "src/perfcheck/bootstrap_sampling.py:25"),
+        ("eligible_cohort", "src/perfcheck/regression_cohorts.py:21"),
+        ("select_comparison", "src/perfcheck/policy.py:80"),
+        ("reference_cohort", "src/perfcheck/bootstrap_reference.py:15"),
+        ("evaluate_flow", "src/perfcheck/regression_metrics.py:25"),
+        ("aggregate_status", "src/perfcheck/regression_aggregation.py:13"),
+    ):
+        assert f"`{_func}`" in _source
+        assert _location in _source
+    # The explanation cross-links are GitHub blob/main URLs to the .rst pages.
+    assert "https://github.com/geoder101/perfcheck/blob/main/" in _source
+    assert "docs/explanation/" in _source
