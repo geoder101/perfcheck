@@ -117,7 +117,7 @@ def _() -> None:
     """)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _() -> None:
     # Fixed receipt: every supported case's inputs and outputs via examples._comparison.
     _header = (
@@ -154,7 +154,7 @@ def _() -> None:
     """)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _() -> tuple[
     mo.ui.slider,
     mo.ui.slider,
@@ -195,7 +195,7 @@ def _() -> tuple[
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     baseline_count: mo.ui.slider,
     current_count: mo.ui.slider,
@@ -224,7 +224,7 @@ def _(
     return (cohort,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(
     cohort: CohortScenario,
     direction: mo.ui.switch,
