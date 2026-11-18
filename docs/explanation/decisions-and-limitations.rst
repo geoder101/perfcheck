@@ -141,7 +141,7 @@ minima nor an increased resample count establish nominal coverage.
 Fixture-backed boundary examples
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The downloadable `policy outcome fixtures <https://github.com/geoder101/perfcheck/blob/main/tests/test_policy_outcomes.py>`_ include
+The repository's `policy outcome fixtures <https://github.com/geoder101/perfcheck/blob/main/tests/test_policy_outcomes.py>`_ include
 ``test_evaluate_regression_uses_a_strict_directional_cohort_bound``.
 Each case has five constant current values and ten constant baseline values,
 so every resampled mean difference equals the oriented effect. With

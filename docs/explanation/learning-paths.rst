@@ -61,7 +61,7 @@ as the single required path argument. This is how you read a lesson, cell by
 cell. Revisit a control-driven lesson (05 through 10) with ``just notebook-run``
 to feel its sliders and selectors with the code hidden, and use
 ``just notebook-script`` only to run the default controls without a browser,
-for example to verify a lesson runs clean on a headless machine. Download the
+for example to verify a lesson runs clean on a headless machine. See the
 `curriculum index <https://github.com/geoder101/perfcheck/blob/main/examples/README.md>`_
 for all eleven filenames and explicit commands.
 Start there for control descriptions; the routes above don't add lessons.
