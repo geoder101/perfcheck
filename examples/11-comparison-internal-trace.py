@@ -48,18 +48,13 @@ with app.setup:
         current_count: int
         baseline_count: int
 
-    decisions_page = "https://geoder101.github.io/perfcheck/explanation/decisions-and-limitations.html"
-    eligibility_page = "https://geoder101.github.io/perfcheck/explanation/eligibility-and-comparability.html"
-    comparison_page = "https://geoder101.github.io/perfcheck/explanation/uncertainty-and-comparison.html"
-    inference_page = (
-        "https://geoder101.github.io/perfcheck/explanation/inference-and-power.html"
-    )
-    multiplicity_page = (
-        "https://geoder101.github.io/perfcheck/explanation/multiple-testing.html"
-    )
-    mechanics_page = (
-        "https://geoder101.github.io/perfcheck/explanation/plain-python-mechanics.html"
-    )
+    explanation_page_base = "https://geoder101.github.io/perfcheck/explanation/"
+    decisions_page = explanation_page_base + "decisions-and-limitations.html"
+    eligibility_page = explanation_page_base + "eligibility-and-comparability.html"
+    comparison_page = explanation_page_base + "uncertainty-and-comparison.html"
+    inference_page = explanation_page_base + "inference-and-power.html"
+    multiplicity_page = explanation_page_base + "multiple-testing.html"
+    mechanics_page = explanation_page_base + "plain-python-mechanics.html"
 
 
 @app.cell(hide_code=True)
