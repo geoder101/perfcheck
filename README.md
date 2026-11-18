@@ -391,35 +391,6 @@ change introduced it or whether it was already in the baseline, make scoped
 compatibility fixes, and add behavior regression tests when behavior changes; don't add
 version-only snapshots or suppress errors to make checks green.
 
-### One-time GitHub hosting setup (owner)
-
-The GitHub repository is published and the Furo/Sphinx documentation site is live
-at https://geoder101.github.io/perfcheck/. Pages publishes only the existing
-Furo/Sphinx documentation, including source-parsed AutoAPI for internal Python
-modules. A public documentation site does not make those modules a supported
-public Python API.
-
-1. Create the GitHub repository and push this checkout to its actual default branch.
-   Enable Actions and allow the workflows' pinned actions under repository or
-   organization policy; do not assume the branch is named `main`.
-2. Select **Settings > Pages > Build and deployment > Source > GitHub Actions**.
-3. Configure the **github-pages** environment's deployment branch restrictions to
-   the actual default branch only, with no tags. Required reviewers are optional
-   unless the owner requires them; the environment name alone is not protection.
-4. On the first default-branch push, verify Linux/macOS/Windows `just check`, the
-   independent coverage gate, and downloaded provenance/raw/HTML evidence. These
-   hosted results, especially Windows, still require a real run.
-5. Manually dispatch the mutation workflow and check its status and downloadable
-   seven-day artifacts. Dispatch Pages on the default branch and verify the
-   deployment output URL, landing page, nested API pages and CSS/assets.
-
-Pages allows only default-branch pushes/manual dispatches: PRs never deploy,
-and non-default branches/tags are denied before dependency installation/build.
-Authorization/build use read-only contents permissions; only the dependent deploy
-job gets Pages-write/OIDC permissions and consumes the same run's docs artifact.
-No PAT or branch-push publishing is needed. The URL comes from deployment output,
-not a hardcoded future repository address.
-
 ## Scope
 
 Internal implementation may change or be removed during breaking cleanup; this
