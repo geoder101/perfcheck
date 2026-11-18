@@ -326,46 +326,35 @@ penalty for survivors. It never publishes results on Pages.
 
 Upgrade the runtime dependencies and every `uv` group (`dev`, `docs`, `examples`,
 and the optional `mutation` group), and review the `uv_build` build backend
-separately. Keep the declared Python range `>=3.14,<3.15` unchanged. Upgrading the
-`uv` executable, npm tooling, OS packages, and container images are separate tasks.
+separately. Keep the declared Python range `>=3.14,<3.15` unchanged; the `uv`
+executable, npm tooling, OS packages, and container images are separate tasks.
 
-Prepare the checkout first. Work from the repository root with the contributor
-tools and documentation rendering prerequisites already available. Inspect the
-working tree, staged changes, and the `pyproject.toml`/`uv.lock` diffs, and
-preserve other work (including dependency edits already in progress); don't reset
-files or overwrite staging for a clean baseline. Record any known baseline check
-failures so you can tell them apart from upgrade-induced failures. Look up current
-stable candidates in official PyPI metadata or upstream release listings, then read
-their release notes and requirements; choose stable compatible releases, not
-prereleases or automatically the newest version. Check anything that affects CLI
-behavior, numerical results, validation, lint/type rules, documentation, and the
-executable lessons.
+Prepare the checkout, preserving other work, and record known baseline check failures
+to tell them apart from upgrade-induced ones. Review `pyproject.toml` and update pins
+in this order, choosing stable compatible candidates (from official PyPI metadata or
+upstream listings, not prereleases or the newest version), and checking anything
+affecting CLI behavior, numerical results, validation, lint/type rules, documentation,
+and the executable lessons:
 
-Refresh the complete lockfile within the declared constraints:
+1. Update exact pins and upper bounds in `[project].dependencies` and every
+   `[dependency-groups]` entry where a reviewed candidate requires it; retain justified
+   compatibility limits and the mutation group's Windows exclusion marker.
+2. Review `[build-system].requires` separately and update its `uv_build` constraint
+   when appropriate; isolated build requirements aren't necessarily in `uv.lock`.
+
+Refresh the lockfile within the declared constraints — a maintenance exception,
+because no Just recipe covers upgrades:
 
 ```bash
 uv lock --upgrade
 ```
 
-This direct `uv` command is a maintenance exception because no Just recipe covers
-upgrades. It reconsiders locked versions without bypassing pins, upper bounds, or
-compatibility rules, and resolution includes groups that aren't installed in the
-ordinary environment. Then review the `pyproject.toml` and `uv.lock` diff: direct
-and transitive changes, artifact hashes, package sources, group membership, and
-platform branches, keeping credentials out of persisted files and diagnostics. If
-a transitive dependency stays held back, investigate its parent's constraint and
-release notes rather than forcing an incompatible version.
-
-Review `pyproject.toml` and update pins in this order:
-
-1. Update exact pins and upper bounds in `[project].dependencies` and every
-   `[dependency-groups]` entry where a reviewed candidate requires it. Retain
-   justified compatibility limits and the mutation group's Windows exclusion marker.
-   Permissive lower bounds needn't rise just because the lockfile selects newer
-   versions; raising the minimum supported version is a separate decision.
-2. Review `[build-system].requires` separately and update its `uv_build` constraint
-   when appropriate. Isolated build requirements aren't necessarily in `uv.lock`; a
-   lockfile refresh alone doesn't upgrade or verify the backend.
+It reconsiders locked versions without bypassing pins, upper bounds, or compatibility
+rules, and resolution includes groups that aren't installed in the ordinary
+environment. Review the `pyproject.toml`/`uv.lock` diff for direct and transitive
+changes, artifact hashes, sources, and group membership, keep credentials out of
+persisted files and diagnostics, and investigate a held-back transitive dependency's
+parent constraint rather than forcing an incompatible version.
 
 Install the locked groups and check:
 
@@ -374,10 +363,9 @@ just sync
 ```
 
 This verifies the lockfile and installs the locked runtime plus `dev`/`docs`/`examples`
-groups, excluding optional mutation tooling. Don't treat successful resolution or
-installation as proof of compatibility. On a supported Unix platform, also check the
-optional group. Its `mutmut` requirement excludes Windows; don't claim native Windows
-mutation support:
+groups, excluding optional mutation tooling; don't treat resolution or installation as
+proof of compatibility. On a supported Unix platform, also check the optional group,
+whose `mutmut` requirement excludes Windows:
 
 ```bash
 uv sync --locked --group dev --group docs --group examples --group mutation
@@ -385,11 +373,9 @@ uv run --locked --no-sync python -c "from importlib.metadata import version; imp
 just sync
 ```
 
-The probe checks the installed version and import, not mutation outcomes. Review the
-configured options for compatibility; don't start `just mutation` merely to validate
-an upgrade. Leave existing `mutation/` evidence untouched, and always run the final
-`just sync` as a separate cleanup step (not chained behind a successful probe) to
-restore the ordinary environment, even if the optional install or probe fails.
+Leave existing `mutation/` evidence untouched, don't start `just mutation` merely to
+validate an upgrade, and always run the final `just sync` separately to restore the
+ordinary environment, even if the optional install or probe fails.
 
 Run the complete quality gate:
 
@@ -400,23 +386,10 @@ just check
 This runs lock verification, formatting, lint, strict type checking, tests,
 executable examples, strict documentation, and source/wheel builds; the final
 `just build` stage checks the separately declared build backend. Ordinary checks
-remain coverage-free and mutation-free. For each failure, decide whether the
-dependency change introduced it or whether it was already present in the baseline;
-neither is a pass. Make scoped compatibility fixes and add behavior regression tests
-when behavior changes; don't add version-only snapshots or suppress errors to make
-checks green. If `just check` stops early, later stages haven't passed; run
-`just examples-check`, `just docs-check`, and `just build` separately to diagnose,
-with rendering prerequisites already provisioned, and serialize builds that share
-output directories.
-
-Keep the intentional constraint edits, reviewed lockfile changes, and necessary
-compatibility fixes together for review. Summarize changed dependency areas,
-deliberate holds, checks run, and unresolved failures, reporting unrun platform or
-hosted checks as pending.
-
-For application behavior boundaries, see the
-[Reference](https://geoder101.github.io/perfcheck/reference/index.html) and
-[Decisions and limitations](https://geoder101.github.io/perfcheck/explanation/decisions-and-limitations.html) guides.
+remain coverage-free and mutation-free. Decide for each failure whether the dependency
+change introduced it or whether it was already in the baseline, make scoped
+compatibility fixes, and add behavior regression tests when behavior changes; don't add
+version-only snapshots or suppress errors to make checks green.
 
 ### One-time GitHub hosting setup (owner)
 
