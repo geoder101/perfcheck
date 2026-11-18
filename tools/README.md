@@ -12,7 +12,7 @@ environment; `just check` runs the standard gates. Neither `just check` nor
 `just test` runs coverage or mutation.
 
 For Python dependency maintenance, follow
-[Upgrade Python dependencies](https://geoder101.github.io/perfcheck/how-to/upgrade-dependencies.html), including
+[Upgrading dependencies](../README.md#upgrading-dependencies), including
 all uv groups, the separate build backend, and compatibility checks.
 
 ## Coverage and CI evidence

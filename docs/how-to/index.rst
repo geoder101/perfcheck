@@ -10,5 +10,4 @@ Use these guides when you already know the CLI or repository task you need to do
    prometheus-authentication
    summarize-evidence
    compare-cohorts
-   ci-regression-gate
-   upgrade-dependencies
+    ci-regression-gate
