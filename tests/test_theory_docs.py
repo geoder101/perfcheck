@@ -71,7 +71,10 @@ def test_root_navigation_links_to_docs_and_curriculum() -> None:
     # When: a developer looks for either learning path.
 
     # Then: the optional Furo site and Marimo curriculum have explicit entry points.
-    assert "[Project documentation](docs/index.rst)" in readme
+    assert (
+        "[Project documentation](https://geoder101.github.io/perfcheck/index.html)"
+        in readme
+    )
     assert "[Marimo curriculum index](examples/README.md)" in readme
 
 

@@ -89,14 +89,16 @@ def test_readme_links_project_first_docs_and_curriculum() -> None:
     # When: its Markdown destinations are resolved from the repository root.
     targets = _assert_local_links(source, _README_PATH.parent)
 
-    # Then: users reach the project landing page before the ten-lesson curriculum.
-    assert targets == (
-        "docs/index.rst",
-        "examples/README.md",
-        "docs/explanation/learning-paths.rst",
-        "docs/tutorials/performance-verification-case-study.rst",
-        "docs/how-to/prometheus-authentication.rst",
-    )
+    # Then: the project landing and docs pages publish to Pages, while the local
+    # curriculum index link stays local alongside them.
+    assert targets == ("examples/README.md",)
+    for published_page in (
+        "https://geoder101.github.io/perfcheck/index.html",
+        "https://geoder101.github.io/perfcheck/explanation/learning-paths.html",
+        "https://geoder101.github.io/perfcheck/tutorials/performance-verification-case-study.html",
+        "https://geoder101.github.io/perfcheck/how-to/prometheus-authentication.html",
+    ):
+        assert published_page in source
     assert "just docs-check" in source
     assert "just docs-preview" in source
     assert "optional" in source.lower()
@@ -128,7 +130,9 @@ def test_governance_maps_optional_documentation_without_a_public_python_api() ->
     assert {"docs/README.md", "examples/README.md"} <= set(paths)
     assert all((root / path).is_file() for path in paths)
     for section in ("tutorials", "how-to", "reference", "explanation"):
-        assert f"]({section}/index.rst)" in docs_guide
+        assert (
+            f"https://geoder101.github.io/perfcheck/{section}/index.html" in docs_guide
+        )
         assert (root / "docs" / section / "index.rst").is_file()
     assert "source-parsed AutoAPI" in docs_guide
     assert "without importing application modules" in docs_guide
@@ -218,15 +222,15 @@ def test_readme_explains_optional_mutation_and_safe_fresh_runs() -> None:
     )
 
 
-def test_readme_records_owner_hosting_prerequisites_without_live_claims() -> None:
-    # Given: workflows exist but the GitHub repository has not been created.
+def test_readme_records_hosted_pages_site_and_owner_setup() -> None:
+    # Given: the GitHub repository and its Pages docs site are published.
     root = _README_PATH.parent
     workflow = (root / ".github/workflows/pages.yml").read_text(encoding="utf-8")
 
     # When: the owner follows the one-time hosting checklist.
     source = " ".join(_README_PATH.read_text(encoding="utf-8").split())
 
-    # Then: environment protection and future hosted verification are explicit.
+    # Then: the hosted Pages URL is live and the owner-hosted checklist is documented.
     assert "github.event.repository.default_branch" in workflow
     assert all(
         claim in source
@@ -238,12 +242,10 @@ def test_readme_records_owner_hosting_prerequisites_without_live_claims() -> Non
             "no tags",
             "reviewers",
             "pinned actions",
-            "No PAT",
-            "not yet created",
             "Linux/macOS/Windows",
             "PRs",
             "non-default",
             "internal Python",
+            "geoder101.github.io/perfcheck",
         )
     )
-    assert "github.io" not in source

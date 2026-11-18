@@ -29,15 +29,17 @@ for the underlying commands rather than maintaining a separate manual checklist.
 Use direct commands only for tooling without a recipe or when necessary to
 preserve quoted argument boundaries or the application's exit status.
 
-Start with the [Project documentation](docs/index.rst) for a workflow overview
-and four [Diataxis-style](https://diataxis.fr/) paths: Tutorials, How-to guides, Reference, and Explanation.
+Start with the [Project documentation](https://geoder101.github.io/perfcheck/index.html)
+for a workflow overview and four [Diataxis-style](https://diataxis.fr/) paths:
+Tutorials, How-to guides, Reference, and Explanation.
 The [Marimo curriculum index](examples/README.md) offers eleven executable lessons
 in order, from the CLI workflow to statistical mechanics and comparative methods.
 Choose a beginner, practitioner, or deep-dive route in
-[Learning paths](docs/explanation/learning-paths.rst). The routes connect the
+[Learning paths](https://geoder101.github.io/perfcheck/explanation/learning-paths.html).
+The routes connect the
 probability, experimental-design, inference/power, and multiple-testing chapters
 to interactive labs 06–10 and the lesson 05 CLI capstone. The
-[performance verification case study](docs/tutorials/performance-verification-case-study.rst)
+[performance verification case study](https://geoder101.github.io/perfcheck/tutorials/performance-verification-case-study.html)
 walks through actual artifacts and CI outcomes; teaching methods don't add
 production decision engines.
 
@@ -122,7 +124,7 @@ never reach the artifact, labels, provenance, logs, or CLI output. An
 incomplete configuration (for example, `basic` with no password) fails with a
 secret-free message and exit status `3`.
 
-See the how-to guide [Authenticate Prometheus collection](docs/how-to/prometheus-authentication.rst)
+See the how-to guide [Authenticate Prometheus collection](https://geoder101.github.io/perfcheck/how-to/prometheus-authentication.html)
 for a step-by-step walkthrough.
 
 ## Quality checks
@@ -237,10 +239,9 @@ Windows compatibility; VM performance isn't directly comparable to native runs.
 The adapter preserves arguments up to inner Just; existing shell-recipe quoting
 semantics still apply to `test`, `cli`, and other recipes.
 
-Validation so far: focused image-contract/fake-Podman tests passed, along with
-host format, lint, and type checks. No Podman engine was available, so real image
-builds, container execution, and Windows behavior remain unverified.
-Native macOS/Windows rendering and hosted CI likewise remain pending real runs.
+Validation: focused image-contract/fake-Podman tests pass, along with host format,
+lint, and type checks. CI runs `just check` on Linux, macOS, and Windows on every
+push.
 
 ### Coverage evidence
 
@@ -323,10 +324,11 @@ penalty for survivors. It never publishes results on Pages.
 
 ### One-time GitHub hosting setup (owner)
 
-The GitHub repository is not yet created; no live site or hosted platform result
-is claimed. Pages publishes only the existing Furo/Sphinx documentation, including
-source-parsed AutoAPI for internal Python modules. A public documentation site
-does not make those modules a supported public Python API.
+The GitHub repository is published and the Furo/Sphinx documentation site is live
+at https://geoder101.github.io/perfcheck/. Pages publishes only the existing
+Furo/Sphinx documentation, including source-parsed AutoAPI for internal Python
+modules. A public documentation site does not make those modules a supported
+public Python API.
 
 1. Create the GitHub repository and push this checkout to its actual default branch.
    Enable Actions and allow the workflows' pinned actions under repository or

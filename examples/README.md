@@ -6,13 +6,13 @@ write any artifacts only to temporary workspaces.
 
 ## Choose a learning route
 
-The [learning paths](../docs/explanation/learning-paths.rst) reuse these eleven
+The [learning paths](https://geoder101.github.io/perfcheck/explanation/learning-paths.html) reuse these eleven
 lessons and the existing chapters rather than introducing another course:
 
 - **Beginner:** CLI lessons 01–04, probability lab 06, summaries lab 07, then
   lesson 05 to interpret verdicts and input errors.
 - **Practitioner:** experimental design and lab 07, the
-  [performance verification case study](../docs/tutorials/performance-verification-case-study.rst)
+  [performance verification case study](https://geoder101.github.io/perfcheck/tutorials/performance-verification-case-study.html)
   with capstone 05, then lab 08 and the inference and multiple-testing chapters.
 - **Deep dive:** probability/design labs 06–07, inference lab 08, mechanics
   lab 09, and power/multiplicity lab 10 with their linked explanations.
@@ -116,7 +116,7 @@ headless alternatives described above.
 - **Interactive controls:** vary fair flips, observed heads, repeated experiments,
   IID sample size, and the standard-normal interval. Compare point mass with an
   upper tail, density with area/CDF, and individual spread with mean spread.
-- **Explanation:** [Probability and distributions](../docs/explanation/probability-and-distributions.rst).
+- **Explanation:** [Probability and distributions](https://geoder101.github.io/perfcheck/explanation/probability-and-distributions.html).
 - **Prerequisite:** complete 05.
 - **CLI command explained:** the collect-to-compare evidence flow.
 - **Author:** `just notebook-edit examples/06-statistical-foundations.py`
@@ -129,7 +129,7 @@ headless alternatives described above.
 - **Interactive controls:** vary readings per run and independent runs, then
   balance treatment/control across time. Contrast naive and run-level uncertainty
   and confounded versus balanced schedules; eligibility alone doesn't establish IID.
-- **Explanation:** [Experimental design](../docs/explanation/experimental-design.rst).
+- **Explanation:** [Experimental design](https://geoder101.github.io/perfcheck/explanation/experimental-design.html).
 - **Prerequisite:** complete 06.
 - **CLI command explained:** `perfcheck summarize`.
 - **Author:** `just notebook-edit examples/07-summary-and-eligibility.py`
@@ -142,7 +142,7 @@ headless alternatives described above.
 - **Interactive controls:** change direction, current shift, practical threshold,
   enabled-metric count, and PCG64 seed. Separately vary known-sigma CI sample size,
   sigma, confidence, and repetitions to inspect achieved coverage, not a posterior.
-- **Explanation:** [Inference and power](../docs/explanation/inference-and-power.rst).
+- **Explanation:** [Inference and power](https://geoder101.github.io/perfcheck/explanation/inference-and-power.html).
 - **Prerequisite:** complete 07.
 - **CLI command explained:** `perfcheck compare`.
 - **Author:** `just notebook-edit examples/08-bootstrap-and-decisions.py`
@@ -158,7 +158,7 @@ headless alternatives described above.
 - **Prerequisite:** complete 08.
 - **CLI commands explained:** `perfcheck summarize` and `perfcheck compare`; no CLI invocation.
 - **Boundary:** educational `random.Random` draws are not production NumPy PCG64 evidence.
-- **Explanation:** [Plain-Python mechanics](../docs/explanation/plain-python-mechanics.rst).
+- **Explanation:** [Plain-Python mechanics](https://geoder101.github.io/perfcheck/explanation/plain-python-mechanics.html).
 - **Author:** `just notebook-edit examples/09-plain-python-mechanics.py`
 - **Consumer:** `just notebook-run examples/09-plain-python-mechanics.py`
 - **Script:** `just notebook-script examples/09-plain-python-mechanics.py`
@@ -170,11 +170,11 @@ headless alternatives described above.
   size, known sigma, and alpha; then family size, true-null count, alpha,
   repetitions/seed, and none/Bonferroni/Holm/BH adjustment. Inspect FWER and FDP
   separately, with simulation uncertainty rather than a guarantee for one family.
-- **Multiplicity explanation:** [Multiple testing](../docs/explanation/multiple-testing.rst).
+- **Multiplicity explanation:** [Multiple testing](https://geoder101.github.io/perfcheck/explanation/multiple-testing.html).
 - **Prerequisite:** complete 09.
 - **CLI command explained:** `perfcheck compare`; no CLI invocation or new policy.
 - **Boundary:** each method does not determine perfcheck PASS/FAIL.
-- **Explanation:** [Comparative methods](../docs/explanation/comparative-methods.rst).
+- **Explanation:** [Comparative methods](https://geoder101.github.io/perfcheck/explanation/comparative-methods.html).
 - **Author:** `just notebook-edit examples/10-comparative-methods.py`
 - **Consumer:** `just notebook-run examples/10-comparative-methods.py`
 - **Script:** `just notebook-script examples/10-comparative-methods.py`
@@ -183,7 +183,7 @@ headless alternatives described above.
 
 - **Goal:** trace the internal comparison flow end to end with a faithful, transparent mirror of the collect → summarize → compare decision core.
 - **Interactive controls:** change direction, practical threshold, current value, current and baseline run counts, enabled-metric count, and PCG64 seed; recompute the trace live.
-- **Explanation:** [Comparative methods](../docs/explanation/comparative-methods.rst).
+- **Explanation:** [Comparative methods](https://geoder101.github.io/perfcheck/explanation/comparative-methods.html).
 - **Prerequisite:** complete 10.
 - **CLI commands explained:** none; no CLI invocation — the lesson mirrors the comparison core directly instead of calling `perfcheck`.
 - **Author:** `just notebook-edit examples/11-comparison-internal-trace.py`

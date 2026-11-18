@@ -14,13 +14,13 @@ The site follows four [Diataxis-style](https://diataxis.fr/) paths:
 
 | Index | Read it for |
 | --- | --- |
-| [Tutorials](tutorials/index.rst) | A guided first comparison and an artifact-to-CI case study. |
-| [How-to guides](how-to/index.rst) | Task-focused collection, summarization, comparison, and CI steps. |
-| [Reference](reference/index.rst) | CLI details, policy and artifact boundaries, glossary, and internal API navigation. |
-| [Explanation](explanation/index.rst) | Statistical foundations, evidence interpretation, policy, and limitations. |
+| [Tutorials](https://geoder101.github.io/perfcheck/tutorials/index.html) | A guided first comparison and an artifact-to-CI case study. |
+| [How-to guides](https://geoder101.github.io/perfcheck/how-to/index.html) | Task-focused collection, summarization, comparison, and CI steps. |
+| [Reference](https://geoder101.github.io/perfcheck/reference/index.html) | CLI details, policy and artifact boundaries, glossary, and internal API navigation. |
+| [Explanation](https://geoder101.github.io/perfcheck/explanation/index.html) | Statistical foundations, evidence interpretation, policy, and limitations. |
 
 Choose a beginner, practitioner, or deep-dive route in
-[Learning paths](explanation/learning-paths.rst). For executable lessons, use
+[Learning paths](https://geoder101.github.io/perfcheck/explanation/learning-paths.html). For executable lessons, use
 the [Marimo curriculum index](../examples/README.md), which owns lesson order
 and lesson setup instructions. Teaching models don't add production CLI methods.
 

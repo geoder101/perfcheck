@@ -42,7 +42,7 @@ This guide is a reading map, not a Python API compatibility promise. See the
 
 ## Suggested reading route
 
-1. Start with the [workflow documentation](../docs/index.rst) or the
+1. Start with the [workflow documentation](https://geoder101.github.io/perfcheck/index.html) or the
    [executable lessons](../examples/README.md) to see what the CLI produces.
 2. Follow one command from `cli.py` into `cli_services.py`. For `collect`,
    continue into `collection_service.py` and the Prometheus transport.

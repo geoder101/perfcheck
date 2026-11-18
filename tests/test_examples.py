@@ -128,7 +128,10 @@ def test_learning_routes_when_entering_docs_are_discoverable() -> None:
     routes = (_ROOT / "docs/explanation/learning-paths.rst").read_text(encoding="utf-8")
     # Then: both entry points lead to beginner, practitioner and deep-dive routes.
     assert ":doc:`explanation/learning-paths`" in landing
-    assert "(docs/explanation/learning-paths.rst)" in readme
+    assert (
+        "(https://geoder101.github.io/perfcheck/explanation/learning-paths.html)"
+        in readme
+    )
     assert all(name in routes for name in ("Beginner", "Practitioner", "Deep dive"))
     assert f"<{_BLOB_PREFIX}examples/README.md>" in routes
 

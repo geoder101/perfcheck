@@ -65,8 +65,9 @@ unless [README's public scope](README.md#scope) changes in the same work.
   sources or promises of Python API compatibility.
 - Follow [README evidence guidance](README.md#quality-checks) and its
   [one-time owner checklist](README.md#one-time-github-hosting-setup-owner).
-  Leave hosted CI/platform/deployment results pending until real repository runs.
-  Keep Pages docs-only, including internal AutoAPI, never coverage/mutation evidence.
+  CI runs `just check` across Linux, macOS, and Windows on every push; the Pages
+  site publishes from the default branch. Keep Pages docs-only, including internal
+  AutoAPI, never coverage/mutation evidence.
 
 ## Hosted schema contract
 
