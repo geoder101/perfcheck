@@ -116,6 +116,17 @@ otherwise perfcheck attempts cohort bootstrap. An explicit mode still has to
 meet its own count requirements. Switching modes cannot repair incomparable
 artifacts. See :doc:`eligibility-and-comparability` for the upstream gates.
 
+Cohort bootstrap is the only path that can yield ``PASS`` or ``FAIL``. It needs
+at least ``min_current_runs`` (default ``5``) current inputs and at least
+``min_baseline_runs`` (default ``10``) baseline inputs. Baseline reference needs
+exactly one current input and at least ``min_baseline_reference_runs`` (default
+``10``), and it is advisory: its verdict stays ``INCONCLUSIVE`` even when it
+records an anomaly. These counts are policy fields (``min_current_runs``,
+``min_baseline_runs``, ``min_baseline_reference_runs``) that authors can raise or
+lower, and ``comparison_mode`` forces a method; no command flag overrides them.
+A small-cohort advisory is attached when the current cohort has fewer than five
+runs or the baseline fewer than ten, regardless of method.
+
 The allocation is :math:`\alpha_{\mathrm{effective}} =
 \alpha_{\mathrm{nominal}} / m`, where :math:`m` counts every enabled policy
 metric, not just metrics with usable evidence. For example,

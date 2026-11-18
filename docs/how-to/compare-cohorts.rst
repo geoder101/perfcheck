@@ -10,10 +10,38 @@ Markdown, or both report formats.
 Prerequisite
 ------------
 
-Have a policy, at least one current input, at least one baseline input, and at
+The command itself performs one input check: you must pass at least one current
+path and at least one baseline path to ``--current`` and ``--baseline``, plus at
 least one report destination (distinct paths when requesting both formats).
-Inputs can be verified summaries or raw-run
-convenience inputs for the same policy.
+Those counts are not the eligibility minimums; whether a method is selected from
+them depends on the comparison method, described below.
+
+Inputs can be verified summaries or raw-run convenience inputs for the same
+policy.
+
+Cohort size and comparison method
+---------------------------------
+
+Passing one current path and one baseline path is the only input check the
+command performs. Whether those inputs select a usable method depends on the
+policy ``comparison_mode`` and, in ``auto`` mode, on the cohort sizes:
+
+* **Cohort bootstrap** (``cohort_bootstrap``, or ``auto`` with more than one
+  current run) is the only path that can yield ``PASS`` or ``FAIL``. It needs
+  at least ``min_current_runs`` (default ``5``) current inputs and at least
+  ``min_baseline_runs`` (default ``10``) baseline inputs.
+* **Baseline reference** (``baseline_reference``, or ``auto`` with exactly one
+  current run) is advisory. It needs exactly one current input and at least
+  ``min_baseline_reference_runs`` (default ``10``) baseline inputs, and it
+  always returns ``INCONCLUSIVE`` even when it records an anomaly.
+
+These counts are policy fields, not command flags. Set ``min_current_runs``,
+``min_baseline_runs``, or ``min_baseline_reference_runs`` in the policy to move
+a threshold, and set ``comparison_mode`` to force a method; an explicit mode
+still has to meet its own count. Shortfalls report ``INCONCLUSIVE`` with a
+retained reason instead of failing the command. See
+:doc:`../explanation/decisions-and-limitations` for method selection and
+:doc:`../explanation/eligibility-and-comparability` for the upstream gates.
 
 Run these commands from the source-checkout root after ``just sync``.
 For an installed application, use ``perfcheck`` directly instead of ``just cli``.

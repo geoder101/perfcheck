@@ -82,8 +82,11 @@ Cohort bootstrap evidence
 --------------------------
 
 The cohort-bootstrap method requires at least the policy's minimum current and
-baseline run counts. In ``auto`` mode it is selected when there is more than
-one current run. Each bootstrap replicate samples, with replacement, as many
+baseline run counts: ``min_current_runs`` (default ``5``) current inputs and
+``min_baseline_runs`` (default ``10``) baseline inputs. Both are policy fields
+that authors can raise or lower, and ``comparison_mode`` can force the method;
+no command flag overrides them. In ``auto`` mode it is selected when there is
+more than one current run. Each bootstrap replicate samples, with replacement, as many
 oriented values as appear in each original cohort. It calculates
 
 .. math::

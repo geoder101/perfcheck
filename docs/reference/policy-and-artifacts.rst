@@ -17,6 +17,19 @@ strips it before validation, so it never blocks validation and never affects
 ``$schema`` verbatim, and ``policy check`` WARNS (without changing the exit
 status) when the pointer references an unknown or older schema version.
 
+Cohort minimums and comparison mode
+-----------------------------------
+
+These policy fields select the comparison method and set the eligible cohort
+sizes it requires. ``comparison_mode`` chooses the method and defaults to
+``auto``, which selects baseline reference when exactly one current run is
+supplied and cohort bootstrap otherwise. ``min_current_runs`` (default ``5``),
+``min_baseline_runs`` (default ``10``), and ``min_baseline_reference_runs``
+(default ``10``) are the minimum eligible runs for the bootstrap and reference
+paths. All four are policy-only: they are read from the policy JSON, are not
+configurable through a compare command flag, and an explicit method still has to
+meet its own count. Shortfalls report ``INCONCLUSIVE`` with a retained reason.
+
 Raw-run artifact
 ----------------
 
