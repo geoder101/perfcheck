@@ -16,7 +16,7 @@ paths.
 
 For source-checkout use, run from the checkout root after ``just sync``.
 For an installed application, use ``perfcheck`` directly instead of
-``uv run perfcheck``.
+``uv run perfcheck``. To install the tool once from the checkout root, run ``just install``. The root `README.md <https://github.com/geoder101/perfcheck/blob/main/README.md#install>`_ documents setup and prerequisites.
 
 Steps
 -----

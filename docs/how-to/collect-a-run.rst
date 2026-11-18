@@ -15,6 +15,7 @@ Prometheus base URL if the suite policy needs an override.
 
 Run these commands from the source-checkout root after ``just sync``.
 For an installed application, use ``perfcheck`` directly instead of ``just cli``.
+To install the tool once from the checkout root, run ``just install``. The root `README.md <https://github.com/geoder101/perfcheck/blob/main/README.md#install>`_ documents setup and prerequisites.
 
 Steps
 -----
