@@ -45,7 +45,7 @@ The Furo documentation site is optional; it is not needed to run the CLI.
 Build it or preview it locally from the repository root:
 
 ```bash
-just docs-tools         # explicit native provisioning; requires Node 24.18.0 and npm
+just docs-tools          # explicit native provisioning; requires Node 24.18.0 and npm
 just docs-check
 just docs-preview        # fresh build, then serve at http://localhost:8000
 just docs-preview 8765   # optional port; stop with Ctrl-C
@@ -107,12 +107,12 @@ just cli compare --help
 the flag with the matching environment variable as fallback and a flag winning
 over its env var. No policy is involved.
 
-| Flag | Purpose |
-| --- | --- |
-| `--prometheus-auth-scheme` | Scheme: `none`, `bearer`, or `basic`. The CLI rejects any other value. |
-| `--prometheus-bearer-token` | Bearer token, matched by `PERFCHECK_PROMETHEUS_BEARER_TOKEN`. |
-| `--prometheus-auth-basic-user` | Basic username, matched by `PERFCHECK_PROMETHEUS_BASIC_USERNAME`. |
-| `--prometheus-auth-basic-password` | Basic password, matched by `PERFCHECK_PROMETHEUS_BASIC_PASSWORD`. |
+| Flag                               | Purpose                                                                |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| `--prometheus-auth-scheme`         | Scheme: `none`, `bearer`, or `basic`. The CLI rejects any other value. |
+| `--prometheus-bearer-token`        | Bearer token, matched by `PERFCHECK_PROMETHEUS_BEARER_TOKEN`.          |
+| `--prometheus-auth-basic-user`     | Basic username, matched by `PERFCHECK_PROMETHEUS_BASIC_USERNAME`.      |
+| `--prometheus-auth-basic-password` | Basic password, matched by `PERFCHECK_PROMETHEUS_BASIC_PASSWORD`.      |
 
 `none` sends no `Authorization` header, `bearer` sends `Authorization: Bearer
 <token>`, and `basic` sends `Authorization: Basic <base64(user:pass)>`. Setting
@@ -211,10 +211,10 @@ the Podman machine still needs verification. Ordinary `run` publishes no ports.
 
 The three optional overrides are:
 
-| Variable | Default / purpose |
-| --- | --- |
-| `PERFCHECK_CONTAINER_IMAGE` | `localhost/perfcheck-dev:py314-uv0129-just1580`, used by both build and run |
-| `PERFCHECK_CONTAINER_SOURCE` | Native Linux checkout path; otherwise an engine-visible absolute Linux path, without colons or backslashes |
+| Variable                           | Default / purpose                                                                                                             |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `PERFCHECK_CONTAINER_IMAGE`        | `localhost/perfcheck-dev:py314-uv0129-just1580`, used by both build and run                                                   |
+| `PERFCHECK_CONTAINER_SOURCE`       | Native Linux checkout path; otherwise an engine-visible absolute Linux path, without colons or backslashes                    |
 | `PERFCHECK_CONTAINER_STATE_VOLUME` | `perfcheck-dev-<hash>-py314-v1`, a named volume; `<hash>` is the first 12 hex characters of SHA-256 of the host checkout path |
 
 The volume stores `/container-state/venv` and `/container-state/uv-cache`, isolated

@@ -49,28 +49,28 @@ with app.setup:
         baseline_count: int
 
     decisions_page = (
-        "https://github.com/geoder101/perfcheck/blob/main/"
-        "docs/explanation/decisions-and-limitations.rst"
+        "https://geoder101.github.io/perfcheck/"
+        "explanation/decisions-and-limitations.html"
     )
     eligibility_page = (
-        "https://github.com/geoder101/perfcheck/blob/main/"
-        "docs/explanation/eligibility-and-comparability.rst"
+        "https://geoder101.github.io/perfcheck/"
+        "explanation/eligibility-and-comparability.html"
     )
     comparison_page = (
-        "https://github.com/geoder101/perfcheck/blob/main/"
-        "docs/explanation/uncertainty-and-comparison.rst"
+        "https://geoder101.github.io/perfcheck/"
+        "explanation/uncertainty-and-comparison.html"
     )
     inference_page = (
-        "https://github.com/geoder101/perfcheck/blob/main/"
-        "docs/explanation/inference-and-power.rst"
+        "https://geoder101.github.io/perfcheck/"
+        "explanation/inference-and-power.html"
     )
     multiplicity_page = (
-        "https://github.com/geoder101/perfcheck/blob/main/"
-        "docs/explanation/multiple-testing.rst"
+        "https://geoder101.github.io/perfcheck/"
+        "explanation/multiple-testing.html"
     )
     mechanics_page = (
-        "https://github.com/geoder101/perfcheck/blob/main/"
-        "docs/explanation/plain-python-mechanics.rst"
+        "https://geoder101.github.io/perfcheck/"
+        "explanation/plain-python-mechanics.html"
     )
 
 

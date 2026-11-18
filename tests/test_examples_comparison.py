@@ -523,6 +523,7 @@ def test_internal_comparison_lesson_output_when_executed(
     ):
         assert f"`{_func}`" in _source
         assert _location in _source
-    # The explanation cross-links are GitHub blob/main URLs to the .rst pages.
-    assert "https://github.com/geoder101/perfcheck/blob/main/" in _source
-    assert "docs/explanation/" in _source
+    # The explanation cross-links are published-docs URLs to the built .html pages.
+    assert "https://geoder101.github.io/perfcheck/" in _source
+    assert "explanation/" in _source
+    assert ".html" in _source
