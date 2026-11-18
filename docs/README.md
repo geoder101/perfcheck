@@ -10,7 +10,7 @@ and artifact schemas aren't compatibility promises. See the
 
 ## Find the right documentation
 
-The site follows four Diataxis paths:
+The site follows four [Diataxis-style](https://diataxis.fr/) paths:
 
 | Index | Read it for |
 | --- | --- |
