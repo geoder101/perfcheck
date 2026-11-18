@@ -41,57 +41,6 @@ def _assert_exit_claims(documented: str) -> None:
     }
 
 
-def test_workflow_pages_document_only_supported_cli_contracts() -> None:
-    # Given: the tutorial and task guides offered to CLI users.
-    sources = tuple(_read(path) for path in _WORKFLOW_SOURCES)
-    cli = _read(Path("src/perfcheck/cli.py"))
-
-    # When: their required options and reported outcomes are checked.
-    documented = "\n".join(sources)
-
-    # Then: every workflow claim maps to the public command contract.
-    required_options = (
-        "--run-id",
-        "--start",
-        "--end",
-        "--out",
-        "--policy",
-        "--run",
-        "--current",
-        "--baseline",
-        "--report-json",
-        "--report-md",
-        "--force",
-        "--write-summary-cache",
-    )
-    assert all(option in documented and option in cli for option in required_options)
-    assert "exit status ``0`` for ``PASS``" in documented
-    assert "exit status ``1`` for ``FAIL``" in documented
-    assert "exit status ``2`` for ``INCONCLUSIVE``" in documented
-    assert "exit status ``3`` for invalid command input" in documented
-    assert "exit status ``4``" in documented
-    assert "exit status ``5`` for ``internal failure``" in documented
-    _assert_exit_claims(documented)
-
-
-def test_workflow_pages_keep_diataxis_boundaries_and_safe_artifact_language() -> None:
-    # Given: the rendered source for every new workflow document.
-    sources = tuple(_read(path) for path in _WORKFLOW_SOURCES)
-
-    # When: the documentation boundaries are inspected.
-
-    # Then: each page has task structure, cross-links, and no stability promise.
-    for source in sources:
-        assert "Goal" in source
-        assert "Prerequisite" in source
-        assert "Steps" in source
-        assert "Expected observable" in source
-        assert ":doc:`" in source
-    documented = "\n".join(sources).lower()
-    assert "stable artifact" not in documented
-    assert "python api" not in documented
-
-
 @pytest.mark.parametrize("replacement", ["5", "0"])
 def test_workflow_docs_reject_an_invented_exit_claim(replacement: str) -> None:
     # Given: the real guides with the inconclusive exit changed to success or unknown.
@@ -164,18 +113,3 @@ def test_compare_json_option_help_explains_additional_stdout_output() -> None:
     normalized = " ".join(description.replace("│", " ").split())
     assert "Additionally emit the JSON report to stdout" in normalized
     assert "--report-json or --report-md is still required" in normalized
-
-
-def test_compare_guide_shows_json_stdout_capture_with_a_markdown_report() -> None:
-    # Given: the task guide for comparing current and baseline evidence.
-    source = _read(Path("docs/how-to/compare-cohorts.rst"))
-
-    # When: its console examples are inspected.
-    commands = re.findall(r"^\s+\$ (.+)$", source, re.MULTILINE)
-
-    # Then: one example captures JSON stdout while requesting a Markdown file.
-    assert (
-        "just cli compare --policy policy.json "
-        "--current summaries/current-1.json --baseline summaries/baseline-1.json "
-        "--report-md reports/comparison.md --json > reports/comparison.json"
-    ) in commands

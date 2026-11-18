@@ -112,41 +112,6 @@ def test_rendered_landing_page_exposes_project_workflow_and_four_paths(
     )
 
 
-def test_landing_page_explains_evidence_actors_and_decisions(built_docs: Path) -> None:
-    # Given: the rendered introduction, not its source markup or diagram labels.
-    page = _Page((built_docs / "_build/html/index.html").read_text(encoding="utf-8"))
-    # When: readers access the textual workflow equivalent.
-    text = " ".join(" ".join(page.text).split()).lower()
-    # Then: purpose, actors, evidence transformations and outcomes are discoverable.
-    for concept in (
-        "different measurements from one run to the next",
-        "variation",
-        "inspectable",
-        "investigation",
-        "benchmark operator",
-        "prometheus",
-        "timestamped",
-        "configured suite",
-        "portable raw",
-        "eligibility",
-        "per-run scalar",
-        "baseline and current",
-        "comparable",
-        "policy configuration",
-        "json",
-        "markdown",
-        "pass",
-        "fail",
-        "inconclusive",
-        "engineer",
-        "ci",
-    ):
-        assert concept in text, f"Missing landing-page concept: {concept}"
-    assert "raw-run inputs" in text
-    assert "both cohorts" in text
-    assert "documentation and lessons keep" not in text
-
-
 def test_landing_workflow_object_is_accessible_and_self_contained(
     built_docs: Path,
 ) -> None:

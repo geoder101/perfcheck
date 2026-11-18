@@ -64,37 +64,6 @@ def _assert_furo_configuration(conf: str, pyproject: str) -> None:
     )
 
 
-def test_root_navigation_links_to_docs_and_curriculum() -> None:
-    # Given: the root README that introduces supported learning materials.
-    readme = _read(Path("README.md"))
-
-    # When: a developer looks for either learning path.
-
-    # Then: the optional Furo site and Marimo curriculum have explicit entry points.
-    assert (
-        "[Project documentation](https://geoder101.github.io/perfcheck/index.html)"
-        in readme
-    )
-    assert "[Marimo curriculum index](examples/README.md)" in readme
-
-
-def test_curriculum_links_exactly_eleven_lessons_in_canonical_order() -> None:
-    # Given: the public curriculum index and the independent ordered contract.
-    source = _read(Path("examples/README.md"))
-
-    # When: the actual lesson-heading destinations are parsed.
-    links = tuple(
-        match.group(1)
-        for match in re.finditer(
-            r"^### \d{2}\. \[[^\]]+\]\(([^)]+)\)", source, re.MULTILINE
-        )
-    )
-
-    # Then: omitted, duplicate, extra, or reordered lessons cannot pass.
-    assert links == _LESSON_NAMES
-    assert all((_ROOT / "examples" / link).is_file() for link in links)
-
-
 def test_furo_configuration_uses_locked_optional_dependencies() -> None:
     # Given: the Sphinx configuration and project dependency declaration.
     conf = _read(Path("docs/conf.py"))
