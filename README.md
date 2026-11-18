@@ -433,3 +433,7 @@ hosted, versioned public contract for the policy file, not a Python-API
 compatibility promise. It is pinned to a single major version and served raw
 from the default branch; versioned schema files are immutable and are never
 overwritten in place.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
