@@ -127,6 +127,14 @@ lower, and ``comparison_mode`` forces a method; no command flag overrides them.
 A small-cohort advisory is attached when the current cohort has fewer than five
 runs or the baseline fewer than ten, regardless of method.
 
+To watch that selection drive a verdict, `Lesson 11
+<https://github.com/geoder101/perfcheck/blob/main/examples/11-comparison-internal-trace.py>`_
+traces the collect, summarize, and compare decision core end to end. It is a
+teaching mirror rather than a CLI exercise: its controls vary the practical
+threshold, current value, current and baseline run counts, enabled-metric count,
+and PCG64 seed, and recompute the trace live. It assumes lesson 10 and shows how
+those run counts move a cohort between bootstrap, reference, and INCONCLUSIVE.
+
 The allocation is :math:`\alpha_{\mathrm{effective}} =
 \alpha_{\mathrm{nominal}} / m`, where :math:`m` counts every enabled policy
 metric, not just metrics with usable evidence. For example,

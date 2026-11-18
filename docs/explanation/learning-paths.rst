@@ -45,8 +45,13 @@ Deep dive: examine models and calculations
 #. Read :doc:`plain-python-mechanics` with lab 09 to inspect quantile
    interpolation and why orientation happens before sorting.
 #. Read :doc:`multiple-testing` and :doc:`comparative-methods` with lab 10.
-   Explore null calibration, power, and none/Bonferroni/Holm/BH families while
-   keeping those teaching procedures separate from perfcheck verdicts.
+    Explore null calibration, power, and none/Bonferroni/Holm/BH families while
+    keeping those teaching procedures separate from perfcheck verdicts.
+#. Finish with lab 11, which traces the ``collect`` -> ``summarize`` ->
+    ``compare`` decision core end to end. It assumes lab 10, invokes no CLI, and
+    mirrors the core directly: its controls vary the practical threshold, current
+    value, current and baseline run counts, enabled-metric count, and PCG64 seed,
+    then recompute the trace live.
 
 Running the labs
 ----------------

@@ -31,7 +31,7 @@ into CI, these guides and runnable examples will help you get started.
 
 .. note::
 
-   This documentation is evolving. Some topics are still being refined.
+   This documentation is evolving. Some topics may need refinement.
 
 Where to start
 --------------
