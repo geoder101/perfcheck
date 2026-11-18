@@ -10,12 +10,12 @@ See the [project README](../README.md) for the supported workflow and scope.
 The [justfile](../justfile) owns the canonical commands:
 
 ```bash
-just sync                              # install the ordinary development groups
-just test                              # standard test selection
-just test -k cli                       # select matching test names/modules
+just sync                               # install the ordinary development groups
+just test                               # standard test selection
+just test -k cli                        # select matching test names/modules
 just test tests/test_cli_compare.py     # select one module
-just test tests/e2e/test_v1_workflow.py  # select the complete CLI scenarios
-just examples-check                    # validate the executable curriculum
+just test tests/e2e/test_v1_workflow.py # select the complete CLI scenarios
+just examples-check                     # validate the executable curriculum
 ```
 
 `just test` forwards pytest arguments and excludes only

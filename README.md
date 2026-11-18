@@ -155,9 +155,9 @@ just -f podman.just run sync
 just -f podman.just run check
 just -f podman.just run test tests/test_cli_compare.py -q
 just -f podman.just run cli compare --help
-just -f podman.just                 # default: list the container's project recipes
-just -f podman.just preview         # fresh docs build, then preview on port 8000
-just -f podman.just preview 8765     # optional host port; stop with Ctrl-C
+just -f podman.just              # default: list the container's project recipes
+just -f podman.just preview      # fresh docs build, then preview on port 8000
+just -f podman.just preview 8765 # optional host port; stop with Ctrl-C
 ```
 
 Image build and initial sync need network access. A warm cache doesn't guarantee
@@ -248,7 +248,7 @@ Coverage is opt-in:
 
 ```bash
 just coverage
-just coverage tests/test_cli_compare.py   # optional pytest selection/arguments
+just coverage tests/test_cli_compare.py # optional pytest selection/arguments
 just coverage-check                     # fixed fresh full-suite 99% combined gate
 ```
 
