@@ -1,4 +1,6 @@
 {
   "headless": true,
-  "args": ["--no-sandbox"]
+  "args": [
+    "--no-sandbox"
+  ]
 }

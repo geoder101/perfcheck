@@ -12,8 +12,8 @@ unless [README's public scope](README.md#scope) changes in the same work.
 - [Tests](tests/README.md): behavior coverage, fixtures, and test selection.
 - [Tools](tools/README.md): repository helpers and evidence handling.
 - [Docs](docs/README.md): Diataxis navigation, generated API, and rendering setup.
-- [Workflows](.github/workflows/README.md): CI, evidence retention, and Pages.
 - [Examples](examples/README.md): ordered executable lessons and lesson setup.
+- [Workflows](.github/workflows/README.md): CI, evidence retention, and Pages.
 
 ## Change Boundaries
 
@@ -52,6 +52,19 @@ unless [README's public scope](README.md#scope) changes in the same work.
 - Keep `just mutation` an optional Unix-only aggregation pilot: dedicated
   dependency group, one worker, 600-second child budget; refuse nonempty `mutation/`.
   Archive retained evidence outside the checkout before rerunning; then `just sync`.
+
+## Committing
+
+- **Commit when a logical deliverable is ready.** A commit is a self-contained
+  unit that builds and passes `just check`. When such a deliverable is complete —
+  a finished fix with its tests, a finished feature, a piece of tooling — commit
+  it rather than letting it pile up as uncommitted work. Split a change along its
+  natural seams (a code fix and the test harness that proves it are two commits);
+  never commit half-finished or non-green work.
+- **Conventional Commits style.** `<type>(<scope>): <imperative summary>` with
+  `feat`/`fix`/`test`/`docs`/`refactor`/`build`/... and a scope naming the affected
+  area (e.g. `policy`, `compare`, `docs`, `examples`). Keep the subject imperative and tight; add a
+  short body only when the *why* is non-obvious. Never commit secrets.
 
 ## Documentation and Hosted Evidence
 
