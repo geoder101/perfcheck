@@ -240,8 +240,8 @@ The adapter preserves arguments up to inner Just; existing shell-recipe quoting
 semantics still apply to `test`, `cli`, and other recipes.
 
 Validation: focused image-contract/fake-Podman tests pass, along with host format,
-lint, and type checks. CI runs `just check` on Linux, macOS, and Windows on every
-push.
+lint, and type checks. CI runs the fast Linux gate on every push and the full check
+once a merge reaches the default branch.
 
 ### Coverage evidence
 

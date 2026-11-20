@@ -121,6 +121,10 @@ schema-check:
 # Run the standard local verification suite.
 check: lock-check schema-check format-check lint typecheck test examples-check docs-check build
 
+# Fast gate for the pull-request path: everything in check except the docs render.
+# Excludes docs-check (Mermaid/Chrome/LaTeX), which runs separately after merge.
+fast-check: lock-check schema-check format-check lint typecheck test examples-check build
+
 # Run the optional Unix-only aggregation mutation pilot in isolation.
 mutation:
   uv sync --locked --group dev --group docs --group examples --group mutation

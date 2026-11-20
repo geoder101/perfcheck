@@ -6,17 +6,23 @@ Actions currently use exact release tags, not full commit-SHA pins or floating
 major tags. Source checkouts still use the event SHA, not a moving branch name,
 and disable persisted checkout credentials.
 
-## CI: standard checks and coverage
+## CI: fast gate, merge-time check, and coverage
 
-[ci.yml](ci.yml) runs on pushes and pull requests with read-only contents access.
+[ci.yml](ci.yml) runs on pushes, pull requests, a nightly schedule, and manual
+dispatch, always with read-only contents access. It splits verification into three
+Linux jobs, cheapest first.
 
-- The Python 3.14 matrix runs `just check` on Linux, macOS, and Windows.
-  It provisions the locked Python groups and documentation rendering tools first.
-- `just check` covers lock verification, schema drift check, formatting, lint,
-  types, tests, executable examples, strict documentation builds, and
-  distribution builds. It's coverage-free and mutation-free.
-- A separate Linux job runs `just coverage-check`, the fresh full-suite
-  99% combined statement-and-branch gate. It doesn't depend on the matrix job.
+- The fast gate runs `just fast-check` on every push and pull request. It exercises
+  lock verification, schema drift check, formatting, lint, types, tests, and
+  executable examples — everything except the docs render. It's the cheap, always-on
+  gate and is coverage-free and mutation-free.
+- After something reaches the default branch (a merge, a direct push, or a manual
+  dispatch from the default branch), the full-check job runs `just check`, adding
+  strict documentation builds and distribution builds on top of the fast gate. On
+  pull requests and schedules this job is skipped.
+- A scheduled job (plus manual dispatch) runs `just coverage-check`, the fresh
+  full-suite 99% combined statement-and-branch gate. It runs off the push/PR path
+  and doesn't depend on the other jobs.
 - Evidence export is attempted even after gate failure. Approved available
   HTML, JSON, hidden raw `.coverage`, and provenance are retained for seven days.
 
@@ -74,8 +80,9 @@ the [justfile](../../justfile) owns the recipes.
 ```bash
 just sync
 just docs-tools       # explicit native renderer setup, not needed in the container
-just check            # standard CI matrix checks on your local platform
-just coverage-check   # separate fresh coverage gate
+just fast-check       # fast CI gate (excludes the docs render)
+just check            # full local verification (adds docs render and build)
+just coverage-check   # full combined coverage gate
 just docs-check       # local documentation build, not a deployment
 ```
 

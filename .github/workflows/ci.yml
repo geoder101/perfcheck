@@ -3,32 +3,54 @@ name: CI
 on:
   pull_request:
   push:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  test:
-    name: Python 3.14 on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+  check:
+    name: Fast gate (Linux)
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.3.2
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           python-version: "3.14"
           enable-cache: true
-      - uses: extractions/setup-just@v4.0.0
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: "1.58.0"
       - run: uv sync --locked --group dev --group docs --group examples
-      - uses: actions/setup-node@v7.1.0
+      - run: just fast-check
+
+  docs:
+    name: Full check on default branch
+    # Runs only when something reaches the default branch (a merge, direct push,
+    # or manual dispatch from the default branch); skipped on PRs and schedules.
+    if: github.event_name != 'schedule' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          python-version: "3.14"
+          enable-cache: true
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+        with:
+          just-version: "1.58.0"
+      - run: uv sync --locked --group dev --group docs --group examples
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.18.0"
           package-manager-cache: false
@@ -37,7 +59,6 @@ jobs:
           npm ci --prefix tools/docs --ignore-scripts
           node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
       - name: Provision Linux TeX and browser prerequisites
-        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra dvisvgm fonts-liberation fonts-dejavu-core libgtk-3-0t64 libnss3 libasound2t64 libgbm1
@@ -45,56 +66,28 @@ jobs:
           sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome
           latex --version
           dvisvgm --version
-      - name: Provision macOS TeX
-        if: runner.os == 'macOS'
-        run: |
-          brew install --cask basictex
-          echo /Library/TeX/texbin >> "$GITHUB_PATH"
-          sudo /Library/TeX/texbin/tlmgr update --self
-          sudo /Library/TeX/texbin/tlmgr install amsmath amsfonts preview dvisvgm dvipng cm-super
-          /Library/TeX/texbin/latex --version
-          /Library/TeX/texbin/dvisvgm --version
-      - name: Provision Windows TeX
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          choco install miktex --yes --no-progress
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $bin = 'C:\Program Files\MiKTeX\miktex\bin\x64'
-          $env:PATH = "$bin;$env:PATH"
-          $bin >> $env:GITHUB_PATH
-          miktex --admin packages update-package-database
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          miktex --admin packages install amsmath amsfonts preview miktex-dvisvgm-bin-x64-2.9 cm-super
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          initexmf --admin --update-fndb
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          miktex --admin links install --force
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          latex --version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dvisvgm --version
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: just check
 
   coverage:
     name: Fresh combined coverage evidence
+    # Nightly sweep plus manual dispatch; never runs on PR/push.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: astral-sh/setup-uv@v10.3.2
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
         with:
           python-version: "3.14"
           enable-cache: true
-      - uses: extractions/setup-just@v4.0.0
+      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: "1.58.0"
       - run: uv sync --locked --group dev --group docs --group examples
-      - uses: actions/setup-node@v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.18.0"
           package-manager-cache: false
@@ -129,7 +122,7 @@ jobs:
           fi
       - name: Retain coverage evidence
         if: always() && steps.evidence.outputs.publish == 'true'
-        uses: actions/upload-artifact@v7.0.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |

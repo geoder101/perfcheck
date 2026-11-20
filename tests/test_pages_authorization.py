@@ -143,22 +143,31 @@ def test_pages_workflow_has_fail_closed_job_wiring() -> None:
     )
 
 
-def test_pages_action_tags_match_verified_official_releases() -> None:
-    # Given: live-verified exact stable release tags.
+def test_pages_action_sha_pins_match_verified_official_releases() -> None:
+    # Given: live-verified immutable commit SHAs and their release tags.
     expected = [
-        ("actions/checkout", "v7.0.1"),
-        ("astral-sh/setup-uv", "v10.3.2"),
-        ("extractions/setup-just", "v4.0.0"),
-        ("actions/setup-node", "v7.1.0"),
-        ("actions/upload-pages-artifact", "v5.0.0"),
-        ("actions/deploy-pages", "v5.0.1"),
+        ("actions/checkout", "3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),
+        ("astral-sh/setup-uv", "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e", "v10.3.2"),
+        (
+            "extractions/setup-just",
+            "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
+            "v4.0.0",
+        ),
+        ("actions/setup-node", "949feb2413d6458794dcd2491c4babbbce0c15c1", "v7.1.0"),
+        (
+            "actions/upload-pages-artifact",
+            "fc324d3547104276b827a68afc52ff2a11cc49c9",
+            "v5.0.0",
+        ),
+        ("actions/deploy-pages", "368f82528645a54fb793d4d04e342629a3f51346", "v5.0.1"),
     ]
-    # When: every action reference is extracted without requiring version comments.
-    actual = re.findall(
-        r"uses: ([^@\s]+)@([^\s]+)",
-        _WORKFLOW.read_text(encoding="utf-8"),
-    )
-    # Then: arbitrary SHA-shaped strings and unreviewed actions cannot pass policy.
+    # When: every action reference is extracted with its release tag comment.
+    compiled = re.compile(r"uses: ([^@\s]+)@([0-9a-f]{40})(?:\s+#\s+(\S+))?")
+    actual = [
+        (match.group(1), match.group(2), match.group(3))
+        for match in compiled.finditer(_WORKFLOW.read_text(encoding="utf-8"))
+    ]
+    # Then: only the exact verified SHAs execute, each remembered with its release tag.
     assert actual == expected
 
 
