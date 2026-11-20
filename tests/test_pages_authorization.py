@@ -115,7 +115,7 @@ def test_pages_workflow_has_fail_closed_job_wiring() -> None:
     assert "if: needs.authorize.outputs.trusted == 'true'" in build
     assert "ref: ${{ needs.authorize.outputs.sha }}" in build
     assert "persist-credentials: false" in build
-    assert build.index("Verify checkout") < build.index("setup-uv@")
+    assert build.index("Verify checkout") < build.index(".github/actions/toolchain")
     assert "just sync" in build
     assert "just docs-check\n" in build
     assert "python -m tools.pages_authorization" in build
@@ -144,15 +144,11 @@ def test_pages_workflow_has_fail_closed_job_wiring() -> None:
 
 
 def test_pages_action_sha_pins_match_verified_official_releases() -> None:
-    # Given: live-verified immutable commit SHAs and their release tags.
+    # Given: live-verified immutable commit SHAs and their release tags. The
+    # setup-uv/setup-just pins now live in the shared toolchain action, so the
+    # pages workflow only references checkout and the render toolchain inline.
     expected = [
         ("actions/checkout", "3d3c42e5aac5ba805825da76410c181273ba90b1", "v7.0.1"),
-        ("astral-sh/setup-uv", "1db35dd8eee11c5894872e0b383ae6c406cf738d", "v10.4.0"),
-        (
-            "extractions/setup-just",
-            "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
-            "v4.0.0",
-        ),
         ("actions/setup-node", "949feb2413d6458794dcd2491c4babbbce0c15c1", "v7.1.0"),
         (
             "actions/upload-pages-artifact",

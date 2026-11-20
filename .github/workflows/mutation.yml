@@ -27,13 +27,9 @@ jobs:
           test ! -L mutation
           test ! -e "$RUNNER_TEMP/mutation-ci"
           test ! -L "$RUNNER_TEMP/mutation-ci"
-      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+      - uses: ./.github/actions/toolchain
         with:
-          python-version: "3.14"
           enable-cache: false
-      - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
-        with:
-          just-version: "1.58.0"
       - run: uv sync --locked --group dev --group docs --group examples --group mutation
       - name: Record mutation invocation identity
         run: uv run --locked --no-sync python -m tools.mutation_summary prepare

@@ -152,8 +152,8 @@ def test_workflow_is_manual_bounded_and_read_only() -> None:
     assert "permissions:\n  contents: read\n" in workflow
     assert "runs-on: ubuntu-latest" in workflow
     assert "timeout-minutes: 15" in workflow
-    assert 'python-version: "3.14"' in workflow
-    assert 'just-version: "1.58.0"' in workflow
+    assert "uses: ./.github/actions/toolchain" in workflow
+    assert "enable-cache: false" in workflow
     assert "ref: ${{ github.sha }}" in workflow
     assert "persist-credentials: false" in workflow
     assert (
@@ -186,17 +186,15 @@ def test_workflow_is_manual_bounded_and_read_only() -> None:
 
 
 def test_action_sha_pins_match_verified_official_releases() -> None:
-    # Given: live-verified immutable commit SHAs and their release tags.
+    # Given: live-verified immutable commit SHAs and their release tags. The
+    # setup-uv/setup-just pins now live in the shared toolchain action, so the
+    # mutation workflow only references checkout and upload-artifact inline.
     expected_sha = {
         "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-        "astral-sh/setup-uv": "1db35dd8eee11c5894872e0b383ae6c406cf738d",
-        "extractions/setup-just": "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
         "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     }
     expected_tag = {
         "actions/checkout": "v7.0.1",
-        "astral-sh/setup-uv": "v10.4.0",
-        "extractions/setup-just": "v4.0.0",
         "actions/upload-artifact": "v7.0.2",
     }
     # When: actual workflow action references (tagged with their release) are parsed.

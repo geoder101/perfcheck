@@ -199,3 +199,32 @@ def test_hosted_workflows_forbid_insecure_gating_and_leaked_credentials() -> Non
         forbidden = tuple(t for t in FORBIDDEN_TOKENS if t not in exceptions)
         for token in forbidden:
             assert token not in workflow, f"{name}: forbidden {token!r} present"
+
+
+def test_toolchain_action_pins_tool_versions_and_inputs() -> None:
+    # Given: the shared toolchain action that installs the pinned CI toolchain.
+    action = (_ROOT / ".github/actions/toolchain/action.yml").read_text(
+        encoding="utf-8"
+    )
+    # When: the action references and input defaults are inspected.
+    # Then: the toolchain stays pinned to verified SHAs with release tags.
+    compiled = re.compile(r"uses: ([^@\s]+)@([0-9a-f]{40})(?:\s+#\s+(\S+))?")
+    references = {
+        match.group(1): (match.group(2), match.group(3))
+        for match in compiled.finditer(action)
+    }
+    assert references == {
+        "astral-sh/setup-uv": (
+            "1db35dd8eee11c5894872e0b383ae6c406cf738d",
+            "v10.4.0",
+        ),
+        "extractions/setup-just": (
+            "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
+            "v4.0.0",
+        ),
+    }
+    # Then: the inputs keep the pinned toolchain versioned in one place.
+    assert 'default: "3.14"' in action
+    assert 'default: "true"' in action
+    assert 'default: "1.58.0"' in action
+    assert "enable-cache: ${{ inputs.enable-cache }}" in action
