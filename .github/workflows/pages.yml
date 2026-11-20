@@ -81,23 +81,12 @@ jobs:
       - uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
         with:
           just-version: "1.58.0"
-      - run: uv sync --locked --group dev --group docs --group examples
+      - run: just sync
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.18.0"
           package-manager-cache: false
-      - name: Provision locked Mermaid and Chrome
-        run: |
-          npm ci --prefix tools/docs --ignore-scripts
-          node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
-      - name: Provision Linux TeX and browser prerequisites
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra dvisvgm fonts-liberation fonts-dejavu-core libgtk-3-0t64 libnss3 libasound2t64 libgbm1
-          sudo install -m 644 tools/docs/chrome-apparmor /etc/apparmor.d/perfcheck-chrome
-          sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome
-          latex --version
-          dvisvgm --version
+      - uses: ./.github/actions/provision-docs-render
       - name: Build fresh documentation
         run: |
           rm -rf docs/_build

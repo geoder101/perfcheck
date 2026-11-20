@@ -1,0 +1,19 @@
+name: Provision docs rendering
+description: Install Node tooling, Puppeteer Chrome, TeX, and apparmor for the Furo/Sphinx render.
+runs:
+  using: composite
+  steps:
+    - name: Provision locked Mermaid and Chrome
+      shell: bash
+      run: |
+        npm ci --prefix tools/docs --ignore-scripts
+        node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
+    - name: Provision Linux TeX and browser prerequisites
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra dvisvgm fonts-liberation fonts-dejavu-core libgtk-3-0t64 libnss3 libasound2t64 libgbm1
+        sudo install -m 644 tools/docs/chrome-apparmor /etc/apparmor.d/perfcheck-chrome
+        sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome
+        latex --version
+        dvisvgm --version

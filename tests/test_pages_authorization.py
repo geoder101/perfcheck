@@ -116,7 +116,7 @@ def test_pages_workflow_has_fail_closed_job_wiring() -> None:
     assert "ref: ${{ needs.authorize.outputs.sha }}" in build
     assert "persist-credentials: false" in build
     assert build.index("Verify checkout") < build.index("setup-uv@")
-    assert "uv sync --locked --group dev --group docs --group examples" in build
+    assert "just sync" in build
     assert "just docs-check\n" in build
     assert "python -m tools.pages_authorization" in build
     assert "path: docs/_build/html\n" in build

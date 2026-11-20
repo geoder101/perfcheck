@@ -143,41 +143,44 @@ def test_ci_release_pages_and_mutation_actions_are_sha_pinned() -> None:
 
 
 def test_docs_and_coverage_render_toolchain_provisioned_before_check() -> None:
-    # Given: the fast Linux gate, the merge-time full check, and the coverage sweep.
+    # Given: the fast Linux gate, the merge-time full check, and the coverage sweep,
+    # all delegating the Mermaid/Chrome/LaTeX toolchain to a reusable action.
     workflow = (_ROOT / ".github/workflows/ci.yml").read_text()
     pages = (
         (_ROOT / ".github/workflows/pages.yml").read_text().split("\n  deploy:\n")[0]
     )
     check_block, docs_block, coverage_block = _job_blocks(workflow)
-    # When/Then: the Mermaid/Chrome/LaTeX toolchain is provisioned before the checks
-    # that consume it — the merge-time full check and the coverage sweep — while the
-    # fast gate deliberately renders nothing.
+    render = (_ROOT / ".github/actions/provision-docs-render/action.yml").read_text()
+    # When/Then: every render-consuming job invokes the action before its check, the
+    # fast gate deliberately renders nothing, and the action installs the real
+    # Node/Chrome/LaTeX toolchain without widening Chrome's apparmor sandbox.
     for block, gate in (
         (docs_block, "run: just check"),
         (coverage_block, "run: just coverage-check"),
     ):
         assert 'node-version: "24.18.0"' in block
-        assert block.index("npm ci --prefix tools/docs --ignore-scripts") < block.index(
-            gate
-        )
-        browser_cli = "node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js"
-        assert block.index(f"{browser_cli} browsers install chrome") < block.index(gate)
-        assert "texlive-latex-extra" in block
-        assert "dvisvgm" in block
-        assert "apparmor_parser" in block
-        assert "--no-sandbox" not in block
-        assert "sysctl" not in block
+        assert "uses: ./.github/actions/provision-docs-render" in block
+        assert block.index(
+            "uses: ./.github/actions/provision-docs-render"
+        ) < block.index(gate)
 
     # The fast gate runs without any rendering provisioning.
-    assert "npm ci --prefix tools/docs" not in check_block
-    assert "texlive-latex-extra" not in check_block
-    assert "apparmor_parser" not in check_block
+    assert "provision-docs-render" not in check_block
 
-    # Pages provisions the same toolchain before its docs build.
-    assert pages.index("npm ci --prefix tools/docs --ignore-scripts") < pages.index(
+    # Pages invokes the same action before its docs build.
+    assert "uses: ./.github/actions/provision-docs-render" in pages
+    assert pages.index("uses: ./.github/actions/provision-docs-render") < pages.index(
         "just docs-check"
     )
-    assert pages.index("apparmor_parser") < pages.index("just docs-check")
+
+    # The action installs the toolchain and leaves Chrome's sandbox apparmor intact.
+    assert "npm ci --prefix tools/docs --ignore-scripts" in render
+    assert "browsers install chrome" in render
+    assert "texlive-latex-extra" in render
+    assert "dvisvgm" in render
+    assert "sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome" in render
+    assert "--no-sandbox" not in render
+    assert "sysctl" not in render
 
 
 def test_hosted_workflows_forbid_insecure_gating_and_leaked_credentials() -> None:

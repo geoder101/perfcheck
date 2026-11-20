@@ -232,8 +232,8 @@ def test_workflow_browser_installer_is_real_locked_cli() -> None:
         pytest.skip("Optional local JS tools are not provisioned")
     node = shutil.which("node")
     assert node
-    for workflow in ("ci.yml", "pages.yml"):
-        text = (ROOT / ".github/workflows" / workflow).read_text()
+    for component in (".github/actions/provision-docs-render/action.yml",):
+        text = (ROOT / component).read_text()
         entries = {
             match[1]
             for match in re.finditer(
