@@ -1,10 +1,11 @@
 # Workflow map
 
-These workflows check the project, retain quality evidence, and publish docs.
-The YAML files are the source of truth for triggers, action tags, and tool versions.
-Actions currently use exact release tags, not full commit-SHA pins or floating
-major tags. Source checkouts still use the event SHA, not a moving branch name,
-and disable persisted checkout credentials.
+These workflows check the project, retain quality evidence, publish documentation,
+and publish releases on the default branch. The YAML files are the source of truth
+for triggers, action tags, and tool versions.
+Actions are pinned to immutable commit SHAs with release tags in comments, not
+floating major tags. Source checkouts still use the event SHA, not a moving
+branch name, and disable persisted checkout credentials.
 
 ## CI: fast gate, merge-time check, and coverage
 
@@ -66,10 +67,28 @@ Publication is docs-only: Furo/Sphinx HTML, including source-parsed internal
 AutoAPI reference. Coverage and mutation evidence never go to Pages. Internal
 Python modules don't become a supported public API through publication.
 
-Follow the root [owner checklist](../../README.md#one-time-github-hosting-setup-owner)
-for repository settings, default-branch-only environment restrictions, and first
-run verification. Hosted CI/platform runs and Pages deployment remain unverified
-until real repository runs establish their results; this map claims no live site.
+Hosted CI runs on every push and pull request, and the Pages site publishes from
+the default branch under the default-branch-only environment restriction.
+
+## Release: PyPI package and GitHub release
+
+[release.yml](release.yml) triggers only on pushes to the default branch and runs
+a quality gate before anything is built or published.
+
+- `test` runs on `ubuntu-latest` with read-only contents. It runs `just check` (the
+  full gate: lock, schema drift, format, lint, types, tests, examples, docs render,
+  and build) on the pushed commit; nothing publishes until it is green.
+- `publish` needs `test`, runs only on `push` to the default branch, and runs in the
+  `release` environment. It syncs, builds the wheel with `uv build`, publishes it to
+  PyPI with `twine upload --skip-existing` using the `PYPI_API_TOKEN` secret, then
+  creates (or updates, with `--clobber`) a GitHub Release tagged `v<version>` from the
+  wheel filename using the repository's built-in token.
+
+Only the `publish` job receives `contents: write` (required to open the release); the
+`test` job and all other workflows stay read-only. Publish to PyPI is gated on the
+default branch and the `release` environment. The `PYPI_API_TOKEN` secret lives on
+the repository (Settings → Secrets and variables → Actions); the `release`
+environment can additionally require a reviewer.
 
 ## Local equivalents and guidance
 

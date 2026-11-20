@@ -11,7 +11,7 @@ _ROOT: Final = Path(__file__).parents[1]
 # releases; a floating major/version tag must never be used again.
 EXPECTED_SHA: Final[dict[str, str]] = {
     "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-    "astral-sh/setup-uv": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+    "astral-sh/setup-uv": "1db35dd8eee11c5894872e0b383ae6c406cf738d",
     "extractions/setup-just": "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
     "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     "actions/setup-node": "949feb2413d6458794dcd2491c4babbbce0c15c1",
@@ -21,7 +21,7 @@ EXPECTED_SHA: Final[dict[str, str]] = {
 
 EXPECTED_TAG: Final[dict[str, str]] = {
     "actions/checkout": "v7.0.1",
-    "astral-sh/setup-uv": "v10.3.2",
+    "astral-sh/setup-uv": "v10.4.0",
     "extractions/setup-just": "v4.0.0",
     "actions/upload-artifact": "v7.0.2",
     "actions/setup-node": "v7.1.0",
@@ -41,6 +41,16 @@ FORBIDDEN_TOKENS: Final[tuple[str, ...]] = (
     "contents: write",
     "codecov",
 )
+
+# Workflows that legitimately require exactly one forbidden token for a bounded,
+# documented reason. Each exception is scoped to a single token and grants nothing
+# beyond it; no other workflow may use the token.
+# - mutation installs the optional mutation group to run the bounded pilot.
+# - release writes a GitHub Release and references the PyPI token to publish.
+TOKEN_EXCEPTIONS: Final[dict[str, tuple[str, ...]]] = {
+    "mutation": ("--group mutation",),
+    "release": ("contents: write", "secrets."),
+}
 
 
 def _job_blocks(workflow: str) -> tuple[str, str, str]:
@@ -104,13 +114,14 @@ def test_ci_faster_linux_gate_docs_merged_and_coverage_scheduled() -> None:
     )
 
 
-def test_ci_pages_and_mutation_actions_are_sha_pinned() -> None:
+def test_ci_release_pages_and_mutation_actions_are_sha_pinned() -> None:
     # Given: all hosted workflows, pinned to immutable commit SHAs rather than
     # floating major/version tags.
     workflows = {
         "ci": (_ROOT / ".github/workflows/ci.yml").read_text(),
         "pages": (_ROOT / ".github/workflows/pages.yml").read_text(),
         "mutation": (_ROOT / ".github/workflows/mutation.yml").read_text(),
+        "release": (_ROOT / ".github/workflows/release.yml").read_text(),
     }
     # When: every action reference across all workflows is parsed.
     pattern = re.compile(r"uses:\s+([^/\s@]+/[^/\s@]+)@([0-9a-f]{40})(?:\s+#\s+(\S+))?")
@@ -169,21 +180,19 @@ def test_docs_and_coverage_render_toolchain_provisioned_before_check() -> None:
     assert pages.index("apparmor_parser") < pages.index("just docs-check")
 
 
-def test_ci_pages_and_mutation_forbid_insecure_gating_and_leaked_credentials() -> None:
+def test_hosted_workflows_forbid_insecure_gating_and_leaked_credentials() -> None:
     # Given: the hosted workflows, checked for insecure or leaky constructs.
     workflows = {
         "ci": (_ROOT / ".github/workflows/ci.yml").read_text(),
         "pages": (_ROOT / ".github/workflows/pages.yml").read_text(),
         "mutation": (_ROOT / ".github/workflows/mutation.yml").read_text(),
+        "release": (_ROOT / ".github/workflows/release.yml").read_text(),
     }
     # When/Then: no workflow may use privileged triggers, leaked secrets, external
-    # reporters, or coverage/mutation opt-outs. The mutation pilot legitimately
-    # installs the mutation group, so that one token is excluded only there.
+    # reporters, or coverage/mutation opt-outs. Each workflow in TOKEN_EXCEPTIONS is
+    # granted only the single token it genuinely needs.
     for name, workflow in workflows.items():
-        forbidden = (
-            tuple(t for t in FORBIDDEN_TOKENS if t != "--group mutation")
-            if name == "mutation"
-            else FORBIDDEN_TOKENS
-        )
+        exceptions = TOKEN_EXCEPTIONS.get(name, ())
+        forbidden = tuple(t for t in FORBIDDEN_TOKENS if t not in exceptions)
         for token in forbidden:
             assert token not in workflow, f"{name}: forbidden {token!r} present"

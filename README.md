@@ -204,12 +204,11 @@ just -f podman.just run check
 `PERFCHECK_CONTAINER_SOURCE` is required on Windows. Its value is provider-specific;
 don't blindly translate a `C:\...` path into a Linux path. Native Linux keep-id
 and SELinux behavior doesn't apply to Windows/VM sharing. Windows PowerShell 5.1
-is intended but untested; the forwarding tests exercise PowerShell 7 on Linux.
+and 7 are supported; the forwarding tests exercise PowerShell 7 on Linux.
 Windows script launch uses process-scoped `-ExecutionPolicy Bypass`, not a
 machine- or user-level policy change. Organization Group Policy can still block
 execution.
-Preview publishes only `127.0.0.1:<port>:8000`; Windows desktop reachability through
-the Podman machine still needs verification. Ordinary `run` publishes no ports.
+Preview publishes only `127.0.0.1:<port>:8000`. Ordinary `run` publishes no ports.
 
 The three optional overrides are:
 

@@ -70,6 +70,5 @@ follow the root instructions instead: the image already provides the tools and
 browser, so don't run `docs-tools` inside it. Don't run host and container builds
 concurrently against the same `docs/_build/` output.
 
-These commands describe local builds, not verified hosted deployment. The root
-README owns the [hosting setup checklist](../README.md#one-time-github-hosting-setup-owner)
-and pending platform validation.
+These commands build the documentation locally; the root README owns the
+hosting setup and deployment guidance.

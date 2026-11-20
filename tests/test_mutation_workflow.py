@@ -189,13 +189,13 @@ def test_action_sha_pins_match_verified_official_releases() -> None:
     # Given: live-verified immutable commit SHAs and their release tags.
     expected_sha = {
         "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",
-        "astral-sh/setup-uv": "07a047e608db84b3d8c06cd9a7c7dcc9c355c18e",
+        "astral-sh/setup-uv": "1db35dd8eee11c5894872e0b383ae6c406cf738d",
         "extractions/setup-just": "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
         "actions/upload-artifact": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     }
     expected_tag = {
         "actions/checkout": "v7.0.1",
-        "astral-sh/setup-uv": "v10.3.2",
+        "astral-sh/setup-uv": "v10.4.0",
         "extractions/setup-just": "v4.0.0",
         "actions/upload-artifact": "v7.0.2",
     }
