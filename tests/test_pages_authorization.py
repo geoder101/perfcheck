@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import re
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -115,7 +114,8 @@ def test_pages_workflow_has_fail_closed_job_wiring() -> None:
     assert "if: needs.authorize.outputs.trusted == 'true'" in build
     assert "ref: ${{ needs.authorize.outputs.sha }}" in build
     assert "persist-credentials: false" in build
-    assert build.index("Verify checkout") < build.index(".github/actions/toolchain")
+    # Regression guard (IS-4): the tautological "Verify checkout" re-check stays gone.
+    assert "Verify checkout" not in build
     assert "just sync" in build
     assert "just docs-check\n" in build
     assert "python -m tools.pages_authorization" in build
@@ -165,52 +165,3 @@ def test_pages_action_sha_pins_match_verified_official_releases() -> None:
     ]
     # Then: only the exact verified SHAs execute, each remembered with its release tag.
     assert actual == expected
-
-
-@pytest.mark.parametrize(
-    "condition", ["clean", "mismatch", "dirty", "missing-git-repo"]
-)
-def test_checkout_receipt_blocks_invalid_source(condition: str, tmp_path: Path) -> None:
-    # Given: a real isolated checkout and an observable downstream build command.
-    git = shutil.which("git")
-    assert git
-    checkout = tmp_path / "checkout"
-    _ = subprocess.run(  # noqa: S603 - local clone only; no remote or new commits.
-        [git, "clone", "--quiet", "--no-hardlinks", str(_ROOT), str(checkout)],
-        check=True,
-        capture_output=True,
-        timeout=30,
-    )
-    head = subprocess.check_output(  # noqa: S603 - read the isolated checkout HEAD.
-        [git, "rev-parse", "HEAD"],
-        cwd=checkout,
-        text=True,
-        timeout=10,
-    ).strip()
-    if condition == "dirty":
-        _ = (checkout / "README.md").write_text("Changed source")
-    marker = tmp_path / "built"
-    environment = {
-        **os.environ,
-        "EXPECTED_SHA": _SHA if condition == "mismatch" else head,
-        "BUILD_MARKER": str(marker),
-    }
-    # When: the actual workflow receipt runs before downstream work.
-    result = subprocess.run(  # noqa: S603 - run the owned receipt against real git.
-        [
-            sys.executable,
-            "-I",
-            "-c",
-            _script("Verify checkout")
-            + '\nfrom pathlib import Path\nPath(os.environ["BUILD_MARKER"]).touch()',
-        ],
-        cwd=tmp_path if condition == "missing-git-repo" else checkout,
-        env=environment,
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=10,
-    )
-    # Then: the wrong revision cannot install dependencies or build documentation.
-    assert (result.returncode == 0) == (condition == "clean"), result.stderr
-    assert marker.exists() == (condition == "clean")
