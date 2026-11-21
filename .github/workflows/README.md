@@ -1,6 +1,6 @@
 # CI workflows
 
-This directory holds the GitHub Actions workflows for perfcheck-3.
+This directory holds the GitHub Actions workflows for perfcheck.
 This file is the map of what each workflow does; the YAML files are the truth.
 
 ## Shared setup action
@@ -28,8 +28,9 @@ than a silent pass.
 
 | Job | Runs on | What it proves |
 |-----|---------|----------------|
-| `check` | `ubuntu-latest` | The fast gate `just fast-check` passes: lock verification, schema drift check, formatting, lint, types, tests, and executable examples — everything except the docs render. It is the cheap, always-on gate and is coverage-free and mutation-free. |
-| `docs` | `ubuntu-latest` | Runs only on push to the default branch. Adds the strict documentation render (Node) and distribution builds on top of the fast gate via `just check`. Skipped on pull requests and non-default branches. |
+| `check (ubuntu-latest)` | Linux | `just check`: lock/schema, format/lint/types, tests, examples, strict docs, and wheel/sdist builds. |
+| `check (macos-latest)` | macOS | The same full native gate, without weakening checks. |
+| `check (windows-latest)` | Windows | The same full native gate, without weakening checks. |
 | `coverage` | `ubuntu-latest` | The fresh full-suite combined coverage gate (`just coverage-check`, fixed 99% threshold) passes, then exports approved evidence. |
 
 **Artifact:** `coverage-evidence-${{ github.run_id }}-${{ github.run_attempt }}`, uploaded with
@@ -40,12 +41,22 @@ than a silent pass.
 passing measurement. See [coverage evidence](../../README.md#coverage-evidence) for
 interpretation and local output paths.
 
+CI also exposes `workflow_call` so Releases depend on the identical matrix and
+coverage gate. Python 3.14 is the sole supported minor version, matching metadata;
+there is no additional Python-version axis. Shared rendering setup provisions
+Linux TeX/browser libraries, macOS MacTeX, or Windows MiKTeX, plus locked Mermaid
+and Chrome. Optional Unix-only mutation/process tests and tests requiring absent
+external tools retain their explicit platform/resource skips; the full gate runs
+on each OS. No live external service is needed by application tests; Prometheus
+fixtures use loopback or mock transports.
+
 ## `pages.yml` — Documentation Pages
 
 **Triggers:** `push` to `main`.
 
 | Job | Runs on | What it proves |
 |-----|---------|----------------|
+| `authorize` | `ubuntu-latest` | Explicitly requires a push to `refs/heads/main` and repository default branch `main`. |
 | `build` | `ubuntu-latest` | Checks out the event SHA (`persist-credentials: false`), then proves the strict docs build (`just docs-check`, `-W`) passes. Uploads `docs/_build/html` as the `github-pages` artifact via `upload-pages-artifact`. |
 | `deploy` | `ubuntu-latest` | Reads the `github-pages` artifact by name and deploys it via the `deploy-pages` action in the `github-pages` environment (no separate download or configure step). The site URL is the **deployment output** (`steps.deployment.outputs.page_url`), surfaced on the environment — it is not hardcoded anywhere. |
 
@@ -77,13 +88,14 @@ AutoAPI reference. Coverage and mutation evidence never go to Pages.
 
 | Job | Runs on | What it proves |
 |-----|---------|----------------|
-| `test` | `ubuntu-latest` | The single gate `just check` passes on the pushed commit before anything is built or published. |
-| `publish` | `ubuntu-latest` | Runs only on `push` to `refs/heads/main`, in the `release` environment. Builds the wheel with `just build`, then creates (or updates, with `--clobber`) the GitHub Release tagged `v<version>` from the wheel filename using the repository's built-in token. |
+| `test` | Reusable CI | All three native `just check` jobs plus the independent 99% coverage gate must pass on the pushed commit. |
+| `publish` | `ubuntu-latest` | Requires default-branch `main` push and human `release` environment approval. Reads the version from `pyproject.toml`, builds wheel and sdist with `just build`, and creates a GitHub Release targeting the exact tested SHA. Existing releases are left unchanged; existing tags without releases fail for inspection. |
 
 Only the `publish` job receives `contents: write` (required to open the release);
 the `test` job and all other workflows stay read-only. The GitHub Release is gated
-on the default branch and the `release` environment; the `release` environment can
-additionally require a reviewer.
+on the default branch and the `release` environment, which requires a human
+reviewer and disallows administrator bypass. Releases are serialized with
+`cancel-in-progress: false`; no package-registry publication is configured.
 
 ## `mutation.yml` — manual advisory pilot
 

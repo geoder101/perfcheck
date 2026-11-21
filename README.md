@@ -4,7 +4,7 @@
 
 ## Install
 
-For a native checkout, install Python 3.14 or later,
+For a native checkout, install Python 3.14 (the supported range is `>=3.14,<3.15`),
 [Just](https://just.systems/man/en/chapter_4.html), and
 [uv](https://docs.astral.sh/uv/). Just is the project's task runner; uv is the
 underlying Python package and environment manager. Run these commands from the
@@ -239,9 +239,11 @@ Windows compatibility; VM performance isn't directly comparable to native runs.
 The adapter preserves arguments up to inner Just; existing shell-recipe quoting
 semantics still apply to `test`, `cli`, and other recipes.
 
-Validation: focused image-contract/fake-Podman tests pass, along with host format,
-lint, and type checks. CI runs the fast Linux gate on every push and the full check
-once a merge reaches the default branch.
+Validation: focused image-contract/fake-Podman tests cover the adapter. CI runs
+`just check` natively on Linux, macOS, and Windows on every push and pull request,
+using Python 3.14 and the committed `uv.lock`. Each platform runs tests, examples,
+strict documentation, and distribution builds, as well as format/lint/type checks.
+The independent Linux coverage job runs `just coverage-check`.
 
 ### Coverage evidence
 

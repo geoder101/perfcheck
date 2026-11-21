@@ -89,7 +89,7 @@ helpers as an installer API.
 HTML tree, rejecting escaping paths, symlinks, and invalid local resource links.
 It doesn't authorize deployment events; that authorization stays in Actions.
 Pages publishes documentation only, never coverage or mutation evidence.
-See the [owner checklist](../README.md#one-time-github-hosting-setup-owner) for
+See the [workflow guide](../.github/workflows/README.md) for
 deployment restrictions and the hosted checks still requiring real runs.
 
 ## Podman adapters

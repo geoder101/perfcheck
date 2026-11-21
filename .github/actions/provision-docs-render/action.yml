@@ -9,6 +9,7 @@ runs:
         npm ci --prefix tools/docs --ignore-scripts
         node tools/docs/node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome
     - name: Provision Linux TeX and browser prerequisites
+      if: runner.os == 'Linux'
       shell: bash
       run: |
         sudo apt-get update
@@ -17,3 +18,21 @@ runs:
         sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome
         latex --version
         dvisvgm --version
+    - name: Provision macOS TeX
+      if: runner.os == 'macOS'
+      shell: bash
+      run: |
+        brew install --cask mactex-no-gui
+        echo /Library/TeX/texbin >> "$GITHUB_PATH"
+    - name: Provision Windows TeX
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        choco install miktex --no-progress -y
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $bin = 'C:\Program Files\MiKTeX\miktex\bin\x64'
+        $bin | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        & "$bin\initexmf.exe" --admin --set-config-value='[MPM]AutoInstall=1'
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        & "$bin\initexmf.exe" --set-config-value='[MPM]AutoInstall=1'
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

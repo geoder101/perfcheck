@@ -61,6 +61,7 @@ def test_ci_release_pages_and_mutation_actions_are_sha_pinned() -> None:
         "pages": (_ROOT / ".github/workflows/pages.yml").read_text(),
         "mutation": (_ROOT / ".github/workflows/mutation.yml").read_text(),
         "release": (_ROOT / ".github/workflows/release.yml").read_text(),
+        "setup": (_ROOT / ".github/actions/setup/action.yml").read_text(),
     }
     # When: every action reference across all workflows is parsed.
     pattern = re.compile(r"uses:\s+([^/\s@]+/[^/\s@]+)@([0-9a-f]{40})(?:\s+#\s+(\S+))?")
