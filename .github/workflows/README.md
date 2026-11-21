@@ -58,7 +58,7 @@ non-default branches and tags are rejected before dependency installation or
 build. Don't assume the default branch is named `main`.
 
 Authorization and build have read-only contents permissions. The build checks
-out the authorized event SHA, verifies that SHA and a clean tree, then runs a
+out the authorized event SHA, then runs a
 fresh `just docs-check` and validates the publication tree. Only the dependent
 deploy job receives `pages: write` and `id-token: write`; it uses the same run's
 `github-pages` artifact and environment. The site URL comes from deployment output.
