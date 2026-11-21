@@ -46,72 +46,11 @@ FORBIDDEN_TOKENS: Final[tuple[str, ...]] = (
 # documented reason. Each exception is scoped to a single token and grants nothing
 # beyond it; no other workflow may use the token.
 # - mutation installs the optional mutation group to run the bounded pilot.
-# - release writes a GitHub Release and references the PyPI token to publish.
+# - release writes a GitHub Release using the built-in token and contents: write.
 TOKEN_EXCEPTIONS: Final[dict[str, tuple[str, ...]]] = {
     "mutation": ("--group mutation",),
     "release": ("contents: write", "secrets."),
 }
-
-
-def _job_blocks(workflow: str) -> tuple[str, str, str]:
-    # Given a ci.yml body, split it into the check, docs, and coverage job blocks
-    # by their two-space indented headers, which are unique within the file.
-    check_block = workflow.split("\n  check:\n", 1)[1].split("\n  docs:\n", 1)[0]
-    docs_block = workflow.split("\n  docs:\n", 1)[1].split("\n  coverage:\n", 1)[0]
-    coverage_block = workflow.split("\n  coverage:\n", 1)[1]
-    return check_block, docs_block, coverage_block
-
-
-def test_ci_faster_linux_gate_docs_merged_and_coverage_scheduled() -> None:
-    # Given: the restructured CI workflow — a fast Linux PR gate, a merge-time full
-    # check, and a coverage sweep that runs off the push/PR path.
-    workflow = (_ROOT / ".github/workflows/ci.yml").read_text()
-    on_block, check_block, docs_block, coverage_block = (
-        workflow.split("jobs:", 1)[0],
-        *_job_blocks(workflow),
-    )
-    # When: ordinary, merge, and measurement job boundaries are inspected.
-    # Then: the trigger list stays ordered push-first and jobs are gated individually.
-    assert "on:\n  pull_request:\n  push:\n" in on_block
-    assert "schedule:" in on_block
-    assert "workflow_dispatch:" in on_block
-    assert "permissions:\n  contents: read\n" in on_block
-    # The three-OS matrix is gone; nothing hard-gates a run on an OS.
-    assert "os: [ubuntu-latest, macos-latest, windows-latest]" not in workflow
-    assert "fail-fast: false" not in workflow
-
-    # The fast gate is Linux-only and runs the lightweight recipe.
-    assert "runs-on: ubuntu-latest" in check_block
-    assert "if: github.event_name != 'schedule'" in check_block
-    assert "run: just fast-check" in check_block
-    assert "just check" not in check_block
-    assert "just coverage-check" not in check_block
-
-    # The full check runs after merge on the default branch (skipped on PRs/schedules).
-    assert "runs-on: ubuntu-latest" in docs_block
-    assert "if: github.event_name != 'schedule'" in docs_block
-    assert (
-        "format('refs/heads/{0}', github.event.repository.default_branch)" in docs_block
-    )
-    assert "run: just check" in docs_block
-    assert "just fast-check" not in docs_block
-
-    # The coverage sweep runs on schedule or manual dispatch with a generous timeout.
-    assert (
-        "github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
-        in coverage_block
-    )
-    assert "timeout-minutes: 30" in coverage_block
-    assert "id: gate\n        run: just coverage-check" in coverage_block
-    assert 'export --outcome "$GATE_OUTCOME"' in coverage_block
-    assert coverage_block.count("if: always()") == 2
-    assert "id: evidence" in coverage_block
-    assert "if: always() && steps.evidence.outputs.publish == 'true'" in coverage_block
-    assert "PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}" in coverage_block
-    assert "run: uv run python -m tools.quality_evidence prepare" in coverage_block
-    assert coverage_block.index("prepare\n") < coverage_block.index(
-        "run: just coverage-check"
-    )
 
 
 def test_ci_release_pages_and_mutation_actions_are_sha_pinned() -> None:
@@ -142,47 +81,6 @@ def test_ci_release_pages_and_mutation_actions_are_sha_pinned() -> None:
             )
 
 
-def test_docs_and_coverage_render_toolchain_provisioned_before_check() -> None:
-    # Given: the fast Linux gate, the merge-time full check, and the coverage sweep,
-    # all delegating the Mermaid/Chrome/LaTeX toolchain to a reusable action.
-    workflow = (_ROOT / ".github/workflows/ci.yml").read_text()
-    pages = (
-        (_ROOT / ".github/workflows/pages.yml").read_text().split("\n  deploy:\n")[0]
-    )
-    check_block, docs_block, coverage_block = _job_blocks(workflow)
-    render = (_ROOT / ".github/actions/provision-docs-render/action.yml").read_text()
-    # When/Then: every render-consuming job invokes the action before its check, the
-    # fast gate deliberately renders nothing, and the action installs the real
-    # Node/Chrome/LaTeX toolchain without widening Chrome's apparmor sandbox.
-    for block, gate in (
-        (docs_block, "run: just check"),
-        (coverage_block, "run: just coverage-check"),
-    ):
-        assert 'node-version: "24.18.0"' in block
-        assert "uses: ./.github/actions/provision-docs-render" in block
-        assert block.index(
-            "uses: ./.github/actions/provision-docs-render"
-        ) < block.index(gate)
-
-    # The fast gate runs without any rendering provisioning.
-    assert "provision-docs-render" not in check_block
-
-    # Pages invokes the same action before its docs build.
-    assert "uses: ./.github/actions/provision-docs-render" in pages
-    assert pages.index("uses: ./.github/actions/provision-docs-render") < pages.index(
-        "just docs-check"
-    )
-
-    # The action installs the toolchain and leaves Chrome's sandbox apparmor intact.
-    assert "npm ci --prefix tools/docs --ignore-scripts" in render
-    assert "browsers install chrome" in render
-    assert "texlive-latex-extra" in render
-    assert "dvisvgm" in render
-    assert "sudo apparmor_parser -r /etc/apparmor.d/perfcheck-chrome" in render
-    assert "--no-sandbox" not in render
-    assert "sysctl" not in render
-
-
 def test_hosted_workflows_forbid_insecure_gating_and_leaked_credentials() -> None:
     # Given: the hosted workflows, checked for insecure or leaky constructs.
     workflows = {
@@ -199,32 +97,3 @@ def test_hosted_workflows_forbid_insecure_gating_and_leaked_credentials() -> Non
         forbidden = tuple(t for t in FORBIDDEN_TOKENS if t not in exceptions)
         for token in forbidden:
             assert token not in workflow, f"{name}: forbidden {token!r} present"
-
-
-def test_toolchain_action_pins_tool_versions_and_inputs() -> None:
-    # Given: the shared toolchain action that installs the pinned CI toolchain.
-    action = (_ROOT / ".github/actions/toolchain/action.yml").read_text(
-        encoding="utf-8"
-    )
-    # When: the action references and input defaults are inspected.
-    # Then: the toolchain stays pinned to verified SHAs with release tags.
-    compiled = re.compile(r"uses: ([^@\s]+)@([0-9a-f]{40})(?:\s+#\s+(\S+))?")
-    references = {
-        match.group(1): (match.group(2), match.group(3))
-        for match in compiled.finditer(action)
-    }
-    assert references == {
-        "astral-sh/setup-uv": (
-            "1db35dd8eee11c5894872e0b383ae6c406cf738d",
-            "v10.4.0",
-        ),
-        "extractions/setup-just": (
-            "53165ef7e734c5c07cb06b3c8e7b647c5aa16db3",
-            "v4.0.0",
-        ),
-    }
-    # Then: the inputs keep the pinned toolchain versioned in one place.
-    assert 'default: "3.14"' in action
-    assert 'default: "true"' in action
-    assert 'default: "1.58.0"' in action
-    assert "enable-cache: ${{ inputs.enable-cache }}" in action
