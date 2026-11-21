@@ -105,7 +105,7 @@ gh act -n -W .github/workflows/ci.yml -P default=catthehacker/ubuntu:22.04
 `gh act -l` enumerates every job across all four workflows and is the local gate here. The `gh act -n` dry-run actually starts a job, so it needs a reachable docker/podman socket. On a normal host with Podman, expose the socket and point `act` at it:
 
 ```bash
-flatpak-spawn --host podman system socket --user --listen /run/user/1000/podman/podman.sock
+podman system socket --user --listen /run/user/1000/podman/podman.sock
 DOCKER_HOST=unix:///run/user/1000/podman/podman.sock gh act -n -W .github/workflows/ci.yml -P default=catthehacker/ubuntu:22.04
 ```
 
