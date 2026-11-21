@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import os
 import shutil
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-import anyio
 
 if TYPE_CHECKING:
     import pytest
@@ -30,14 +29,10 @@ def _isolated_environment() -> dict[str, str]:
 
 
 def _run(command: tuple[str, ...], environment: dict[str, str], cwd: Path) -> int:
-    return anyio.run(_run_process, command, environment, cwd)
-
-
-async def _run_process(
-    command: tuple[str, ...], environment: dict[str, str], cwd: Path
-) -> int:
-    with anyio.fail_after(30):
-        result = await anyio.run_process(command, check=False, cwd=cwd, env=environment)
+    # Packaging probes are synchronous and must not inherit Marimo's loop policy.
+    result = subprocess.run(  # noqa: S603 - explicit owned packaging/import probes.
+        command, check=False, cwd=cwd, env=environment, timeout=30
+    )
     return result.returncode
 
 

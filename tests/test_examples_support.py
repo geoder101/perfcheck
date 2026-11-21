@@ -187,8 +187,12 @@ def test_run_local_command_terminates_hung_child_after_timeout(tmp_path: Path) -
     child_pid = int(child_pid_path.read_text(encoding="utf-8"))
     child_pid_path.unlink()
     assert error.value.timeout_seconds == 0.1
-    with pytest.raises(ProcessLookupError):
+    with pytest.raises(OSError, match=r"(?:WinError 87|Errno 3)") as stopped:
         os.kill(child_pid, 0)
+    if os.name == "nt":
+        assert stopped.value.winerror == 87  # ERROR_INVALID_PARAMETER: PID is gone.
+    else:
+        assert isinstance(stopped.value, ProcessLookupError)
     assert not child_pid_path.exists()
 
 
