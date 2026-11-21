@@ -50,6 +50,12 @@ external tools retain their explicit platform/resource skips; the full gate runs
 on each OS. No live external service is needed by application tests; Prometheus
 fixtures use loopback or mock transports.
 
+Warnings remain errors except two exact Marimo 0.25.2 import-time Windows asyncio
+policy deprecations. This owner-approved upstream compatibility exception is
+scoped to `marimo._islands._island_generator`; remove it when Marimo migrates away
+from the deprecated policies. It does not skip notebook tests or application
+warnings.
+
 ## `pages.yml` — Documentation Pages
 
 **Triggers:** `push` to `main`.

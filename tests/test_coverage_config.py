@@ -65,7 +65,12 @@ def test_coverage_recipe_preserves_test_selection_and_requests_reports() -> None
     assert "--ignore=tests/test_examples.py" in tokens
     assert "--ignore=tests/test_examples_check.py" in tokens
     assert "tests/test_coverage_config.py" in tokens
-    assert f"--cov-config={_ROOT / 'pyproject.toml'}" in tokens
+    config = next(
+        token.removeprefix("--cov-config=")
+        for token in tokens
+        if token.startswith("--cov-config=")
+    )
+    assert Path(config).samefile(_ROOT / "pyproject.toml")
 
 
 @pytest.mark.parametrize("recipe", ["test", "check"])

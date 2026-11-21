@@ -46,7 +46,7 @@ class _ByteReader(Protocol):
     def readline(self, size: int = -1, /) -> bytes: ...
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class FixtureServerStartupError(RuntimeError):
     reason: FixtureServerStartupReason
     stderr: str = ""
@@ -59,7 +59,7 @@ class FixtureServerStartupError(RuntimeError):
         )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class FixtureServerCleanupError(RuntimeError):
     timeout_seconds: float
 

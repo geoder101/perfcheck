@@ -65,7 +65,7 @@ def test_mock_prometheus_endpoint_serves_health_then_stops() -> None:
             match=r"(?i)(connection refused|actively refused)",
         ),
         socket.create_connection(
-            (parsed_endpoint.hostname, parsed_endpoint.port), timeout=1
+            (parsed_endpoint.hostname, parsed_endpoint.port), timeout=5
         ),
     ):
         pass

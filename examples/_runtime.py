@@ -60,7 +60,7 @@ class _ByteReader(Protocol):
     def readline(self, size: int = -1, /) -> bytes: ...
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class FixtureServerStartupError(RuntimeError):
     """A fixture server did not announce its loopback endpoint."""
 
@@ -72,7 +72,7 @@ class FixtureServerStartupError(RuntimeError):
         return f"mock Prometheus server failed to start: {self.reason}"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class FixtureServerCleanupError(RuntimeError):
     """A fixture server resisted bounded process cleanup."""
 
@@ -84,7 +84,7 @@ class FixtureServerCleanupError(RuntimeError):
         return f"mock Prometheus server did not stop within {self.timeout_seconds}s"
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class LocalCommandTimeoutError(RuntimeError):
     """A helper-managed local command exceeded its bounded runtime."""
 

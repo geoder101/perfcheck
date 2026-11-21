@@ -20,12 +20,22 @@ from datetime import datetime
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from socketserver import TCPServer
 from typing import ClassVar, Final, override
 from urllib.parse import parse_qs
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 _CONTENT_TYPE: Final = "application/json"
+
+
+class LoopbackHTTPServer(ThreadingHTTPServer):
+    @override
+    def server_bind(self) -> None:
+        # HTTPServer's reverse DNS lookup is unnecessary for a numeric loopback fixture.
+        TCPServer.server_bind(self)
+        self.server_name: str = "localhost"
+        self.server_port: int = self.server_address[1]
 
 
 class PrometheusFixture(BaseModel):
@@ -131,7 +141,7 @@ def main() -> None:
     arguments = FixtureArguments()
     _ = parser.parse_args(namespace=arguments)
     fixture = PrometheusFixture.model_validate_json(arguments.fixture.read_bytes())
-    with ThreadingHTTPServer(
+    with LoopbackHTTPServer(
         (
             "127.0.0.1",
             arguments.port,

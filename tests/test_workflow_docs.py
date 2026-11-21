@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Final
 
 import pytest
+from click import unstyle
 from typer.testing import CliRunner
 
 from perfcheck.cli import app
@@ -62,7 +63,7 @@ def _assert_documented_options(section: str, help_output: str) -> None:
     assert options
     live_options = {
         match.group()
-        for match in re.finditer(r"(?<![\w-])--[a-z][a-z0-9-]*", help_output)
+        for match in re.finditer(r"(?<![\w-])--[a-z][a-z0-9-]*", unstyle(help_output))
     }
     assert set(options) <= live_options
 
@@ -108,7 +109,7 @@ def test_compare_json_option_help_explains_additional_stdout_output() -> None:
 
     # Then: the JSON option itself explains stdout and the report-file requirement.
     assert result.exit_code == 0
-    options = result.stdout.split("Options", maxsplit=1)[1]
+    options = unstyle(result.stdout).split("Options", maxsplit=1)[1]
     description = options.split("--json", maxsplit=1)[1].split("--help", maxsplit=1)[0]
     normalized = " ".join(description.replace("│", " ").split())
     assert "Additionally emit the JSON report to stdout" in normalized

@@ -1,16 +1,38 @@
 from __future__ import annotations
 
 import http.client
+import socket
+from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import ClassVar, Literal
 from urllib.parse import urlencode, urlparse
 
 import pytest
 from examples._support import FixtureServerStartupError, mock_prometheus_endpoint
+from examples.fixtures.mock_prometheus import LoopbackHTTPServer as ExampleServer
 from pydantic import BaseModel, ConfigDict, Field
+
+from tests.fixtures.mock_prometheus_server import LoopbackHTTPServer as SuiteServer
 
 _ROOT = Path(__file__).parents[1]
 _FIXTURE = _ROOT / "examples/fixtures/prometheus-matrix.json"
+
+
+@pytest.mark.parametrize("server_type", [ExampleServer, SuiteServer])
+def test_loopback_fixture_binds_without_dns(
+    monkeypatch: pytest.MonkeyPatch, server_type: type[ExampleServer | SuiteServer]
+) -> None:
+    # Given: a runner whose resolver must not be consulted by local fixtures.
+    def reject_dns(_name: str) -> str:
+        pytest.fail("loopback fixtures must not perform reverse DNS")
+
+    monkeypatch.setattr(socket, "getfqdn", reject_dns)
+
+    # When: a fixture binds its ephemeral numeric loopback address.
+    with server_type(("127.0.0.1", 0), BaseHTTPRequestHandler) as server:
+        # Then: readiness has a real local port without depending on DNS.
+        assert server.server_name == "localhost"
+        assert server.server_port > 0
 
 
 class _MatrixSeries(BaseModel):

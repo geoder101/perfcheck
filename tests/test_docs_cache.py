@@ -7,7 +7,6 @@ running a real Sphinx render.
 
 from __future__ import annotations
 
-import fcntl
 import os
 import sys
 from typing import TYPE_CHECKING
@@ -120,6 +119,8 @@ def test_lock_build_excludes_second_acquisition(
     # Given: a per-test lock file (Unix only; the helper is a no-op on Windows).
     if sys.platform == "win32":
         pytest.skip("fcntl cross-process locking is Unix-only")
+    import fcntl  # noqa: PLC0415 - the Unix-specific lock probe only.
+
     monkeypatch.setattr(docs_inputs, "_LOCK_PATH", tmp_path / "build.lock")
     # When: a worker holds the shared docs-build lock.
     with (

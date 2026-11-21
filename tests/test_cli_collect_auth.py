@@ -6,6 +6,7 @@ from typing import TypedDict
 
 import httpx2
 import pytest
+from click import unstyle
 from pydantic import TypeAdapter
 from typer.testing import CliRunner
 
@@ -142,7 +143,7 @@ def test_collect_help_lists_auth_options(
         "--prometheus-auth-basic-user",
         "--prometheus-auth-basic-password",
     ):
-        assert option in result.output
+        assert option in unstyle(result.output)
 
 
 def test_collect_flag_wins_over_env_for_bearer(
