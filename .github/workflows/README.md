@@ -88,6 +88,32 @@ Only the `publish` job receives `contents: write` (required to open the release)
 default branch and the `release` environment; the `release` environment can
 additionally require a reviewer.
 
+## Workflow-content tests and local iteration
+
+These workflows are the source of truth, but two layers check them.
+
+The static policy tests in [tests/test_ci_workflows.py](../../tests/test_ci_workflows.py) enforce what `act` cannot: every `uses:` reference must pin to an immutable commit SHA with a matching tag comment, and no insecure trigger, leaked credential, or forbidden token may appear. These are the checks worth keeping as code, because a floating tag or a leaked credential slips past any dry-run. `act` runs a workflow to watch it execute; it does not assert the pinning or policy contract. Keep these two tests minimal on purpose, and treat `act` as the complementary local iteration tool, not a replacement for them.
+
+To iterate on a workflow locally, run `act` from the repository root, never in hosted CI:
+
+```bash
+gh act --version          # confirm the runner is present
+gh act -l                 # enumerate jobs; the local gate, must be warning-free
+# dry-run one workflow (needs a container socket, see below):
+gh act -n -W .github/workflows/ci.yml -P default=catthehacker/ubuntu:22.04
+```
+
+`gh act -l` enumerates every job across all four workflows and is the local gate here. The `gh act -n` dry-run actually starts a job, so it needs a reachable docker/podman socket. On a normal host with Podman, expose the socket and point `act` at it:
+
+```bash
+flatpak-spawn --host podman system socket --user --listen /run/user/1000/podman/podman.sock
+DOCKER_HOST=unix:///run/user/1000/podman/podman.sock gh act -n -W .github/workflows/ci.yml -P default=catthehacker/ubuntu:22.04
+```
+
+In this sandbox the podman docker socket is not reachable, so the dry-run cannot run here (it fails connecting to `unix:///var/run/docker.sock`). Record that blocker and lean on `gh act -l` plus the static tests as the local gate until a socket is available. The dry-run recipe is for host-side runs, not for hosted CI.
+
+Maintenance: a future action-version bump must update the `EXPECTED_SHA`/`EXPECTED_TAG` table in `tests/test_ci_workflows.py` alongside the workflow, or the pin test fails.
+
 ## Local equivalents and guidance
 
 Run commands from the repository root, not this directory. The
