@@ -110,8 +110,9 @@ Testing here is a two-layer strategy. The static policy tests in
 `tests/test_ci_workflows.py` enforce the invariants that `act` cannot check: every
 hosted action is pinned to an immutable commit SHA with a matching release-tag
 comment, and no forbidden token leaks into a workflow. Those two tests are the
-authority on pinning. `act` is a complementary tool, it renders the workflows and
-lets you iterate locally before pushing.
+authority on pinning. `act` ([nektos/act](https://github.com/nektos/act)) is a
+complementary tool, it renders the workflows and lets you iterate locally before
+pushing.
 
 The verified commands, run from the repo root:
 
