@@ -4,8 +4,7 @@ These workflows check the project, retain quality evidence, publish documentatio
 and publish releases on the default branch. The YAML files are the source of truth
 for triggers, action tags, and tool versions.
 Actions are pinned to immutable commit SHAs with release tags in comments, not
-floating major tags. Source checkouts still use the event SHA, not a moving
-branch name, and disable persisted checkout credentials.
+floating major tags. Source checkouts use the event SHA and disable persisted checkout credentials.
 
 ## CI: fast gate, merge-time check, and coverage
 
