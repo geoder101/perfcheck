@@ -126,18 +126,23 @@ def run_local_command(
     timeout_seconds: float = _COMMAND_TIMEOUT_SECONDS,
 ) -> subprocess.CompletedProcess[str]:
     """Run an argument-list child with safe environment and bounded cleanup."""
-    try:
-        return subprocess.run(  # noqa: S603 - caller supplies an explicit local executable.
-            arguments,
-            check=False,
-            cwd=cwd,
-            capture_output=True,
-            env=sanitized_environment(),
-            text=True,
-            timeout=timeout_seconds,
+    with subprocess.Popen[str](
+        arguments,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=sanitized_environment(),
+        text=True,
+    ) as process:
+        try:
+            stdout, stderr = process.communicate(timeout=timeout_seconds)
+        except subprocess.TimeoutExpired as error:
+            _stop_process(process)
+            _ = process.communicate(timeout=_CLEANUP_TIMEOUT_SECONDS)
+            raise LocalCommandTimeoutError(timeout_seconds) from error
+        return subprocess.CompletedProcess(
+            arguments, process.returncode, stdout, stderr
         )
-    except subprocess.TimeoutExpired as error:
-        raise LocalCommandTimeoutError(timeout_seconds) from error
 
 
 @contextmanager
@@ -199,10 +204,22 @@ def _await_endpoint(lines: Queue[bytes], timeout_seconds: float) -> str:
     raise FixtureServerStartupError(FixtureServerStartupReason.ENDPOINT_OUTPUT_CLOSED)
 
 
-def _stop_process(process: subprocess.Popen[bytes]) -> None:
+def _stop_process(process: subprocess.Popen[bytes] | subprocess.Popen[str]) -> None:
     if process.poll() is not None:
         return
-    process.terminate()
+    if os.name == "nt":
+        # Terminating only the venv redirector leaves its interpreter running.
+        taskkill = Path(os.environ["SYSTEMROOT"]) / "System32/taskkill.exe"
+        result = subprocess.run(  # noqa: S603 - Windows-owned process-tree cleanup.
+            [str(taskkill), "/PID", str(process.pid), "/T", "/F"],
+            capture_output=True,
+            check=False,
+            timeout=_CLEANUP_TIMEOUT_SECONDS,
+        )
+        if result.returncode != 0 and process.poll() is None:
+            raise FixtureServerCleanupError(_CLEANUP_TIMEOUT_SECONDS)
+    else:
+        process.terminate()
     try:
         _ = process.wait(timeout=_CLEANUP_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:

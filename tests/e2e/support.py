@@ -169,7 +169,19 @@ def _is_byte_reader(stream: _ByteReader | None) -> TypeGuard[_ByteReader]:
 def _stop_process(process: subprocess.Popen[bytes]) -> None:
     if process.poll() is not None:
         return
-    process.terminate()
+    if os.name == "nt":
+        # Windows venv redirectors can own the Python server as a descendant.
+        taskkill = Path(os.environ["SYSTEMROOT"]) / "System32/taskkill.exe"
+        result = subprocess.run(  # noqa: S603 - Windows-owned process-tree cleanup.
+            [str(taskkill), "/PID", str(process.pid), "/T", "/F"],
+            capture_output=True,
+            check=False,
+            timeout=_CLEANUP_TIMEOUT_SECONDS,
+        )
+        if result.returncode != 0 and process.poll() is None:
+            raise FixtureServerCleanupError(_CLEANUP_TIMEOUT_SECONDS)
+    else:
+        process.terminate()
     try:
         _ = process.wait(timeout=_CLEANUP_TIMEOUT_SECONDS)
     except subprocess.TimeoutExpired:
