@@ -70,7 +70,7 @@ Python modules don't become a supported public API through publication.
 Hosted CI runs on every push and pull request, and the Pages site publishes from
 the default branch under the default-branch-only environment restriction.
 
-## Release: PyPI package and GitHub release
+## Release: GitHub release
 
 [release.yml](release.yml) triggers only on pushes to the default branch and runs
 a quality gate before anything is built or published.
@@ -79,16 +79,14 @@ a quality gate before anything is built or published.
   full gate: lock, schema drift, format, lint, types, tests, examples, docs render,
   and build) on the pushed commit; nothing publishes until it is green.
 - `publish` needs `test`, runs only on `push` to the default branch, and runs in the
-  `release` environment. It syncs, builds the wheel with `uv build`, publishes it to
-  PyPI with `twine upload --skip-existing` using the `PYPI_API_TOKEN` secret, then
-  creates (or updates, with `--clobber`) a GitHub Release tagged `v<version>` from the
-  wheel filename using the repository's built-in token.
+  `release` environment. It syncs and builds the wheel with `uv build`, then creates
+  (or updates, with `--clobber`) a GitHub Release tagged `v<version>` from the wheel
+  filename using the repository's built-in token.
 
 Only the `publish` job receives `contents: write` (required to open the release); the
-`test` job and all other workflows stay read-only. Publish to PyPI is gated on the
-default branch and the `release` environment. The `PYPI_API_TOKEN` secret lives on
-the repository (Settings → Secrets and variables → Actions); the `release`
-environment can additionally require a reviewer.
+`test` job and all other workflows stay read-only. The GitHub Release is gated on the
+default branch and the `release` environment; the `release` environment can
+additionally require a reviewer.
 
 ## Local equivalents and guidance
 

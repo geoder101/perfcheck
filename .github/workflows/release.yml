@@ -34,10 +34,6 @@ jobs:
           python-version: "3.14"
       - run: just sync
       - run: just build
-      - name: Publish to PyPI
-        env:
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: uv run twine upload dist/* --skip-existing
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -49,6 +45,5 @@ jobs:
             gh release upload "$TAG" dist/* --clobber
           else
             gh release create "$TAG" dist/* \
-              --title "perfcheck $VERSION" \
-              --notes "Automated release from main."
+              --title "perfcheck $VERSION"
           fi
