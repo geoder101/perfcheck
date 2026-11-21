@@ -1,7 +1,7 @@
 # Composite action: set up the pinned CI toolchain (setup-uv + setup-just).
 #
-# Shared by ci.yml, pages.yml, release.yml, and mutation.yml so the pinned
-# toolchain is declared in one place and bumped in one step. Used inline with
+# Shared by ci.yml, pages.yml, and release.yml so the pinned toolchain is
+# declared in one place and bumped in one step. Used inline with
 # `uses: ./.github/actions/setup` so the installed `uv` and `just` stay on PATH
 # for the caller's `run:` steps. Each consumer performs its OWN inline checkout
 # before calling this.
