@@ -1,137 +1,137 @@
-# Workflow map
+# CI workflows
 
-These workflows check the project, retain quality evidence, publish documentation,
-and publish releases on the default branch. The YAML files are the source of truth
-for triggers, action tags, and tool versions.
-Actions are pinned to immutable commit SHAs with release tags in comments, not
-floating major tags. Source checkouts use the event SHA and disable persisted checkout credentials.
+This directory holds the GitHub Actions workflows for perfcheck-3.
+This file is the map of what each workflow does; the YAML files are the truth.
 
-## CI: fast gate, merge-time check, and coverage
+## Shared setup action
 
-[ci.yml](ci.yml) runs on pushes, pull requests, a nightly schedule, and manual
-dispatch, always with read-only contents access. It splits verification into three
-Linux jobs, cheapest first.
+The composite action at [`.github/actions/setup`](.github/actions/setup/action.yml)
+installs the pinned toolchain (`setup-uv`, `setup-just`) and keeps it declared and
+bumped in one place. Each consumer performs its **own** `actions/checkout@v7.0.1` at
+the event SHA, then calls the composite with `uses: ./.github/actions/setup`. Keeping
+checkout inline in the consumers while sharing one toolchain definition keeps the
+checkout pinned to an immutable SHA (enforced by `tests/test_ci_workflows.py`) and the
+toolchain versioned in a single place.
 
-- The fast gate runs `just fast-check` on every push and pull request. It exercises
-  lock verification, schema drift check, formatting, lint, types, tests, and
-  executable examples — everything except the docs render. It's the cheap, always-on
-  gate and is coverage-free and mutation-free.
-- After something reaches the default branch (a merge, a direct push, or a manual
-  dispatch from the default branch), the full-check job runs `just check`, adding
-  strict documentation builds and distribution builds on top of the fast gate. On
-  pull requests and schedules this job is skipped.
-- A scheduled job (plus manual dispatch) runs `just coverage-check`, the fresh
-  full-suite 99% combined statement-and-branch gate. It runs off the push/PR path
-  and doesn't depend on the other jobs.
-- Evidence export is attempted even after gate failure. Approved available
-  HTML, JSON, hidden raw `.coverage`, and provenance are retained for seven days.
+Call it with `uses: ./.github/actions/setup`; pass `just-version: "1.58.0"` where
+`just` is needed (it is the default, so most consumers omit it).
 
-Download evidence from the run's Actions artifact list. The tested SHA records
-the actual checkout; a pull request merge revision can differ from its separately
-labeled head SHA. Failed-gate evidence is partial, and unavailable reports aren't
-a passing measurement. See [coverage evidence](../../README.md#coverage-evidence)
-for interpretation and local output paths.
+## Job timeouts and artifact warnings
 
-## Mutation: manual advisory pilot
+Every job carries a `timeout-minutes` ceiling, and every upload uses
+`if-no-files-found: warn` so a missing artifact surfaces as a warning rather
+than a silent pass.
 
-[mutation.yml](mutation.yml) runs only through manual `workflow_dispatch` on
-Linux. It verifies a clean event-SHA checkout and fresh output locations before
-running the bounded, single-worker `just mutation` pilot.
+## `ci.yml` — CI
+
+**Triggers:** `pull_request` and `push` (any branch).
+
+| Job | Runs on | What it proves |
+|-----|---------|----------------|
+| `check` — "Fast gate (Linux)" | `ubuntu-latest` | The fast gate `just fast-check` passes: lock verification, schema drift check, formatting, lint, types, tests, and executable examples — everything except the docs render. It is the cheap, always-on gate and is coverage-free and mutation-free. |
+| `docs` — "Full check on default branch" | `ubuntu-latest` | Runs only on push to the default branch. Adds the strict documentation render (Node) and distribution builds on top of the fast gate via `just check`. Skipped on pull requests and non-default branches. |
+| `coverage` — "Coverage evidence" | `ubuntu-latest` | The fresh full-suite combined coverage gate (`just coverage-check`, fixed 99% threshold) passes, then exports approved evidence. |
+
+**Artifact:** `coverage-evidence-${{ github.run_id }}-${{ github.run_attempt }}`,
+uploaded with `if: always()` so it exists even when the gate fails. Contents:
+`coverage/evidence/html/` (the HTML report), `coverage/evidence/coverage.json`
+(machine-readable report), `coverage/evidence/.coverage` (the raw data file), and
+`coverage/evidence/provenance.json`. **Retention: 7 days.** Failed-gate evidence is
+partial, and unavailable reports aren't a passing measurement. See
+[coverage evidence](../../README.md#coverage-evidence) for interpretation and local
+output paths.
+
+## `pages.yml` — Documentation Pages
+
+**Triggers:** `push` to `main`.
+
+| Job | Runs on | What it proves |
+|-----|---------|----------------|
+| `build` | `ubuntu-latest` | Checks out the event SHA (`persist-credentials: false`), then proves the strict docs build (`just docs-check`, `-W`) passes. Uploads `docs/_build/html` as the `github-pages` artifact via `upload-pages-artifact`. |
+| `deploy` | `ubuntu-latest` | Reads the `github-pages` artifact by name and deploys it via the `deploy-pages` action in the `github-pages` environment (no separate download or configure step). The site URL is the **deployment output** (`steps.deployment.outputs.page_url`), surfaced on the environment — it is not hardcoded anywhere. |
+
+**Concurrency:** group `github-pages`, `cancel-in-progress: false` — deployments
+queue rather than cancel each other.
+
+### Pages authorization model
+
+- **Default-branch-only.** The trigger fires on pushes to `main` only, so pull
+  requests and non-default branches build and deploy nothing.
+- **PRs never deploy.** `pages.yml` does not trigger on `pull_request` (the
+  trigger is `main`-only), so pull requests build and deploy nothing; they are
+  checked by `ci.yml` only.
+- **The URL comes from deployment output.** The `deploy` job's
+  `environment.url` is `steps.deployment.outputs.page_url`, so the canonical
+  site URL is whatever GitHub Pages reports for the deployment — never an
+  invented or hardcoded value.
+- **Environment gate.** `deploy` runs in the `github-pages` environment, which
+  the repository owner restricts to the default branch. The job needs
+  `pages: write` and `id-token: write`; the workflow-level permission is
+  `contents: read`.
+
+Publication is docs-only: Furo/Sphinx HTML, including source-parsed internal
+AutoAPI reference. Coverage and mutation evidence never go to Pages.
+
+## `release.yml` — Release
+
+**Triggers:** `push` to `main` only. Workflow-level permission: `contents: write`.
+
+| Job | Runs on | What it proves |
+|-----|---------|----------------|
+| `test` | `ubuntu-latest` | The single gate `just check` passes on the pushed commit before anything is built or published. |
+| `publish` | `ubuntu-latest` | Runs only on `push` to `refs/heads/main`, in the `release` environment. Builds the wheel with `uv build`, then creates (or updates, with `--clobber`) the GitHub Release tagged `v<version>` from the wheel filename using the repository's built-in token. |
+
+Only the `publish` job receives `contents: write` (required to open the release);
+the `test` job and all other workflows stay read-only. The GitHub Release is gated
+on the default branch and the `release` environment; the `release` environment can
+additionally require a reviewer.
+
+## `mutation.yml` — manual advisory pilot
+
+**Triggers:** `workflow_dispatch` only.
+
+| Job | Runs on | What it proves |
+|-----|---------|----------------|
+| `mutation` | `ubuntu-latest` | Runs the bounded, single-worker `just mutation` pilot against an isolated aggregation-module snapshot with selected tests. Survivors are advisory, with no score gate. |
 
 This optional experiment targets an isolated aggregation-module snapshot with
-selected tests, not the whole application. Survivors are advisory, with no score
-gate. Infrastructure failures and invalid, incomplete, or unavailable evidence
-aren't passing experiments. Approved available evidence is retained for seven
-days in the run's Actions artifacts; the workflow also writes a summary.
+selected tests, not the whole application. Infrastructure failures and invalid,
+incomplete, or unavailable evidence aren't passing experiments. Approved available
+evidence is retained for seven days in the run's Actions artifacts; the workflow
+also writes a summary.
 
 Don't add mutation to routine checks. Read the root
 [optional mutation pilot](../../README.md#optional-mutation-pilot) guidance before
 running locally, especially how to preserve existing evidence and restore the
 ordinary environment afterward.
 
-## Pages: authorized documentation publication
+## Local smoke test with `act`
 
-[pages.yml](pages.yml) receives push and manual-dispatch events, but authorizes
-only the repository's actual default branch. Pull requests never deploy;
-non-default branches and tags are rejected before dependency installation or
-build. Don't assume the default branch is named `main`.
+Testing here is a two-layer strategy. The static policy tests in
+`tests/test_ci_workflows.py` enforce the invariants that `act` cannot check: every
+hosted action is pinned to an immutable commit SHA with a matching release-tag
+comment, and no forbidden token leaks into a workflow. Those two tests are the
+authority on pinning. `act` is a complementary tool, it renders the workflows and
+lets you iterate locally before pushing.
 
-Authorization and build have read-only contents permissions. The build checks
-out the authorized event SHA, then runs a
-fresh `just docs-check` and validates the publication tree. Only the dependent
-deploy job receives `pages: write` and `id-token: write`; it uses the same run's
-`github-pages` artifact and environment. The site URL comes from deployment output.
+The verified commands, run from the repo root:
 
-Publication is docs-only: Furo/Sphinx HTML, including source-parsed internal
-AutoAPI reference. Coverage and mutation evidence never go to Pages. Internal
-Python modules don't become a supported public API through publication.
+- `gh act --version`: confirm `act` is installed.
+- `gh act -l`: enumerate every job across all four workflows. This is the local
+  gate. It must show each job once (no duplicate job names).
+- `gh act -n -W .github/workflows/ci.yml -P default=catthehacker/ubuntu:22.04`:
+  dry-run the CI workflow against a container image without touching GitHub.
 
-Hosted CI runs on every push and pull request, and the Pages site publishes from
-the default branch under the default-branch-only environment restriction.
-
-## Release: GitHub release
-
-[release.yml](release.yml) triggers only on pushes to the default branch and runs
-a quality gate before anything is built or published.
-
-- `test` runs on `ubuntu-latest` with read-only contents. It runs `just check` (the
-  full gate: lock, schema drift, format, lint, types, tests, examples, docs render,
-  and build) on the pushed commit; nothing publishes until it is green.
-- `publish` needs `test`, runs only on `push` to the default branch, and runs in the
-  `release` environment. It syncs and builds the wheel with `uv build`, then creates
-  (or updates, with `--clobber`) a GitHub Release tagged `v<version>` from the wheel
-  filename using the repository's built-in token.
-
-Only the `publish` job receives `contents: write` (required to open the release); the
-`test` job and all other workflows stay read-only. The GitHub Release is gated on the
-default branch and the `release` environment; the `release` environment can
-additionally require a reviewer.
-
-## Workflow-content tests and local iteration
-
-These workflows are the source of truth, but two layers check them.
-
-The static policy tests in [tests/test_ci_workflows.py](../../tests/test_ci_workflows.py) enforce what `act` cannot: every `uses:` reference must pin to an immutable commit SHA with a matching tag comment, and no insecure trigger, leaked credential, or forbidden token may appear. These are the checks worth keeping as code, because a floating tag or a leaked credential slips past any dry-run. `act` runs a workflow to watch it execute; it does not assert the pinning or policy contract. Keep these two tests minimal on purpose, and treat `act` as the complementary local iteration tool, not a replacement for them.
-
-To iterate on a workflow locally, run `act` from the repository root, never in hosted CI:
+Container socket. `act` runs each job in a container, so the dry-run needs a
+reachable docker/podman socket. Point it at one with `DOCKER_HOST`, for example:
 
 ```bash
-gh act --version          # confirm the runner is present
-gh act -l                 # enumerate jobs; the local gate, must be warning-free
-# dry-run one workflow (needs a container socket, see below):
+export DOCKER_HOST=unix://run/podman.sock
 gh act -n -W .github/workflows/ci.yml -P default=catthehacker/ubuntu:22.04
 ```
 
-`gh act -l` enumerates every job across all four workflows and is the local gate here. The `gh act -n` dry-run actually starts a job, so it needs a reachable docker/podman socket. On a normal host with Podman, expose the socket and point `act` at it:
+## Keeping action pins in sync
 
-```bash
-podman system socket --user --listen /run/user/1000/podman/podman.sock
-DOCKER_HOST=unix:///run/user/1000/podman/podman.sock gh act -n -W .github/workflows/ci.yml -P default=catthehacker/ubuntu:22.04
-```
-
-In this sandbox the podman docker socket is not reachable, so the dry-run cannot run here (it fails connecting to `unix:///var/run/docker.sock`). Record that blocker and lean on `gh act -l` plus the static tests as the local gate until a socket is available. The dry-run recipe is for host-side runs, not for hosted CI.
-
-Maintenance: a future action-version bump must update the `EXPECTED_SHA`/`EXPECTED_TAG` table in `tests/test_ci_workflows.py` alongside the workflow, or the pin test fails.
-
-## Local equivalents and guidance
-
-Run commands from the repository root, not this directory. The
-[root README](../../README.md#quality-checks) lists native rendering prerequisites;
-the [justfile](../../justfile) owns the recipes.
-
-```bash
-just sync
-just docs-tools       # explicit native renderer setup, not needed in the container
-just fast-check       # fast CI gate (excludes the docs render)
-just check            # full local verification (adds docs render and build)
-just coverage-check   # full combined coverage gate
-just docs-check       # local documentation build, not a deployment
-```
-
-For the optional Unix-only pilot, follow the linked evidence-preservation steps,
-then run `just mutation` and `just sync` to restore ordinary dependencies.
-Local success doesn't establish hosted or cross-platform success.
-
-See [AGENTS.md](../../AGENTS.md) for repository-wide contributor rules and the
-[examples index](../../examples/README.md) for the executable CLI curriculum
-checked by `just examples-check` as part of `just check`.
+Every hosted action is pinned to an immutable commit SHA. When you bump an action
+version, update its entry in the `EXPECTED_SHA/EXPECTED_TAG` tables in
+`tests/test_ci_workflows.py` alongside the workflow, or the SHA-pin test fails.
