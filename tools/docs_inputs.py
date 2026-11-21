@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import errno
 import hashlib
 import sys
+import time
 from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
     from collections.abc import Generator
+    from typing import BinaryIO
 
 _ROOT: Final = Path(__file__).resolve().parents[1]
 
@@ -58,11 +61,12 @@ _LOCK_PATH: Final = _ROOT / ".docs_build.lock"
 
 @contextmanager
 def lock_build() -> Generator[None]:
-    """Serialize concurrent docs renders across processes on Unix (no-op on Windows)."""
-    if sys.platform == "win32":
-        yield
-        return
+    """Serialize concurrent docs renders across processes on every supported OS."""
     _LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if sys.platform == "win32":
+        with _LOCK_PATH.open("a+b") as handle, _windows_lock(handle):
+            yield
+        return
     handle = _LOCK_PATH.open("w")
     import fcntl  # noqa: PLC0415 - Unix-only; avoided on Windows
 
@@ -72,3 +76,26 @@ def lock_build() -> Generator[None]:
     finally:
         fcntl.flock(handle, fcntl.LOCK_UN)
         handle.close()
+
+
+@contextmanager
+def _windows_lock(handle: BinaryIO) -> Generator[None]:
+    import msvcrt  # noqa: PLC0415 - available only on Windows.
+
+    if handle.seek(0, 2) == 0:
+        _ = handle.write(b"\0")
+        handle.flush()
+    _ = handle.seek(0)
+    while True:
+        try:
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            break
+        except OSError as error:
+            if error.errno not in {errno.EACCES, errno.EDEADLK}:
+                raise
+            time.sleep(0.1)
+    try:
+        yield
+    finally:
+        _ = handle.seek(0)
+        msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)

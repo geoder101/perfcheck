@@ -56,6 +56,11 @@ scoped to `marimo._islands._island_generator`; remove it when Marimo migrates aw
 from the deprecated policies. It does not skip notebook tests or application
 warnings.
 
+Native documentation fixtures have a 900-second test budget covering their
+600-second Sphinx child and cross-process build-lock wait. Ordinary tests retain
+the 300-second default. Windows uses a byte-range lock instead of the Unix flock
+so parallel workers cannot render into the shared cache simultaneously.
+
 ## `pages.yml` — Documentation Pages
 
 **Triggers:** `push` to `main`.

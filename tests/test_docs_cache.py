@@ -8,6 +8,7 @@ running a real Sphinx render.
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 from typing import TYPE_CHECKING
 
@@ -130,6 +131,46 @@ def test_lock_build_excludes_second_acquisition(
     ):
         # Then: a non-blocking second acquisition conflicts and raises.
         fcntl.flock(conflict, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def test_build_lock_serializes_processes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: the parent holds a lock and a child announces before acquiring it.
+    lock = tmp_path / "build.lock"
+    monkeypatch.setattr(docs_inputs, "_LOCK_PATH", lock)
+    program = (
+        "import sys; from pathlib import Path; from tools import docs_inputs; "
+        "docs_inputs._LOCK_PATH = Path(sys.argv[1]); "
+        "print('ready', flush=True); "
+        "exec(\"with docs_inputs.lock_build():\\n print('acquired', flush=True)\")"
+    )
+    with docs_inputs.lock_build():
+        process = subprocess.Popen[str](
+            [sys.executable, "-c", program, str(lock)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        try:
+            assert process.stdout is not None
+            assert process.stdout.readline() == "ready\n"
+            # When: the child tries to acquire a held lock.
+            with pytest.raises(subprocess.TimeoutExpired):
+                _ = process.communicate(timeout=0.2)
+        except BaseException:
+            process.kill()
+            _ = process.communicate(timeout=10)
+            raise
+    # Then: releasing the parent allows the child to acquire and exit successfully.
+    try:
+        stdout, stderr = process.communicate(timeout=10)
+        assert process.returncode == 0, stderr
+        assert stdout.strip() == "acquired"
+    finally:
+        if process.poll() is None:
+            process.kill()
+            _ = process.communicate(timeout=10)
 
 
 @pytest.mark.parametrize(
