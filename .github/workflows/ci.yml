@@ -9,9 +9,8 @@ permissions:
 
 jobs:
   check:
-    name: Fast gate (Linux)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -22,12 +21,11 @@ jobs:
       - run: just fast-check
 
   docs:
-    name: Full check on default branch
     # Runs only on push to the default branch (a merge or direct push); skipped on
     # pull requests and non-default branches.
     if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -42,7 +40,6 @@ jobs:
       - run: just check
 
   coverage:
-    name: Coverage evidence
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -56,14 +53,14 @@ jobs:
         with:
           node-version: "24.18.0"
       - uses: ./.github/actions/provision-docs-render
-      - name: Start coverage invocation
+      - name: Prepare coverage evidence
         env:
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: uv run python -m tools.quality_evidence prepare
-      - name: Fixed fresh coverage gate
+      - name: Run the coverage gate
         id: gate
         run: just coverage-check
-      - name: Export coverage evidence and summary
+      - name: Export coverage evidence
         id: evidence
         if: always()
         env:

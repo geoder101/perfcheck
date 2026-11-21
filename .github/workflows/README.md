@@ -13,7 +13,7 @@ checkout inline in the consumers while sharing one toolchain definition keeps th
 checkout pinned to an immutable SHA (enforced by `tests/test_ci_workflows.py`) and the
 toolchain versioned in a single place.
 
-Call it with `uses: ./.github/actions/setup`; pass `just-version: "1.58.0"` where
+Call it with `uses: ./.github/actions/setup`; pass `just-version: "1.59.0"` where
 `just` is needed (it is the default, so most consumers omit it).
 
 ## Job timeouts and artifact warnings
@@ -28,18 +28,17 @@ than a silent pass.
 
 | Job | Runs on | What it proves |
 |-----|---------|----------------|
-| `check` — "Fast gate (Linux)" | `ubuntu-latest` | The fast gate `just fast-check` passes: lock verification, schema drift check, formatting, lint, types, tests, and executable examples — everything except the docs render. It is the cheap, always-on gate and is coverage-free and mutation-free. |
-| `docs` — "Full check on default branch" | `ubuntu-latest` | Runs only on push to the default branch. Adds the strict documentation render (Node) and distribution builds on top of the fast gate via `just check`. Skipped on pull requests and non-default branches. |
-| `coverage` — "Coverage evidence" | `ubuntu-latest` | The fresh full-suite combined coverage gate (`just coverage-check`, fixed 99% threshold) passes, then exports approved evidence. |
+| `check` | `ubuntu-latest` | The fast gate `just fast-check` passes: lock verification, schema drift check, formatting, lint, types, tests, and executable examples — everything except the docs render. It is the cheap, always-on gate and is coverage-free and mutation-free. |
+| `docs` | `ubuntu-latest` | Runs only on push to the default branch. Adds the strict documentation render (Node) and distribution builds on top of the fast gate via `just check`. Skipped on pull requests and non-default branches. |
+| `coverage` | `ubuntu-latest` | The fresh full-suite combined coverage gate (`just coverage-check`, fixed 99% threshold) passes, then exports approved evidence. |
 
-**Artifact:** `coverage-evidence-${{ github.run_id }}-${{ github.run_attempt }}`,
-uploaded with `if: always()` so it exists even when the gate fails. Contents:
-`coverage/evidence/html/` (the HTML report), `coverage/evidence/coverage.json`
-(machine-readable report), `coverage/evidence/.coverage` (the raw data file), and
-`coverage/evidence/provenance.json`. **Retention: 7 days.** Failed-gate evidence is
-partial, and unavailable reports aren't a passing measurement. See
-[coverage evidence](../../README.md#coverage-evidence) for interpretation and local
-output paths.
+**Artifact:** `coverage-evidence-${{ github.run_id }}-${{ github.run_attempt }}`, uploaded with
+`if: always()` so it exists even when the gate fails. Contents: `coverage/evidence/html/`
+(the HTML report), `coverage/evidence/coverage.json` (machine-readable report),
+`coverage/evidence/.coverage` (the raw data file), and `coverage/evidence/provenance.json`.
+**Retention: 7 days.** Failed-gate evidence is partial, and unavailable reports aren't a
+passing measurement. See [coverage evidence](../../README.md#coverage-evidence) for
+interpretation and local output paths.
 
 ## `pages.yml` — Documentation Pages
 
@@ -74,12 +73,12 @@ AutoAPI reference. Coverage and mutation evidence never go to Pages.
 
 ## `release.yml` — Release
 
-**Triggers:** `push` to `main` only. Workflow-level permission: `contents: write`.
+**Triggers:** `push` to `main` only. Workflow-level permission: `contents: read`.
 
 | Job | Runs on | What it proves |
 |-----|---------|----------------|
 | `test` | `ubuntu-latest` | The single gate `just check` passes on the pushed commit before anything is built or published. |
-| `publish` | `ubuntu-latest` | Runs only on `push` to `refs/heads/main`, in the `release` environment. Builds the wheel with `uv build`, then creates (or updates, with `--clobber`) the GitHub Release tagged `v<version>` from the wheel filename using the repository's built-in token. |
+| `publish` | `ubuntu-latest` | Runs only on `push` to `refs/heads/main`, in the `release` environment. Builds the wheel with `just build`, then creates (or updates, with `--clobber`) the GitHub Release tagged `v<version>` from the wheel filename using the repository's built-in token. |
 
 Only the `publish` job receives `contents: write` (required to open the release);
 the `test` job and all other workflows stay read-only. The GitHub Release is gated
