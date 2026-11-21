@@ -11,6 +11,8 @@ import pytest
 
 from tests.docs_build import assert_local_svg_urls
 
+pytestmark = pytest.mark.docs_render
+
 _DOCS: Final = Path(__file__).parents[1] / "docs"
 _AUTHORED_PAGES: Final = tuple(
     source.relative_to(_DOCS).with_suffix(".html")

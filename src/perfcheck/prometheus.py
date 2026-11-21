@@ -174,15 +174,12 @@ def _build_request_provenance(
 
 
 def _auth_secrets(auth_config: AuthConfig) -> tuple[str, ...]:
-    """Exact secret strings to scrub for the resolved auth scheme.
-
-    Only the fields populated for ``scheme`` are present, so filtering the three
-    candidate fields yields ``(token,)`` for bearer, ``(username, password)`` for
-    basic, and ``()`` for none.
-    """
+    """Scrub both plaintext credentials and their wire representation."""
+    authorization = _auth_headers(auth_config).get("Authorization")
     return tuple(
         value
         for value in (
+            authorization.split(" ", 1)[1] if authorization else None,
             auth_config.bearer_token,
             auth_config.basic_username,
             auth_config.basic_password,
@@ -200,7 +197,7 @@ def _auth_headers(auth_config: AuthConfig) -> dict[str, str]:
             return {"Authorization": f"Bearer {auth_config.bearer_token}"}
         case AuthScheme.BASIC:
             credentials = f"{auth_config.basic_username}:{auth_config.basic_password}"
-            encoded = base64.b64encode(credentials.encode("ascii")).decode("ascii")
+            encoded = base64.b64encode(credentials.encode("utf-8")).decode("ascii")
             return {"Authorization": f"Basic {encoded}"}
         case _:
             assert_never(auth_config.scheme)

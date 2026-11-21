@@ -224,7 +224,7 @@ def options(seed: int | None, resamples: int | None) -> CohortBootstrapOptions |
 
 def preflight_paths(paths: tuple[Path, ...], force: bool) -> None:
     """Reject existing or duplicate explicit destinations before any mutation."""
-    if len(paths) != len(set(paths)):
+    if len(paths) != len({path.resolve() for path in paths}):
         raise CliInputError(CliInputCode.OUTPUT_PATHS_DISTINCT)
     if not force and any(path.exists() for path in paths):
         raise CliInputError(CliInputCode.OUTPUT_EXISTS)

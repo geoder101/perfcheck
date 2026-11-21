@@ -75,6 +75,7 @@ _MISSING_PYTHON_REFERENCES: Final = (
 )
 
 
+@pytest.mark.docs_render
 def test_docs_build_rejects_missing_python_references(tmp_path: Path) -> None:
     # Given: fresh sources containing a broken internal and external reference.
     copy_docs_project(_CONF.parents[1], tmp_path)
@@ -111,6 +112,7 @@ extensions = ["sphinx.ext.imgmath", "sphinxcontrib.mermaid"]
 
 
 @pytest.mark.parametrize("failure", ["missing", "nonzero", "no-output"])
+@pytest.mark.docs_render
 def test_docs_build_rejects_renderer_failure(failure: str, tmp_path: Path) -> None:
     # Given: a fresh build with an unavailable or broken build-time renderer.
     _mermaid_project(tmp_path)
@@ -134,6 +136,7 @@ def test_docs_build_rejects_renderer_failure(failure: str, tmp_path: Path) -> No
         assert 'class="mermaid"' not in html.read_text(encoding="utf-8")
 
 
+@pytest.mark.docs_render
 def test_docs_build_rejects_invalid_mermaid(tmp_path: Path) -> None:
     # Given: an authored Mermaid syntax error alongside the valid workflow.
     _mermaid_project(tmp_path)
@@ -147,6 +150,7 @@ def test_docs_build_rejects_invalid_mermaid(tmp_path: Path) -> None:
     assert "parse error" in result.stderr.lower()
 
 
+@pytest.mark.docs_render
 def test_docs_build_accepts_supported_mermaid_config_types(tmp_path: Path) -> None:
     # Given: a real build using list argv and a boolean shell=False configuration.
     _mermaid_project(tmp_path)

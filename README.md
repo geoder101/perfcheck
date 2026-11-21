@@ -117,7 +117,8 @@ over its env var. No policy is involved.
 | `--prometheus-auth-basic-password` | Basic password, matched by `PERFCHECK_PROMETHEUS_BASIC_PASSWORD`.      |
 
 `none` sends no `Authorization` header, `bearer` sends `Authorization: Bearer
-<token>`, and `basic` sends `Authorization: Basic <base64(user:pass)>`. Setting
+<token>`, and `basic` sends `Authorization: Basic <base64(user:pass)>`, encoding
+the username and password as UTF-8 before Base64 encoding. Setting
 only `PERFCHECK_PROMETHEUS_BEARER_TOKEN` still infers bearer auth. The resolved
 scheme and header are forwarded to the transport only; the token and password
 never reach the artifact, labels, provenance, logs, or CLI output. An

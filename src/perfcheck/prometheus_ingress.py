@@ -37,6 +37,7 @@ _SENSITIVE_KEY_NAMES: Final = frozenset(
     }
 )
 _BEARER_VALUE: Final = re.compile(r"(?i)\bbearer\s+[^\s,;]+")
+_BASIC_VALUE: Final = re.compile(r"(?i)\bbasic\s+[a-z0-9+/]+={0,2}")
 _ASSIGNMENT_CREDENTIAL_VALUE: Final = re.compile(
     r"""(?ix)
     \b(
@@ -140,7 +141,8 @@ def redact_text(value: str, secrets: tuple[str, ...]) -> str:
         if secret:
             secret_safe = secret_safe.replace(secret, _REDACTED)
     bearer_safe = _BEARER_VALUE.sub(f"Bearer {_REDACTED}", secret_safe)
-    return _ASSIGNMENT_CREDENTIAL_VALUE.sub(rf"\1{_REDACTED}", bearer_safe)
+    basic_safe = _BASIC_VALUE.sub(f"Basic {_REDACTED}", bearer_safe)
+    return _ASSIGNMENT_CREDENTIAL_VALUE.sub(rf"\1{_REDACTED}", basic_safe)
 
 
 def redact_json(value: JsonValue, secrets: tuple[str, ...]) -> JsonValue:

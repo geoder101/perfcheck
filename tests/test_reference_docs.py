@@ -88,6 +88,7 @@ def _git(*arguments: str) -> subprocess.CompletedProcess[str]:
     )
 
 
+@pytest.mark.docs_render
 def test_reference_contract_covers_source_manifest_and_navigation(
     built_docs: Path,
 ) -> None:
@@ -160,6 +161,7 @@ def test_reference_contract_covers_source_manifest_and_navigation(
     )
 
 
+@pytest.mark.docs_render
 def test_generated_reference_excludes_private_and_special_members(
     built_docs: Path,
 ) -> None:

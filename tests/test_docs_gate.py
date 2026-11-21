@@ -6,12 +6,11 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
+import pytest
 from tools import docs_gate
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    import pytest
 
 _ROOT: Final = Path(__file__).resolve().parents[1]
 
@@ -185,3 +184,33 @@ def test_gate_forces_build_with_fresh_flag_when_index_missing(
     assert steps == ["clean", "html"]
     recorded = (tmp_path / "stored_key").read_text(encoding="utf-8").strip()
     assert recorded == key
+
+
+@pytest.mark.parametrize("failed_step", ["clean", "html"])
+def test_failed_forced_build_cannot_reuse_old_html(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, failed_step: str
+) -> None:
+    # Given: matching cached inputs and old HTML that survives a failed rebuild.
+    key = "stable-hash"
+    monkeypatch.setattr(docs_gate, "docs_input_sha", lambda: key)
+    index = tmp_path / "index.html"
+    _ = index.write_text("old HTML", encoding="utf-8")
+    monkeypatch.setattr(docs_gate, "_BUILT_INDEX", index)
+    _install_key(monkeypatch, tmp_path, key)
+
+    def fail(command: Sequence[str], *_args: object) -> int:
+        return 1 if failed_step in command else 0
+
+    monkeypatch.setattr(docs_gate, "_execute_build", fail)
+    monkeypatch.setattr(sys, "argv", ["tools.docs_gate", "--fresh"])
+
+    # When: a forced build fails, then an ordinary invocation retries.
+    failed = docs_gate.main()
+    steps = _track_build(monkeypatch)
+    monkeypatch.setattr(sys, "argv", ["tools.docs_gate"])
+    retried = docs_gate.main()
+
+    # Then: retained HTML does not count as a successful build.
+    assert failed == 1
+    assert retried == 0
+    assert steps == ["clean", "html"]

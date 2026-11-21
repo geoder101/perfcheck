@@ -18,7 +18,13 @@ _DOC_INPUT_GLOBS: Final = (
     "docs/**/*.rst",
     "docs/conf.py",
     "docs/_templates/**",
+    "docs/_static/**",
+    "pyproject.toml",
+    "uv.lock",
     "tools/mermaid.py",
+    "tools/docs_inputs.py",
+    "tools/docs_gate.py",
+    "tools/docs/package*.json",
     "tools/docs/puppeteer*.json",
 )
 
@@ -33,7 +39,12 @@ def docs_input_sha() -> str:
     hasher = hashlib.sha256()
     for pattern in _DOC_INPUT_GLOBS:
         for path in sorted(docs_root().glob(pattern)):
-            if not path.is_file():
+            relative = path.relative_to(docs_root())
+            if (
+                not path.is_file()
+                or "_build" in relative.parts
+                or relative.is_relative_to("docs/reference/api")
+            ):
                 continue
             hasher.update(path.relative_to(docs_root()).as_posix().encode("utf-8"))
             hasher.update(b"\0")

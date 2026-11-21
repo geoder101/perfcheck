@@ -156,3 +156,25 @@ def test_response_facade_preserves_malformed_response_provenance() -> None:
     assert parsed.provenance.status_code == 502
     assert parsed.provenance.body is None
     assert parsed.envelope is None
+
+
+@pytest.mark.parametrize("scheme", ["Basic", "basic", "BASIC"])
+def test_response_redacts_unconfigured_basic_credentials(scheme: str) -> None:
+    # Given: an upstream echoes a Basic credential unrelated to configured auth.
+    encoded = "YWxpY2U6cGFzc3cwcmQ="
+    response = httpx2.Response(
+        200,
+        json={
+            "status": "success",
+            "data": {"resultType": "matrix", "result": []},
+            "warnings": [f"upstream used {scheme} {encoded}"],
+            "infos": [f"Authorization: {scheme} {encoded}"],
+        },
+    )
+
+    # When: the response crosses ingress without any configured secrets.
+    parsed = response_provenance(response, ())
+
+    # Then: generic header recognition still scrubs the encoded credentials.
+    assert encoded not in repr(parsed)
+    assert "[REDACTED]" in repr(parsed)

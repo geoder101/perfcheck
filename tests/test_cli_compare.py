@@ -1,4 +1,4 @@
-from pathlib import Path  # noqa: TC003 - pytest resolves fixture annotations.
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -247,11 +247,26 @@ def test_compare_rejects_bootstrap_overrides_for_baseline_reference(
     assert not list(tmp_path.glob("report.*"))
 
 
+@pytest.mark.parametrize("alias", ["same", "parent", "relative", "symlink"])
 def test_compare_rejects_duplicate_report_destinations(
-    tmp_path: Path, compare_arguments: list[str]
+    tmp_path: Path,
+    compare_arguments: list[str],
+    monkeypatch: pytest.MonkeyPatch,
+    alias: str,
 ) -> None:
     # Given: both requested formats target the same new path.
     output = tmp_path / "report"
+    (tmp_path / "sub").mkdir()
+    monkeypatch.chdir(tmp_path)
+    destination = output
+    if alias == "parent":
+        destination = tmp_path / "sub" / ".." / "report"
+    elif alias == "relative":
+        destination = Path("report")
+    elif alias == "symlink":
+        link = tmp_path / "link"
+        link.symlink_to(tmp_path, target_is_directory=True)
+        destination = link / "report"
 
     # When: even forced comparison receives duplicate destinations.
     result = CliRunner().invoke(
@@ -261,7 +276,7 @@ def test_compare_rejects_duplicate_report_destinations(
             "--report-json",
             str(output),
             "--report-md",
-            str(output),
+            str(destination),
             "--force",
         ],
     )

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path  # noqa: TC003 - pytest resolves the fixture annotation.
-from typing import TYPE_CHECKING, TypedDict
+from typing import TypedDict
 
 import httpx2
+import pytest
 from pydantic import TypeAdapter
 from typer.testing import CliRunner
 
@@ -12,9 +13,6 @@ from perfcheck.cli import app
 from perfcheck.model_types import Direction, MetricId, MetricUnit, Statistic
 from perfcheck.policy_models import MetricPolicy, SuitePolicy
 from perfcheck.storage import policy_content_sha256
-
-if TYPE_CHECKING:
-    import pytest
 
 
 class _MetricProvenancePayload(TypedDict):
@@ -190,15 +188,16 @@ def test_collect_env_fallback_for_bearer(
     _assert_basic_header(requests, "Bearer env-token")
 
 
+@pytest.mark.parametrize("password", ["s3cret", "123£"])
 def test_collect_basic_env_vars_resolve(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, password: str
 ) -> None:
     # Given: basic auth credentials in the environment.
     policy_path, output = tmp_path / "policy.json", tmp_path / "run.json"
     _write_policy(policy_path, _policy())
     monkeypatch.setenv("PERFCHECK_PROMETHEUS_AUTH_SCHEME", "basic")
     monkeypatch.setenv("PERFCHECK_PROMETHEUS_BASIC_USERNAME", "svc")
-    monkeypatch.setenv("PERFCHECK_PROMETHEUS_BASIC_PASSWORD", "s3cret")
+    monkeypatch.setenv("PERFCHECK_PROMETHEUS_BASIC_PASSWORD", password)
     requests: list[httpx2.Request] = []
     _install_transport(monkeypatch, requests)
 
@@ -207,7 +206,7 @@ def test_collect_basic_env_vars_resolve(
 
     # Then: the resolved Basic header encodes the env username and password.
     assert result.exit_code == 0
-    expected = "Basic " + base64.b64encode(b"svc:s3cret").decode("ascii")
+    expected = "Basic " + base64.b64encode(f"svc:{password}".encode()).decode("ascii")
     _assert_basic_header(requests, expected)
 
 
@@ -257,3 +256,67 @@ def test_collect_no_auth_by_default_sends_no_authorization_header(
     assert len(requests) == 2
     for request in requests:
         assert request.headers.get("authorization") is None
+
+
+def test_collect_redacts_echoed_basic_credentials(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Given: an upstream echoes both the Basic header and its bare encoded payload.
+    policy_path, output = tmp_path / "policy.json", tmp_path / "run.json"
+    policy = _policy()
+    policy = policy.model_copy(
+        update={
+            "metrics": tuple(
+                metric.model_copy(update={"expected_label_names": ("echo",)})
+                for metric in policy.metrics
+            ),
+        }
+    )
+    policy = policy.model_copy(update={"policy_sha256": policy_content_sha256(policy)})
+    _write_policy(policy_path, policy)
+    username, password = "alice", "123£"
+    encoded = base64.b64encode(f"{username}:{password}".encode()).decode("ascii")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        assert request.headers["authorization"] == f"Basic {encoded}"
+        return httpx2.Response(
+            200,
+            json={
+                "status": "success",
+                "data": {
+                    "resultType": "matrix",
+                    "result": [
+                        {
+                            "metric": {"echo": f"Basic {encoded}; payload={encoded}"},
+                            "values": [[1767225600, "1.5"]],
+                        }
+                    ],
+                },
+            },
+        )
+
+    monkeypatch.setattr(
+        "perfcheck.collection_service.create_collection_client",
+        lambda: httpx2.AsyncClient(transport=httpx2.MockTransport(handler)),
+    )
+
+    # When: the real CLI collects and persists the response.
+    result = CliRunner().invoke(
+        app,
+        [
+            *_arguments(policy_path, output),
+            "--prometheus-auth-scheme",
+            "basic",
+            "--prometheus-auth-basic-user",
+            username,
+            "--prometheus-auth-basic-password",
+            password,
+        ],
+    )
+
+    # Then: collection succeeds with redacted labels and secret-free evidence.
+    assert result.exit_code == 0, result.output
+    persisted = output.read_text(encoding="utf-8")
+    assert "[REDACTED]" in persisted
+    for secret in (username, password, encoded):
+        assert secret not in persisted + result.output

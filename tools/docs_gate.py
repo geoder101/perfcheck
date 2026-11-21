@@ -55,14 +55,13 @@ def is_up_to_date(key: str) -> bool:
 def main() -> int:
     """Skip the rebuild when render inputs are unchanged; always fail on warnings."""
     args = sys.argv[1:]
-    key = docs_input_sha()
-    if "--fresh" in args:
-        _ = _STORED_KEY.write_text(key, encoding="utf-8")
-    if "--fresh" not in args and is_up_to_date(key):
-        _ = sys.stdout.write("docs up to date; skipping rebuild\n")
-        return 0
     environment = _mermaid_cli_env()
     with lock_build():
+        key = docs_input_sha()
+        if "--fresh" not in args and is_up_to_date(key):
+            _ = sys.stdout.write("docs up to date; skipping rebuild\n")
+            return 0
+        _STORED_KEY.unlink(missing_ok=True)
         clean_exit = _execute_build(
             ["sphinx-build", "-M", "clean", "docs", str(_ROOT / "docs/_build")],
             _ROOT,

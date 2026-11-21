@@ -129,3 +129,48 @@ def test_lock_build_excludes_second_acquisition(
     ):
         # Then: a non-blocking second acquisition conflicts and raises.
         fcntl.flock(conflict, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+@pytest.mark.parametrize(
+    "relative",
+    [
+        "docs/_static/custom.css",
+        "docs/_static/landing.svg",
+        "uv.lock",
+        "pyproject.toml",
+        "tools/docs/package.json",
+        "tools/docs/package-lock.json",
+    ],
+)
+def test_render_input_changes_invalidate_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, relative: str
+) -> None:
+    # Given: an authored asset or dependency input in an isolated project.
+    monkeypatch.setattr(docs_inputs, "docs_root", lambda: tmp_path)
+    path = tmp_path / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    _ = path.write_text("old", encoding="utf-8")
+    previous = docs_inputs.docs_input_sha()
+
+    # When: its contents change without changing its name.
+    _ = path.write_text("new", encoding="utf-8")
+
+    # Then: the cached render becomes ineligible for reuse.
+    assert docs_inputs.docs_input_sha() != previous
+
+
+def test_generated_docs_do_not_invalidate_cache(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Given: an isolated project's render fingerprint.
+    monkeypatch.setattr(docs_inputs, "docs_root", lambda: tmp_path)
+    previous = docs_inputs.docs_input_sha()
+
+    # When: Sphinx and AutoAPI write generated output.
+    for relative in ("docs/_build/output.rst", "docs/reference/api/index.rst"):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        _ = path.write_text("generated", encoding="utf-8")
+
+    # Then: generated files are not render inputs.
+    assert docs_inputs.docs_input_sha() == previous
