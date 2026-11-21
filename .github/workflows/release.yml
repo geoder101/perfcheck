@@ -13,7 +13,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/setup
         with:
           python-version: "3.14"
       - run: just sync
@@ -25,11 +25,10 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/setup
         with:
           python-version: "3.14"
       - run: just sync

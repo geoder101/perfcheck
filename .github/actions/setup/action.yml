@@ -1,22 +1,18 @@
 # Composite action: set up the pinned CI toolchain (setup-uv + setup-just).
 #
-# Checkout stays inline in each job because the event SHA, credential scope, and
-# any post-checkout verification differ per workflow (the pages build checks out
-# an authorized SHA, the mutation pilot verifies a clean event SHA). Calling this
-# action after checkout installs uv and just so they stay on PATH for the caller's
-# `run:` steps, and declares the pinned toolchain in one place to bump in one step.
-name: Set up CI toolchain
-description: Install the pinned uv and just CI toolchain on top of the checkout.
+# Shared by ci.yml, pages.yml, release.yml, and mutation.yml so the pinned
+# toolchain is declared in one place and bumped in one step. Used inline with
+# `uses: ./.github/actions/setup` so the installed `uv` and `just` stay on PATH
+# for the caller's `run:` steps. Each consumer performs its OWN inline checkout
+# before calling this.
+name: Set up toolchain
+description: Install the pinned uv and just CI toolchain on top of each consumer's inline checkout.
 
 inputs:
   python-version:
     description: Python version to install via setup-uv.
     required: false
     default: "3.14"
-  enable-cache:
-    description: Whether setup-uv should enable the uv dependency cache.
-    required: false
-    default: "true"
   just-version:
     description: Just version to install; leave empty to skip this step.
     required: false
@@ -29,7 +25,7 @@ runs:
       uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       with:
         python-version: ${{ inputs.python-version }}
-        enable-cache: ${{ inputs.enable-cache }}
+        enable-cache: true
     - name: Set up just
       if: ${{ inputs.just-version != '' }}
       uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0

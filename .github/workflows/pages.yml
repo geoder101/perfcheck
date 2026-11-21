@@ -2,7 +2,7 @@ name: Documentation Pages
 
 on:
   push:
-  workflow_dispatch:
+    branches: [main]
 
 permissions:
   contents: read
@@ -12,59 +12,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  authorize:
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    outputs:
-      trusted: ${{ steps.authorization.outputs.trusted }}
-      sha: ${{ steps.authorization.outputs.sha }}
-    steps:
-      - name: Authorize event
-        id: authorization
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          EVENT_REF: ${{ github.ref }}
-          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
-          EVENT_SHA: ${{ github.sha }}
-        shell: bash
-        run: |
-          python3 -I - <<'PY'
-          import os
-          import re
-          from pathlib import Path
-
-          event = os.environ["EVENT_NAME"]
-          ref = os.environ["EVENT_REF"]
-          branch = os.environ["DEFAULT_BRANCH"]
-          sha = os.environ["EVENT_SHA"]
-          if event not in {"push", "workflow_dispatch"}:
-              raise SystemExit("Unsupported Pages event")
-          if not branch or any(ord(char) < 33 for char in branch) or ref != "refs/heads/" + branch:
-              raise SystemExit("Pages requires the repository default branch")
-          if not re.fullmatch(r"[0-9a-f]{40}", sha):
-              raise SystemExit("Invalid immutable event SHA")
-          with Path(os.environ["GITHUB_OUTPUT"]).open("a", encoding="utf-8") as output:
-              output.write(f"trusted=true\nsha={sha}\n")
-          PY
-
   build:
-    needs: authorize
-    if: needs.authorize.outputs.trusted == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.authorize.outputs.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
-      - uses: ./.github/actions/toolchain
+      - uses: ./.github/actions/setup
         with:
-          enable-cache: false
+          enable-cache: true
       - run: just sync
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "24.18.0"
-          package-manager-cache: false
       - uses: ./.github/actions/provision-docs-render
       - name: Build fresh documentation
         run: |

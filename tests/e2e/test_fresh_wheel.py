@@ -133,7 +133,7 @@ def test_check_requires_lock_and_build_gates() -> None:
     assert '[unix]\nset shell := ["sh", "-cu"]' in recipe
     assert '[windows]\nset shell := ["powershell.exe", "-NoLogo", "-Command"]' in recipe
     assert f"check: {' '.join(check_dependencies)}" in recipe
-    assert "uses: ./.github/actions/toolchain" in workflow
+    assert "uses: ./.github/actions/setup" in workflow
     assert "- run: just check" in workflow
 
 

@@ -152,8 +152,7 @@ def test_workflow_is_manual_bounded_and_read_only() -> None:
     assert "permissions:\n  contents: read\n" in workflow
     assert "runs-on: ubuntu-latest" in workflow
     assert "timeout-minutes: 15" in workflow
-    assert "uses: ./.github/actions/toolchain" in workflow
-    assert "enable-cache: false" in workflow
+    assert "uses: ./.github/actions/setup" in workflow
     assert "ref: ${{ github.sha }}" in workflow
     assert "persist-credentials: false" in workflow
     assert (
@@ -187,7 +186,7 @@ def test_workflow_is_manual_bounded_and_read_only() -> None:
 
 def test_action_sha_pins_match_verified_official_releases() -> None:
     # Given: live-verified immutable commit SHAs and their release tags. The
-    # setup-uv/setup-just pins now live in the shared toolchain action, so the
+    # setup-uv/setup-just pins now live in the shared setup action, so the
     # mutation workflow only references checkout and upload-artifact inline.
     expected_sha = {
         "actions/checkout": "3d3c42e5aac5ba805825da76410c181273ba90b1",

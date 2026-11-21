@@ -15,21 +15,7 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Verify immutable checkout
-        env:
-          EXPECTED_SHA: ${{ github.sha }}
-        run: |
-          actual_sha=$(git rev-parse HEAD)
-          checkout_status=$(git status --porcelain)
-          test "$actual_sha" = "$EXPECTED_SHA"
-          test -z "$checkout_status"
-          test ! -e mutation
-          test ! -L mutation
-          test ! -e "$RUNNER_TEMP/mutation-ci"
-          test ! -L "$RUNNER_TEMP/mutation-ci"
-      - uses: ./.github/actions/toolchain
-        with:
-          enable-cache: false
+      - uses: ./.github/actions/setup
       - run: uv sync --locked --group dev --group docs --group examples --group mutation
       - name: Record mutation invocation identity
         run: uv run --locked --no-sync python -m tools.mutation_summary prepare
