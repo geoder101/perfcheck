@@ -6,6 +6,7 @@ Use these guides when you already know the CLI or repository task you need to do
 .. toctree::
    :maxdepth: 1
 
+   create-a-policy
    collect-a-run
    prometheus-authentication
    summarize-evidence
