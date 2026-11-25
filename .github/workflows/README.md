@@ -24,7 +24,7 @@ than a silent pass.
 
 ## `ci.yml` — CI
 
-**Triggers:** `pull_request` and `push` (any branch).
+**Triggers:** `pull_request`, plus `workflow_call` when `main` is pushed to (via the Release workflow).
 
 | Job | Runs on | What it proves |
 |-----|---------|----------------|
