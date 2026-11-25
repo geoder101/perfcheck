@@ -15,7 +15,7 @@ versioned JSON Schema in ``schemas/``. It is a pure authoring aid: perfcheck
 strips it before validation, so it never blocks validation and never affects
 ``policy_content_sha256`` or policy identity. ``stamp`` preserves a present
 ``$schema`` verbatim, and ``policy check`` WARNS (without changing the exit
-status) when the pointer references an unknown or older schema version.
+status) when the pointer references an unrecognized schema version.
 
 Cohort minimums and comparison mode
 -----------------------------------

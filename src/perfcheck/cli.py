@@ -215,7 +215,7 @@ def check_command(
 
     Requires ``--input``. Exits ``0`` when the policy validates and ``3`` for
     invalid JSON, a schema failure, or a content-hash mismatch. A ``$schema``
-    pointer referencing an unknown or older perfcheck schema version prints a
+    pointer that is not a recognized perfcheck schema version prints a
     warning on stderr but still exits ``0``.
     """
 

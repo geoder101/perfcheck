@@ -315,7 +315,7 @@ def test_policy_check_does_not_warn_on_current_or_absent_pointer(
     for result in (current_result, plain_result):
         assert result.exit_code == 0
         assert "is valid" in result.output
-        assert "unknown or older" not in result.output
+        assert "warning:" not in result.output
 
 
 def test_policy_with_schema_pointer_still_rejects_a_stale_hash(

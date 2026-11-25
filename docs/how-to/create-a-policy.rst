@@ -75,7 +75,7 @@ Expected observable
 Stamping rewrites the policy and reports the destination. Checking prints
 ``policy my-suite-policy is valid (09515a29db08)`` and exits ``0``. A malformed
 policy, a schema failure, or a content-hash mismatch exits ``3``. A ``$schema``
-pointer to an unknown or older schema version prints a warning on stderr but
+pointer to an unrecognized schema version prints a warning on stderr but
 still exits ``0``.
 
 Related material

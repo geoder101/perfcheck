@@ -79,14 +79,14 @@ def schema_pointer(path: Path) -> str | None:
 
 
 def warn_schema_pointer(pointer: str | None) -> None:
-    """Warn on stderr when a policy ``$schema`` pointer is unknown or older."""
+    """Warn on stderr when a policy ``$schema`` pointer is an unrecognized version."""
     if pointer is None:
         return
     major = _schema_pointer_major(pointer)
     if major is None or major not in SCHEMA_VERSIONS or major < CURRENT_SCHEMA_VERSION:
         template = (
-            "warning: policy $schema pointer {!r} is unknown or older "
-            "than the current schema version {}"
+            "warning: policy $schema pointer {!r} is not a recognized "
+            "perfcheck schema version; the current version is v{}"
         )
         _console.print(template.format(pointer, CURRENT_SCHEMA_VERSION))
 

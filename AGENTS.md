@@ -95,7 +95,8 @@ unless [README's public scope](README.md#scope) changes in the same work.
 - `$schema` is an authoring-only aid. perfcheck strips a data-level
   `$schema` before validation and never lets it affect policy identity or the
   content hash (`policy_content_sha256`). `stamp` preserves a present pointer
-  verbatim; `policy check` WARNS on an unknown or older pointer version.
+  verbatim; `policy check` WARNS when the pointer references an unrecognized
+  schema version.
 - Hosted raw URLs serve from the default branch. This is a hosted schema
   contract, not a Python-API compatibility promise.
 

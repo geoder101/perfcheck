@@ -69,7 +69,7 @@ perfcheck treats `$schema` as metadata only:
 - `perfcheck policy stamp` preserves a present `$schema` verbatim in its
   canonical output.
 - `perfcheck policy check` WARNS (the exit status stays `0`) when the pointer
-  references an unknown or older perfcheck schema version.
+  references an unrecognized perfcheck schema version.
 
 The generated schema separately permits the data-level `$schema` so editors do
 not flag it against the strict policy body.
