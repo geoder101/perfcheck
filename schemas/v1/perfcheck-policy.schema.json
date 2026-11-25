@@ -239,7 +239,7 @@
       "type": "integer"
     }
   },
-  "$id": "https://perfcheck/schemas/v1/perfcheck-policy.schema.json",
+  "$id": "https://raw.githubusercontent.com/geoder101/perfcheck/refs/heads/main/schemas/v1/perfcheck-policy.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "description": "An immutable, hash-addressed version-one collection policy snapshot.",

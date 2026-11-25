@@ -14,15 +14,15 @@ cleanup. See the [root scope statement](../README.md#scope).
 ## Hosted pointer convention
 
 The schema is pinned to a single major version and served raw from the default
-branch:
+branch so editors can fetch it to validate a policy as it is authored:
 
 - Committed path: `schemas/v1/perfcheck-policy.schema.json`
-- `$id` and draft: `https://perfcheck/schemas/v1/perfcheck-policy.schema.json`
+- `$id` and the value a policy's `$schema` points at:
+  `https://raw.githubusercontent.com/geoder101/perfcheck/refs/heads/main/schemas/v1/perfcheck-policy.schema.json`
   (JSON Schema draft 2020-12)
-- Hosted raw URL: the committed path served raw from the default branch
 
-Authors resolve the pointer with their editor or AI tooling. The pointer pins the
-exact major version; it does not track patch or minor changes.
+Editors and AI tooling resolve this single public URL. It pins the exact major
+version; it does not track patch or minor changes.
 
 ## Versioning and immutability
 
@@ -39,11 +39,11 @@ verify drift with `just schema-check`, which is part of `just check`.
 ## Authoring a policy with `$schema`
 
 A policy file may carry a top-level `$schema` property that points at the
-hosted pointer. It is a pure authoring aid:
+hosted raw URL. It is a pure authoring aid:
 
 ```json
 {
-  "$schema": "https://perfcheck/schemas/v1/perfcheck-policy.schema.json",
+  "$schema": "https://raw.githubusercontent.com/geoder101/perfcheck/refs/heads/main/schemas/v1/perfcheck-policy.schema.json",
   "policy_id": "my-policy",
   "suite_id": "my-suite",
   "policy_sha256": "0000000000000000000000000000000000000000000000000000000000000000",

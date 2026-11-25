@@ -32,7 +32,10 @@ from perfcheck import model_types
 from perfcheck.policy_models import SuitePolicy
 
 SCHEMA_DRAFT_URI: Final = "https://json-schema.org/draft/2020-12/schema"
-SCHEMA_ID: Final = "https://perfcheck/schemas/v1/perfcheck-policy.schema.json"
+SCHEMA_ID: Final = (
+    "https://raw.githubusercontent.com/geoder101/perfcheck/refs/heads/main/"
+    "schemas/v1/perfcheck-policy.schema.json"
+)
 SCHEMA_PATH: Final = (
     Path(__file__).resolve().parents[1]
     / "schemas"
