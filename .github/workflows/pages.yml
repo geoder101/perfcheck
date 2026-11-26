@@ -49,7 +49,12 @@ jobs:
         run: |
           set -euo pipefail
           BEFORE=$(jq -r '.before // empty' "$GITHUB_EVENT_PATH")
-          if [ -z "$BEFORE" ] || ! git rev-parse --verify -q "$BEFORE" >/dev/null 2>&1; then
+          # A `.before` removed by a force-push (or absent from a shallow clone) is a
+          # "bad object": `rev-parse --verify` can still resolve it while `git diff`
+          # exits 128. Verify the object actually exists; if not, fall back to the
+          # empty tree (=> all paths => code => full gate), never silently skip a gate.
+          if [ -z "$BEFORE" ] || ! git rev-parse --verify -q "$BEFORE" >/dev/null 2>&1 \
+            || ! git cat-file -e "$BEFORE" >/dev/null 2>&1; then
             BEFORE=4b825dc642cb6eb9a060e54bf8d69288fbee4904   # git empty-tree SHA; robust vs root commit
           fi
           git diff --name-only "$BEFORE" "$GITHUB_SHA" \
