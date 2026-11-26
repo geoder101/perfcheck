@@ -22,6 +22,54 @@ Every job carries a `timeout-minutes` ceiling, and every upload uses
 `if-no-files-found: warn` so a missing artifact surfaces as a warning rather
 than a silent pass.
 
+## Change-scope gating
+
+By default a `main` push runs the full cross-OS matrix, the 99% coverage gate,
+the wheel/sdist build, the release, and the Pages build+deploy — every gate and
+build, even for a one-word docs fix. Change-scope gating classifies each push and
+runs only what the change needs. It is computed by a shared `ci-scan` job added
+to `ci.yml`, `pages.yml`, and `release.yml`.
+
+The `ci-scan` job does a full clone (`fetch-depth: 0`) and diffs
+`github.event.before..github.sha` (a tree-diff, so one commit, N commits, or a
+merge commit collapse to the same changed-path set). It pipes the changed paths
+to the stdlib tool `tools.ci_git_diff_scope`, which writes three job outputs:
+`scope` (`docs`, `other`, or `code`), `render` (`true`/`false`), and
+`full_gate` (`true` when `scope == code`). Consumers declare `needs: ci-scan`
+and read `needs.ci-scan.outputs.{scope,render,full_gate}`. The job installs the
+pinned toolchain via `./.github/actions/setup` so `uv run` works, then runs only
+the scan step (no sync, node, or provisioning), so it stays cheap on every push
+and on PRs.
+
+The classifier mirrors the docs render inputs (`tools/docs_inputs._DOC_INPUT_GLOBS`,
+which excludes `.md` because Sphinx renders only `.rst`) and matches paths with
+`pathlib.PurePath.full_match` (glob semantics), so `docs/**/*.rst` matches both
+`docs/index.rst` and a nested `docs/how-to/a.rst`.
+
+| Tier | When it applies | Effect |
+|------|-----------------|--------|
+| `docs` | Changed set is nonempty and a subset of the docs-only paths (render inputs plus prose `.md` anywhere). Evaluated first. | Render-only: skip the heavy matrix/coverage/build; the site renders and deploys only when a render input changes. |
+| `other` | Changed set is nonempty, not docs, and a subset of registered chores (`LICENSE`, `.gitignore`, `CHANGELOG.md`, oc-selector host config). | Pure chore: short-circuits with no jobs at all. |
+| `code` | Default: anything that intersects a gate path, or any unlisted/unknown path. | Full gate: matrix, coverage, build, release, and render (when a render input changes). |
+
+Ordering is `docs -> other -> code`; a mixed docs+code set resolves to `code`
+(the matrix runs), so an unknown path can never silently skip a gate.
+
+Gating per workflow:
+
+- **`ci.yml`:** the `check` job runs on a pull request always (regression safety),
+  otherwise only when `full_gate`; inside it, `just check` runs when `render` is
+  true and `just fast-check` otherwise (skipping the Mermaid/Chrome/LaTeX render
+  for a prose-only change while tests/lint/types/coverage/build still run). The
+  `coverage` job runs only when `full_gate`.
+- **`pages.yml`:** `build` and `deploy` run only when `render` is true. `authorize`
+  still precedes `build` to preserve the default-branch ordering.
+- **`release.yml`:** `publish` runs only when `scope == code`; docs-only/other
+  pushes skip the wheel/sdist build (the version check already no-ops unchanged tags).
+
+No new hosted action exists, so the SHA-pin contract in `tests/test_ci_workflows.py`
+is unchanged, and pull requests still always run the matrix.
+
 ## `ci.yml` — CI
 
 **Triggers:** `pull_request`, plus `workflow_call` when `main` is pushed to (via the Release workflow).
