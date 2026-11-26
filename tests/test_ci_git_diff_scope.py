@@ -131,6 +131,7 @@ def test_cli_emits_scope_render_full_gate(
 ) -> None:
     # Given: changed paths on stdin.
     monkeypatch.setattr("sys.stdin", io.StringIO("\n".join(changed) + "\n"))
+    monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
     # When: the CLI runs.
     exit_code = main()
     # Then: it exits 0 and writes the exact scope/render/full_gate triple to stdout.
@@ -163,6 +164,7 @@ def test_cli_is_idempotent_across_runs(
 ) -> None:
     # Given: a code change on stdin.
     monkeypatch.setattr("sys.stdin", io.StringIO("src/perfcheck/cli.py\n"))
+    monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
     # When: the CLI runs twice over fresh stdin each time.
     _ = main()
     first = capsys.readouterr().out
@@ -182,6 +184,7 @@ def test_cli_handles_crlf_and_blank_lines(
         "sys.stdin",
         io.StringIO("docs/how-to/x.rst\r\n\r\n   README.md   \r\n"),
     )
+    monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
     # When: the CLI runs.
     _ = main()
     # Then: blank lines drop and each path is stripped before classify.
@@ -194,6 +197,7 @@ def test_cli_preserves_spaces_in_paths(
 ) -> None:
     # Given: a path containing internal spaces.
     monkeypatch.setattr("sys.stdin", io.StringIO("docs/my file.rst\n"))
+    monkeypatch.delenv("GITHUB_OUTPUT", raising=False)
     # When: the CLI runs.
     _ = main()
     # Then: internal spaces survive; the path still classifies as docs.
